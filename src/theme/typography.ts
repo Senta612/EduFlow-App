@@ -1,3 +1,5 @@
+import { ms } from "react-native-size-matters";
+
 export const typography = {
   weights: {
     regular: "400" as const,
@@ -7,11 +9,11 @@ export const typography = {
   },
 
   sizes: {
-    xs: 12,
-    sm: 14,
-    base: 16,
-    lg: 18,
-    xl: 20,
-    xxl: 24,
+    xs: ms(12),
+    sm: ms(14),
+    base: ms(16),
+    lg: ms(18),
+    xl: ms(20),
+    xxl: ms(24),
   },
 } as const;
