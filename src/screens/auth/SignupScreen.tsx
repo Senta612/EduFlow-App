@@ -25,7 +25,11 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'student', label: 'Student' },
 ];
 
-export function SignupScreen() {
+interface SignupScreenProps {
+  onSwitchToLogin: () => void;
+}
+
+export function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -237,6 +241,17 @@ export function SignupScreen() {
           onPress={handleSubmit(onSubmit)}
         />
       </View>
+
+      <View style={styles.switchContainer}>
+        <Text variant="body" style={styles.switchText}>
+          Already have an account?
+        </Text>
+        <Pressable onPress={onSwitchToLogin} hitSlop={8}>
+          <Text variant="label" style={styles.switchLink}>
+            Sign in
+          </Text>
+        </Pressable>
+      </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -315,5 +330,20 @@ const styles = StyleSheet.create({
 
   eyeButton: {
     padding: theme.spacing.xs,
+  },
+
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.xs,
+  },
+
+  switchText: {
+    color: theme.colors.text.secondary,
+  },
+
+  switchLink: {
+    color: theme.colors.primary.main,
   },
 });
