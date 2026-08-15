@@ -1,7 +1,15 @@
+import { Feather } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -19,6 +27,8 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
 
 export function SignupScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     control,
@@ -59,11 +69,16 @@ export function SignupScreen() {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.header}>
         <Text variant="title">Create Account</Text>
         <Text variant="body" style={styles.subtitle}>
@@ -117,9 +132,22 @@ export function SignupScreen() {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              secureTextEntry
+              secureTextEntry={!showPassword}
               autoCapitalize="none"
               error={errors.password?.message}
+              rightContent={
+                <Pressable
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  hitSlop={8}
+                  style={styles.eyeButton}
+                >
+                  <Feather
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={theme.colors.text.secondary}
+                  />
+                </Pressable>
+              }
             />
           )}
         />
@@ -134,9 +162,22 @@ export function SignupScreen() {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              secureTextEntry
+              secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               error={errors.confirmPassword?.message}
+              rightContent={
+                <Pressable
+                  onPress={() => setShowConfirmPassword((prev) => !prev)}
+                  hitSlop={8}
+                  style={styles.eyeButton}
+                >
+                  <Feather
+                    name={showConfirmPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={theme.colors.text.secondary}
+                  />
+                </Pressable>
+              }
             />
           )}
         />
@@ -196,7 +237,8 @@ export function SignupScreen() {
           onPress={handleSubmit(onSubmit)}
         />
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -269,5 +311,9 @@ const styles = StyleSheet.create({
   submitError: {
     color: theme.colors.semantic.danger.main,
     textAlign: 'center',
+  },
+
+  eyeButton: {
+    padding: theme.spacing.xs,
   },
 });
