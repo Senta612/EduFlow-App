@@ -1,12 +1,20 @@
-import { spacing, theme, typography } from '@/theme';
-import { StyleSheet, Text, View } from "react-native";
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Text } from '@/components/ui/Text';
+import { spacing, theme } from '@/theme';
+import { StyleSheet, View } from "react-native";
 
 export default function Index() {
   const color = theme.colors;
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>EduFlow</Text>
-      <Text style={styles.subTitle}>This is the 1408/2026 starting the app EduFlow gole is the earn a 5CR from this </Text>
+      <Text variant="title" >EduFlow</Text>
+      <Text variant="body">This is the 1408/2026 starting the app EduFlow gole is the earn a 5CR from this </Text>
+      <Input label="Email" placeholder="Enter your email" keyboardType="email-address" leftContent={<Text>✉️</Text>} />
+      <Input label="Password" placeholder="Enter your password" secureTextEntry rightContent={<Text variant="caption">Show</Text>} />
+
+      <Button title="Get Started" fullWidth />
+      <Button title="Get Started" variant="secondary" />
     </View >
   )
 }
@@ -19,15 +27,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
     backgroundColor: color.background.screen,
+    gap: spacing.sm,
   },
-  title: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: color.text.primary,
-  },
-  subTitle: {
-    fontSize: typography.sizes.base,
-    marginTop: spacing.sm,
-    color: color.text.secondary,
-  }
 })
