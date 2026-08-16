@@ -1,5 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
@@ -14,15 +15,11 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
-import { supabase } from '@/lib/supabase';
+import { signIn } from '@/services/auth.service';
 import { theme } from '@/theme';
 import { loginSchema, LoginFormData } from '@/types/auth';
 
-interface LoginScreenProps {
-  onSwitchToSignup: () => void;
-}
-
-export function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
+export default function LoginScreen() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -41,10 +38,7 @@ export function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
   const onSubmit = async (data: LoginFormData) => {
     setLoginError(null);
 
-    const { data: authData, error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
+    const { error } = await signIn(data.email, data.password);
 
     if (error) {
       setLoginError(error.message);
@@ -52,10 +46,8 @@ export function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
     }
 
     // Logged in successfully.
-    // authData.user contains the Supabase user.
-    // Next: fetch the profile to determine teacher/student role.
-    // The useAuth onAuthStateChange listener will also fire,
-    // making isAuthenticated=true and redirecting to /(app).
+    // The AuthProvider's onAuthStateChange listener will fire,
+    // loading the profile and redirecting based on role.
   };
 
   return (
@@ -144,7 +136,7 @@ export function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
           <Text variant="body" style={styles.switchText}>
             Don't have an account?
           </Text>
-          <Pressable onPress={onSwitchToSignup} hitSlop={8}>
+          <Pressable onPress={() => router.replace('/signup')} hitSlop={8}>
             <Text variant="label" style={styles.switchLink}>
               Create one
             </Text>

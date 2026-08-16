@@ -2,14 +2,15 @@ import { Stack } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 
 import { useAuth } from '@/hooks/useAuth';
+import { AuthProvider } from '@/providers/AuthProvider';
 import { theme } from '@/theme';
 
-export default function RootLayout() {
-  const { isAuthenticated, loading } = useAuth();
+function RootNavigator() {
+  const { user, profile, isLoading } = useAuth();
 
   // Show a splash/loading state while we check for an existing session.
   // This prevents flashing the auth screen for logged-in users.
-  if (loading) {
+  if (isLoading) {
     return (
       <View
         style={{
@@ -24,13 +25,32 @@ export default function RootLayout() {
     );
   }
 
+  const isAuthenticated = !!user;
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={isAuthenticated}>
-        <Stack.Screen name="(app)" />
+      {/* Authenticated teacher routes — owns / when role is teacher */}
+      <Stack.Protected guard={isAuthenticated && profile?.role === 'teacher'}>
+        <Stack.Screen name="(teacher)" />
       </Stack.Protected>
 
-      <Stack.Screen name="index" />
+      {/* Authenticated student routes — owns / when role is student */}
+      <Stack.Protected guard={isAuthenticated && profile?.role === 'student'}>
+        <Stack.Screen name="(student)" />
+      </Stack.Protected>
+
+      {/* Unauthenticated routes — owns / when logged out */}
+      <Stack.Protected guard={!isAuthenticated}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
   );
 }

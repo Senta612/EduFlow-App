@@ -2,19 +2,21 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import { theme } from '@/theme';
 
-export default function HomeScreen() {
+export default function StudentHomeScreen() {
+  const { profile, signOut } = useAuth();
+
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
   };
 
   return (
     <View style={styles.container}>
-      <Text variant="title">Welcome to EduFlow</Text>
+      <Text variant="title">Student Dashboard</Text>
       <Text variant="body" style={styles.subtitle}>
-        You are signed in. Dashboard coming soon.
+        Welcome, {profile?.full_name ?? 'Student'}! Your dashboard is coming soon.
       </Text>
 
       <Button
