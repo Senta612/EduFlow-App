@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,7 +16,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
-import { signUp } from '@/services/auth.service';
+import { signUp, getFriendlyAuthMessage } from '@/services/auth.service';
 import { theme } from '@/theme';
 import { SignupFormData, signupSchema } from '@/types/auth';
 
@@ -25,6 +26,17 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'teacher', label: 'Teacher' },
   { value: 'student', label: 'Student' },
 ];
+
+function showEmailConfirmationAlert() {
+  Alert.alert(
+    'Confirm your email',
+    "We've sent a confirmation link to your email. Please confirm your email before logging in.",
+    [
+      { text: 'Cancel', style: 'cancel', onPress: () => {} },
+      { text: 'Go to Login', onPress: () => router.replace('/login') },
+    ],
+  );
+}
 
 export default function SignupScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -49,15 +61,23 @@ export default function SignupScreen() {
   const onSubmit = async (data: SignupFormData) => {
     setSubmitError(null);
 
-    const { error } = await signUp(data);
+    const { error, errorKind, requiresEmailConfirmation } = await signUp(data);
 
-    if (error) {
-      setSubmitError(error.message);
+    if (error || errorKind) {
+      setSubmitError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
 
-    // Signup successful - email confirmation may be required.
-    // The database trigger will create the profile row in `profiles`.
+    // Email confirmation required: do not navigate anywhere. Supabase issues
+    // no session for an unconfirmed signup, so the AuthProvider stays on the
+    // auth group and the user only proceeds to login once confirmed.
+    if (requiresEmailConfirmation) {
+      showEmailConfirmationAlert();
+      return;
+    }
+
+    // Otherwise a session was issued (account already confirmed/auto-confirm),
+    // and the AuthProvider routes the user into the app based on role.
   };
 
   return (

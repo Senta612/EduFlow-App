@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
-import { signIn } from '@/services/auth.service';
+import { signIn, getFriendlyAuthMessage } from '@/services/auth.service';
 import { theme } from '@/theme';
 import { loginSchema, LoginFormData } from '@/types/auth';
 
@@ -38,10 +38,12 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginFormData) => {
     setLoginError(null);
 
-    const { error } = await signIn(data.email, data.password);
+    const { error, errorKind } = await signIn(data.email, data.password);
 
-    if (error) {
-      setLoginError(error.message);
+    if (error || errorKind) {
+      // Unconfirmed users get a clear, actionable message and stay on login.
+      // Friendly copy keeps Supabase details out of the UI.
+      setLoginError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
 
