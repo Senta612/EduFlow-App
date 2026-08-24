@@ -29,3 +29,16 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   return { error };
 }
+
+// Deep link base configured for this app via the "eduflow" scheme in app.json.
+// When the user opens the reset link from the email, Supabase redirects them
+// back to the app at this address (the future password-reset screen route).
+export const PASSWORD_RESET_REDIRECT_URL = 'eduflow://reset-password';
+
+export async function resetPassword(email: string) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: PASSWORD_RESET_REDIRECT_URL,
+  });
+
+  return { data, error };
+}

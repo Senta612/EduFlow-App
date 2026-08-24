@@ -118,6 +118,16 @@ export default function LoginScreen() {
             )}
           />
 
+          <Pressable
+            onPress={() => router.push('/forgot-password')}
+            hitSlop={8}
+            style={styles.forgotPassword}
+          >
+            <Text variant="label" style={styles.forgotPasswordLink}>
+              Forgot password?
+            </Text>
+          </Pressable>
+
           {loginError && (
             <Text variant="caption" style={styles.submitError}>
               {loginError}
@@ -179,6 +189,15 @@ const styles = StyleSheet.create({
 
   eyeButton: {
     padding: theme.spacing.xs,
+  },
+
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    paddingTop: theme.spacing.xs,
+  },
+
+  forgotPasswordLink: {
+    color: theme.colors.primary.main,
   },
 
   switchContainer: {
