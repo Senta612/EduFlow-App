@@ -4,6 +4,7 @@ import {
   ReactNode,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -31,85 +32,59 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const activeUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        const {
-          data: { session: currentSession },
-        } = await supabase.auth.getSession();
-
-        if (!mounted) {
-          return;
-        }
-
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-
-        if (currentSession?.user) {
-          try {
-            const currentProfile =
-              await profileService.getCurrentProfile();
-
-            if (mounted) {
-              setProfile(currentProfile);
-            }
-          } catch (error) {
-            console.error('Failed to load profile:', error);
-            console.log('Error details:', error);
-
-            if (mounted) {
-              setProfile(null);
-            }
-          }
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error('Failed to initialize auth:', error);
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        if (!mounted) {
-          return;
-        }
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!mounted) {
+        return;
+      }
 
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
+      const newUser = newSession?.user ?? null;
 
-        if (newSession?.user) {
-          try {
-            const currentProfile =
-              await profileService.getCurrentProfile();
-
-            if (mounted) {
-              setProfile(currentProfile);
-            }
-          } catch (error) {
-            console.error('Failed to load profile:', error);
-
-            if (mounted) {
-              setProfile(null);
-            }
-          }
-        } else {
-          setProfile(null);
-        }
-
+      // When signed out or no session exists
+      if (event === 'SIGNED_OUT' || !newSession || !newUser) {
+        activeUserIdRef.current = null;
+        setSession(null);
+        setUser(null);
+        setProfile(null);
         setIsLoading(false);
-      },
-    );
+        return;
+      }
+
+      setSession(newSession);
+      setUser(newUser);
+
+      // On TOKEN_REFRESHED, if active user ID has not changed, avoid re-fetching profile
+      if (event === 'TOKEN_REFRESHED' && activeUserIdRef.current === newUser.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch or update profile if user changed or profile is not yet loaded
+      if (activeUserIdRef.current !== newUser.id) {
+        try {
+          const currentProfile = await profileService.getCurrentProfile();
+          if (mounted) {
+            activeUserIdRef.current = newUser.id;
+            setProfile(currentProfile);
+          }
+        } catch (error) {
+          console.error('Failed to load profile:', error);
+          if (mounted) {
+            setProfile(null);
+          }
+        }
+      }
+
+      if (mounted) {
+        setIsLoading(false);
+      }
+    });
 
     return () => {
       mounted = false;
@@ -118,10 +93,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    // Synchronously clear local state for instant user feedback
+    activeUserIdRef.current = null;
+    setUser(null);
+    setSession(null);
+    setProfile(null);
 
+    const { error } = await supabase.auth.signOut();
     if (error) {
-      throw error;
+      console.error('Sign out error:', error);
     }
   };
 

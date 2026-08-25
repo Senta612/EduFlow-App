@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
-import { signUp, getFriendlyAuthMessage } from '@/services/auth.service';
+import { getFriendlyAuthMessage, signUp } from '@/services/auth.service';
 import { theme } from '@/theme';
 import { SignupFormData, signupSchema } from '@/types/auth';
 
@@ -32,7 +32,7 @@ function showEmailConfirmationAlert() {
     'Confirm your email',
     "We've sent a confirmation link to your email. Please confirm your email before logging in.",
     [
-      { text: 'Cancel', style: 'cancel', onPress: () => {} },
+      { text: 'Cancel', style: 'cancel', onPress: () => { } },
       { text: 'Go to Login', onPress: () => router.replace('/login') },
     ],
   );
@@ -67,17 +67,10 @@ export default function SignupScreen() {
       setSubmitError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
-
-    // Email confirmation required: do not navigate anywhere. Supabase issues
-    // no session for an unconfirmed signup, so the AuthProvider stays on the
-    // auth group and the user only proceeds to login once confirmed.
     if (requiresEmailConfirmation) {
       showEmailConfirmationAlert();
       return;
     }
-
-    // Otherwise a session was issued (account already confirmed/auto-confirm),
-    // and the AuthProvider routes the user into the app based on role.
   };
 
   return (

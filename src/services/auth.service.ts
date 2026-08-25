@@ -174,3 +174,29 @@ export async function resetPassword(email: string) {
 
   return { data, error };
 }
+
+export interface UpdatePasswordResult {
+  user: User | null;
+  error: AuthError | null;
+  errorKind: AuthErrorKind | null;
+}
+
+export async function updatePassword(password: string): Promise<UpdatePasswordResult> {
+  const { data, error } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (error) {
+    return {
+      user: null,
+      error,
+      errorKind: classifyAuthError(error),
+    };
+  }
+
+  return {
+    user: data.user ?? null,
+    error: null,
+    errorKind: null,
+  };
+}

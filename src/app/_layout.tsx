@@ -1,4 +1,5 @@
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -7,6 +8,37 @@ import { theme } from '@/theme';
 
 function RootNavigator() {
   const { user, profile, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inTeacherGroup = segments[0] === '(teacher)';
+    const inStudentGroup = segments[0] === '(student)';
+
+    const isAuthenticated = Boolean(user);
+    const role = profile?.role;
+
+    if (!isAuthenticated) {
+      if (!inAuthGroup) {
+        router.replace('/(auth)/login');
+      }
+    } else {
+      if (role === 'teacher') {
+        if (!inTeacherGroup) {
+          router.replace('/(teacher)');
+        }
+      } else if (role === 'student') {
+        if (!inStudentGroup) {
+          router.replace('/(student)');
+        }
+      }
+    }
+  }, [user, profile, isLoading, segments, router]);
 
   // Show a splash/loading state while we check for an existing session.
   // This prevents flashing the auth screen for logged-in users.
@@ -25,24 +57,11 @@ function RootNavigator() {
     );
   }
 
-  const isAuthenticated = !!user;
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {/* Authenticated teacher routes — owns / when role is teacher */}
-      <Stack.Protected guard={isAuthenticated && profile?.role === 'teacher'}>
-        <Stack.Screen name="(teacher)" />
-      </Stack.Protected>
-
-      {/* Authenticated student routes — owns / when role is student */}
-      <Stack.Protected guard={isAuthenticated && profile?.role === 'student'}>
-        <Stack.Screen name="(student)" />
-      </Stack.Protected>
-
-      {/* Unauthenticated routes — owns / when logged out */}
-      <Stack.Protected guard={!isAuthenticated}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(teacher)" />
+      <Stack.Screen name="(student)" />
     </Stack>
   );
 }
