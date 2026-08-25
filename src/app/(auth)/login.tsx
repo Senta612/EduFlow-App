@@ -41,13 +41,10 @@ export default function LoginScreen() {
     const { error, errorKind } = await signIn(data.email, data.password);
 
     if (error || errorKind) {
-      // Unconfirmed users get a clear, actionable message and stay on login.
-      // Friendly copy keeps Supabase details out of the UI.
       setLoginError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
 
-    // Logged in successfully.
     // The AuthProvider's onAuthStateChange listener will fire,
     // loading the profile and redirecting based on role.
   };
