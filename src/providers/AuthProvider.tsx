@@ -1,10 +1,10 @@
 import { Session, User } from '@supabase/supabase-js';
 import {
   createContext,
+  ReactNode,
   useContext,
   useEffect,
   useState,
-  ReactNode,
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
@@ -57,6 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           } catch (error) {
             console.error('Failed to load profile:', error);
+            console.log('Error details:', error);
 
             if (mounted) {
               setProfile(null);
