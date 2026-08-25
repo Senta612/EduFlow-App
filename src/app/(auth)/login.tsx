@@ -15,9 +15,9 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
-import { signIn, getFriendlyAuthMessage } from '@/services/auth.service';
+import { getFriendlyAuthMessage, signIn } from '@/services/auth.service';
 import { theme } from '@/theme';
-import { loginSchema, LoginFormData } from '@/types/auth';
+import { LoginFormData, loginSchema } from '@/types/auth';
 
 export default function LoginScreen() {
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -44,9 +44,6 @@ export default function LoginScreen() {
       setLoginError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
-
-    // The AuthProvider's onAuthStateChange listener will fire,
-    // loading the profile and redirecting based on role.
   };
 
   return (
