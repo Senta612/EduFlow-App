@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -42,6 +42,7 @@ export default function CreateTestScreen() {
   const { batchId: initialBatchId } = useLocalSearchParams<{ batchId?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [batches, setBatches] = useState<Batch[]>([]);
 
@@ -62,6 +63,12 @@ export default function CreateTestScreen() {
   });
 
   const selectedBatchId = watch('batchId');
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
 
   useEffect(() => {
     async function loadBatches() {
@@ -116,24 +123,28 @@ export default function CreateTestScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader
-          title="Create Assessment"
-          subtitle="Schedule a test & set maximum marks"
-          showBack
-        />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScreenHeader
+        title="Create Assessment"
+        subtitle="Schedule a test & set maximum marks"
+        showBack
+      />
 
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 10 : 0}
+      >
         <ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 32 },
+            { paddingBottom: Math.max(insets.bottom + 220, 260) },
           ]}
-          keyboardShouldPersistTaps="handled"
         >
           {/* Batch Selector */}
           <View style={styles.formGroup}>
@@ -199,6 +210,7 @@ export default function CreateTestScreen() {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                onFocus={scrollToBottom}
                 error={errors.date?.message}
               />
             )}
@@ -215,6 +227,7 @@ export default function CreateTestScreen() {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                onFocus={scrollToBottom}
                 keyboardType="numeric"
                 error={errors.maxMarks?.message}
               />
@@ -232,8 +245,8 @@ export default function CreateTestScreen() {
             />
           </View>
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 

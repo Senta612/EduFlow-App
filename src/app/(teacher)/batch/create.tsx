@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,14 +23,14 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { teacherService } from '@/services/teacher.service';
 import { theme } from '@/theme';
 
-const GRADE_OPTIONS = [
-  'Grade 6',
-  'Grade 7',
-  'Grade 8',
-  'Grade 9',
-  'Grade 10',
-  'Grade 11',
-  'Grade 12',
+const CLASS_OPTIONS = [
+  'Class 6',
+  'Class 7',
+  'Class 8',
+  'Class 9',
+  'Class 10',
+  'Class 11',
+  'Class 12',
   'Other',
 ];
 
@@ -49,6 +50,7 @@ const TIME_PRESETS = [
   '12:30 PM - 02:00 PM',
   '03:00 PM - 04:30 PM',
   '05:00 PM - 06:30 PM',
+  '07:00 PM - 08:30 PM',
 ];
 
 const createBatchSchema = z.object({
@@ -62,7 +64,7 @@ const createBatchSchema = z.object({
     .trim()
     .min(2, 'Subject must be at least 2 characters')
     .max(40, 'Subject cannot exceed 40 characters'),
-  grade: z.string().min(1, 'Please select a grade/level'),
+  grade: z.string().min(1, 'Please select a class'),
   timing: z
     .string()
     .trim()
@@ -76,6 +78,7 @@ type CreateBatchFormData = z.infer<typeof createBatchSchema>;
 export default function CreateBatchScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [selectedDays, setSelectedDays] = useState<string[]>(['Mon', 'Wed', 'Fri']);
   const [daysError, setDaysError] = useState<string | null>(null);
@@ -91,14 +94,20 @@ export default function CreateBatchScreen() {
     defaultValues: {
       name: '',
       subject: '',
-      grade: 'Grade 10',
+      grade: 'Class 10',
       timing: '10:00 AM - 11:30 AM',
       room: '',
     },
   });
 
-  const selectedGrade = watch('grade');
+  const selectedClass = watch('grade');
   const selectedTiming = watch('timing');
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
 
   const toggleDay = (dayId: string) => {
     setDaysError(null);
@@ -106,7 +115,6 @@ export default function CreateBatchScreen() {
       if (prev.includes(dayId)) {
         return prev.filter((d) => d !== dayId);
       } else {
-        // Maintain standard week order
         const weekOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const updated = [...prev, dayId];
         return updated.sort(
@@ -136,7 +144,7 @@ export default function CreateBatchScreen() {
 
       Alert.alert(
         'Batch Created!',
-        `"${newBatch.subject} - ${newBatch.name}" is now ready. You can now view its workspace.`,
+        `"${newBatch.subject} - ${newBatch.name}" (${newBatch.grade}) is now ready.`,
         [
           {
             text: 'Open Workspace',
@@ -156,24 +164,28 @@ export default function CreateBatchScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader
-          title="Create Batch"
-          subtitle="Create a new teaching group"
-          showBack
-        />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScreenHeader
+        title="Create Batch"
+        subtitle="Create a new tuition teaching group"
+        showBack
+      />
 
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 10 : 0}
+      >
         <ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 32 },
+            { paddingBottom: Math.max(insets.bottom + 220, 260) },
           ]}
-          keyboardShouldPersistTaps="handled"
         >
           {/* Informational Banner */}
           <View style={styles.infoBanner}>
@@ -194,7 +206,7 @@ export default function CreateBatchScreen() {
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Batch Name"
-                placeholder="e.g. Morning Alpha or Batch A"
+                placeholder="e.g. Morning Batch A or Evening Alpha"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
@@ -210,7 +222,7 @@ export default function CreateBatchScreen() {
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Subject"
-                placeholder="e.g. Mathematics, Physics, Chemistry"
+                placeholder="e.g. Mathematics, Physics, Chemistry, Biology"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
@@ -219,22 +231,30 @@ export default function CreateBatchScreen() {
             )}
           />
 
-          {/* Grade / Level Selector */}
+          {/* Class / Standard Selector */}
           <View style={styles.formGroup}>
-            <Text variant="label" style={styles.fieldLabel}>
-              Grade / Level
-            </Text>
+            <View style={styles.labelRow}>
+              <Text variant="label" style={styles.fieldLabel}>
+                Class
+              </Text>
+              <Text variant="caption" style={styles.labelHint}>
+                {selectedClass}
+              </Text>
+            </View>
+
             <View style={styles.pillsGrid}>
-              {GRADE_OPTIONS.map((grade) => {
-                const isSelected = selectedGrade === grade;
+              {CLASS_OPTIONS.map((classItem) => {
+                const isSelected = selectedClass === classItem;
                 return (
                   <Pressable
-                    key={grade}
+                    key={classItem}
                     style={[
                       styles.pill,
                       isSelected && styles.pillSelected,
                     ]}
-                    onPress={() => setValue('grade', grade)}
+                    onPress={() => setValue('grade', classItem)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select ${classItem}`}
                   >
                     <Text
                       variant="caption"
@@ -243,7 +263,7 @@ export default function CreateBatchScreen() {
                         isSelected && styles.pillTextSelected,
                       ]}
                     >
-                      {grade}
+                      {classItem}
                     </Text>
                   </Pressable>
                 );
@@ -345,6 +365,7 @@ export default function CreateBatchScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  onFocus={scrollToBottom}
                   error={errors.timing?.message}
                 />
               )}
@@ -358,10 +379,11 @@ export default function CreateBatchScreen() {
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Room / Hall / Lab (Optional)"
-                placeholder="e.g. Room 204 or Lab 2"
+                placeholder="e.g. Room 204 or Classroom 1"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                onFocus={scrollToBottom}
                 error={errors.room?.message}
               />
             )}
@@ -379,18 +401,18 @@ export default function CreateBatchScreen() {
             />
           </View>
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   scrollContent: {
     padding: theme.spacing.lg,

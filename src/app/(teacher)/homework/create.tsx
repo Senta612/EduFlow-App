@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -41,6 +41,7 @@ export default function CreateHomeworkScreen() {
   const { batchId: initialBatchId } = useLocalSearchParams<{ batchId?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [batches, setBatches] = useState<Batch[]>([]);
 
@@ -61,6 +62,12 @@ export default function CreateHomeworkScreen() {
   });
 
   const selectedBatchId = watch('batchId');
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
 
   useEffect(() => {
     async function loadBatches() {
@@ -111,24 +118,28 @@ export default function CreateHomeworkScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader
-          title="Create Homework"
-          subtitle="Assign practice exercises to students"
-          showBack
-        />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScreenHeader
+        title="Create Homework"
+        subtitle="Assign practice exercises to students"
+        showBack
+      />
 
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 10 : 0}
+      >
         <ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 32 },
+            { paddingBottom: Math.max(insets.bottom + 220, 260) },
           ]}
-          keyboardShouldPersistTaps="handled"
         >
           {/* Batch Selector */}
           <View style={styles.formGroup}>
@@ -194,6 +205,7 @@ export default function CreateHomeworkScreen() {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                onFocus={scrollToBottom}
                 multiline
                 numberOfLines={4}
                 style={styles.textArea}
@@ -213,6 +225,7 @@ export default function CreateHomeworkScreen() {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                onFocus={scrollToBottom}
                 error={errors.dueDate?.message}
               />
             )}
@@ -229,8 +242,8 @@ export default function CreateHomeworkScreen() {
             />
           </View>
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
