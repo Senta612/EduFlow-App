@@ -6,7 +6,7 @@ export interface TextComponentProps extends RNTextProps {
   variant?: TextVariant;
 }
 
-export type ButtonVariant = 'primary' | 'secondary' ;
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
 
 export interface ButtonProps extends PressableProps {
     title : string;

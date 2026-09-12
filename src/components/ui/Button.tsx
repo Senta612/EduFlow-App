@@ -19,6 +19,37 @@ export function Button({
 }: ButtonProps) {
     const isDisabled = disabled || loading;
 
+    const getSpinnerColor = () => {
+        switch (variant) {
+            case 'primary':
+            case 'danger':
+                return theme.colors.text.inverse;
+            case 'outline':
+            case 'ghost':
+            case 'secondary':
+                return theme.colors.primary.main;
+            default:
+                return theme.colors.primary.main;
+        }
+    };
+
+    const getLabelStyle = () => {
+        switch (variant) {
+            case 'primary':
+                return styles.primaryLabel;
+            case 'secondary':
+                return styles.secondaryLabel;
+            case 'outline':
+                return styles.outlineLabel;
+            case 'danger':
+                return styles.dangerLabel;
+            case 'ghost':
+                return styles.ghostLabel;
+            default:
+                return styles.primaryLabel;
+        }
+    };
+
     return (
         <Pressable
             {...props}
@@ -42,21 +73,12 @@ export function Button({
             {loading ? (
                 <ActivityIndicator
                     size="small"
-                    color={
-                        variant === 'primary'
-                            ? theme.colors.text.inverse
-                            : theme.colors.primary.main
-                    }
+                    color={getSpinnerColor()}
                 />
             ) : (
                 <Text
                     variant="label"
-                    style={[
-                        styles.label,
-                        variant === 'primary'
-                            ? styles.primaryLabel
-                            : styles.secondaryLabel,
-                    ]}
+                    style={[styles.label, getLabelStyle()]}
                 >
                     {title}
                 </Text>
@@ -80,9 +102,21 @@ const styles = StyleSheet.create({
     },
 
     secondary: {
-        backgroundColor: theme.colors.background.paper,
-        borderWidth: 1,
+        backgroundColor: '#F1F5F9',
+    },
+
+    outline: {
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
         borderColor: theme.colors.border.main,
+    },
+
+    danger: {
+        backgroundColor: theme.colors.semantic.danger.main,
+    },
+
+    ghost: {
+        backgroundColor: 'transparent',
     },
 
     fullWidth: {
@@ -95,10 +129,12 @@ const styles = StyleSheet.create({
 
     pressed: {
         opacity: 0.8,
+        transform: [{ scale: 0.99 }],
     },
 
     label: {
         textAlign: 'center',
+        fontWeight: theme.typography.weights.semibold,
     },
 
     primaryLabel: {
@@ -106,6 +142,18 @@ const styles = StyleSheet.create({
     },
 
     secondaryLabel: {
+        color: theme.colors.text.primary,
+    },
+
+    outlineLabel: {
+        color: theme.colors.text.primary,
+    },
+
+    dangerLabel: {
+        color: theme.colors.text.inverse,
+    },
+
+    ghostLabel: {
         color: theme.colors.primary.main,
     },
 });
