@@ -26,6 +26,7 @@ export default function LoginScreen() {
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -44,6 +45,12 @@ export default function LoginScreen() {
       setLoginError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
+  };
+
+  const handleQuickLogin = (email: string, role: string) => {
+    setValue('email', email);
+    setValue('password', 'test@123');
+    onSubmit({ email, password: 'test@123' });
   };
 
   return (
@@ -138,6 +145,38 @@ export default function LoginScreen() {
           />
         </View>
 
+        {/* Quick Test Accounts Box */}
+        <View style={styles.testAccountsContainer}>
+          <Text variant="caption" style={styles.testAccountsHeader}>
+            🧪 Quick Test Accounts
+          </Text>
+          <View style={styles.testButtonsRow}>
+            <Pressable
+              style={styles.testAccountButton}
+              onPress={() => handleQuickLogin('test@gmail.com', 'teacher')}
+            >
+              <Text variant="caption" style={styles.testAccountTitle}>
+                👨‍🏫 Teacher
+              </Text>
+              <Text variant="caption" style={styles.testAccountEmail}>
+                test@gmail.com
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.testAccountButton}
+              onPress={() => handleQuickLogin('test1@gmail.com', 'student')}
+            >
+              <Text variant="caption" style={styles.testAccountTitle}>
+                🎓 Student
+              </Text>
+              <Text variant="caption" style={styles.testAccountEmail}>
+                test1@gmail.com
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
         <View style={styles.switchContainer}>
           <Text variant="body" style={styles.switchText}>
             Don't have an account?
@@ -209,5 +248,49 @@ const styles = StyleSheet.create({
 
   switchLink: {
     color: theme.colors.primary.main,
+  },
+
+  testAccountsContainer: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.colors.background.card ?? '#f9fafb',
+    borderWidth: 1,
+    borderColor: theme.colors.border.main ?? '#e5e7eb',
+    gap: theme.spacing.sm,
+  },
+
+  testAccountsHeader: {
+    color: theme.colors.text.secondary,
+    fontWeight: '600',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  testButtonsRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+
+  testAccountButton: {
+    flex: 1,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xs,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.background.screen,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main ?? '#e5e7eb',
+    alignItems: 'center',
+    gap: 2,
+  },
+
+  testAccountTitle: {
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+
+  testAccountEmail: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
   },
 });

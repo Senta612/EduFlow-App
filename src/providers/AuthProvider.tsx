@@ -8,6 +8,14 @@ import {
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import {
+  createMockProfile,
+  createMockSession,
+  createMockSupabaseUser,
+  getStoredMockUser,
+  removeStoredMockUser,
+  subscribeMockAuth,
+} from '@/services/mockAuth';
 import { profileService } from '@/services/profile.service';
 import type { Profile } from '@/types/profile';
 
@@ -34,8 +42,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
 
+    // Listen to mock auth changes
+    const unsubscribeMock = subscribeMockAuth((mockUser) => {
+      if (!mounted) return;
+      if (mockUser) {
+        setUser(createMockSupabaseUser(mockUser));
+        setSession(createMockSession(mockUser));
+        setProfile(createMockProfile(mockUser));
+        setIsLoading(false);
+      } else {
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+        setIsLoading(false);
+      }
+    });
+
     const initializeAuth = async () => {
       try {
+        // 1. Check for stored mock user first
+        const storedMockUser = await getStoredMockUser();
+        if (storedMockUser && mounted) {
+          setUser(createMockSupabaseUser(storedMockUser));
+          setSession(createMockSession(storedMockUser));
+          setProfile(createMockProfile(storedMockUser));
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. Check Supabase session
         const {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
@@ -84,6 +119,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return;
         }
 
+        // If mock user is currently active, don't overwrite with null supabase session
+        const storedMockUser = await getStoredMockUser();
+        if (storedMockUser) {
+          return;
+        }
+
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
@@ -112,15 +153,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false;
+      unsubscribeMock();
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    await removeStoredMockUser();
+    setUser(null);
+    setSession(null);
+    setProfile(null);
 
-    if (error) {
-      throw error;
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('Supabase signOut notice:', error);
     }
   };
 
