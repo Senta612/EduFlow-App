@@ -9,6 +9,14 @@ import {
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import {
+  createMockProfile,
+  createMockSession,
+  createMockSupabaseUser,
+  getStoredMockUser,
+  removeStoredMockUser,
+  subscribeMockAuth,
+} from '@/services/mockAuth';
 import { profileService } from '@/services/profile.service';
 import type { Profile } from '@/types/profile';
 
@@ -37,6 +45,75 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
 
+    // Listen to mock auth changes
+    const unsubscribeMock = subscribeMockAuth((mockUser) => {
+      if (!mounted) return;
+      if (mockUser) {
+        setUser(createMockSupabaseUser(mockUser));
+        setSession(createMockSession(mockUser));
+        setProfile(createMockProfile(mockUser));
+        setIsLoading(false);
+      } else {
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+        setIsLoading(false);
+      }
+    });
+
+    const initializeAuth = async () => {
+      try {
+        // 1. Check for stored mock user first
+        const storedMockUser = await getStoredMockUser();
+        if (storedMockUser && mounted) {
+          setUser(createMockSupabaseUser(storedMockUser));
+          setSession(createMockSession(storedMockUser));
+          setProfile(createMockProfile(storedMockUser));
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. Check Supabase session
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
+
+        if (!mounted) {
+          return;
+        }
+
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+
+        if (currentSession?.user) {
+          try {
+            const currentProfile =
+              await profileService.getCurrentProfile();
+
+            if (mounted) {
+              setProfile(currentProfile);
+            }
+          } catch (error) {
+            console.error('Failed to load profile:', error);
+
+            if (mounted) {
+              setProfile(null);
+            }
+          }
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -44,6 +121,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
+        // If mock user is currently active, don't overwrite with null supabase session
+        const storedMockUser = await getStoredMockUser();
+        if (storedMockUser) {
+          return;
+        }
+
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
       const newUser = newSession?.user ?? null;
 
       // When signed out or no session exists
@@ -88,17 +173,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false;
+      unsubscribeMock();
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
+    await removeStoredMockUser();
     // Synchronously clear local state for instant user feedback
     activeUserIdRef.current = null;
     setUser(null);
     setSession(null);
     setProfile(null);
 
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('Supabase signOut notice:', error);
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Sign out error:', error);

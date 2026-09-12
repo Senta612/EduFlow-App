@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { Href } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
@@ -20,7 +20,7 @@ function getFirstName(fullName: string | null | undefined): string | undefined {
 }
 
 export default function TeacherHomeScreen() {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const insets = useSafeAreaInsets();
 
   const handleCreateClass = () => {
@@ -37,12 +37,23 @@ export default function TeacherHomeScreen() {
     >
       {/* Teacher dashboard header / greeting */}
       <View style={styles.header}>
-        <Text variant="title">
-          {`Hello${profile?.full_name ? `, ${getFirstName(profile.full_name)}` : ''}`}
-        </Text>
-        <Text variant="body" style={styles.headerSubtitle}>
-          Manage your classes and students.
-        </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTitles}>
+            <Text variant="title">
+              {`Hello${profile?.full_name ? `, ${getFirstName(profile.full_name)}` : ''}`}
+            </Text>
+            <Text variant="body" style={styles.headerSubtitle}>
+              Manage your classes and students.
+            </Text>
+          </View>
+          <Pressable
+            onPress={signOut}
+            hitSlop={8}
+            style={styles.signOutButton}
+          >
+            <Feather name="log-out" size={20} color={theme.colors.text.secondary} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Empty state for the teacher's (currently empty) classes list */}
@@ -69,7 +80,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.screen,
     paddingHorizontal: theme.spacing.lg,
   },
-  header: { gap: theme.spacing.xs, marginTop: theme.spacing.lg },
+  header: { marginTop: theme.spacing.lg },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  headerTitles: {
+    flex: 1,
+    gap: theme.spacing.xs,
+  },
+  signOutButton: {
+    padding: theme.spacing.sm,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.background.card ?? '#f3f4f6',
+  },
   headerSubtitle: { color: theme.colors.text.secondary },
   content: {
     flex: 1,
