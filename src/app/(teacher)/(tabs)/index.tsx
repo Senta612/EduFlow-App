@@ -187,10 +187,10 @@ export default function TeacherHomeScreen() {
                         <View style={styles.classCardHeader}>
                           <View style={styles.classTitleGroup}>
                             <Text variant="heading" style={styles.classSubject}>
-                              {cls.subject}
+                              {cls.name}
                             </Text>
                             <Text variant="body" style={styles.classGrade}>
-                              {cls.grade} • {cls.name}
+                              {cls.grade} • {cls.subject}
                             </Text>
                           </View>
                           {isAttendancePending ? (

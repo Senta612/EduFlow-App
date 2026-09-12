@@ -156,7 +156,7 @@ export default function TakeAttendanceScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
         title="Record Attendance"
-        subtitle={`${batch.subject} • ${batch.grade}`}
+        subtitle={`${batch.name} • ${batch.grade} • ${batch.subject}`}
         showBack
       />
 

@@ -206,7 +206,7 @@ export default function CreateBatchScreen() {
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Batch Name"
-                placeholder="e.g. Morning Batch A or Evening Alpha"
+                placeholder="e.g. Class 9 - Morning or Class 10 Board Batch"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}

@@ -110,8 +110,8 @@ export default function BatchDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
-        title={batch.subject}
-        subtitle={`${batch.grade} • ${batch.name}`}
+        title={batch.name}
+        subtitle={`${batch.grade} • ${batch.subject}`}
         showBack
       />
 

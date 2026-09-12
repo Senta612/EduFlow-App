@@ -14,8 +14,8 @@ import {
 const INITIAL_BATCHES: Batch[] = [
   {
     id: 'batch-math-10',
-    name: 'Grade 10 - Alpha',
-    grade: 'Grade 10',
+    name: 'Class 10 - Alpha',
+    grade: 'Class 10',
     subject: 'Mathematics',
     studentCount: 32,
     schedule: 'Mon • Wed • Fri',
@@ -25,8 +25,8 @@ const INITIAL_BATCHES: Batch[] = [
   },
   {
     id: 'batch-phy-12',
-    name: 'Grade 12 - Advanced',
-    grade: 'Grade 12',
+    name: 'Class 12 - Advanced',
+    grade: 'Class 12',
     subject: 'Physics',
     studentCount: 25,
     schedule: 'Tue • Thu • Sat',
@@ -36,8 +36,8 @@ const INITIAL_BATCHES: Batch[] = [
   },
   {
     id: 'batch-chem-11',
-    name: 'Grade 11 - Prime',
-    grade: 'Grade 11',
+    name: 'Class 11 - Prime',
+    grade: 'Class 11',
     subject: 'Chemistry',
     studentCount: 28,
     schedule: 'Mon • Wed • Fri',
@@ -80,7 +80,7 @@ const INITIAL_HOMEWORK: Homework[] = [
   {
     id: 'hw-01',
     batchId: 'batch-math-10',
-    batchName: 'Mathematics (Grade 10)',
+    batchName: 'Class 10 - Alpha',
     title: 'Quadratic Equations Exercise 4.2',
     description: 'Solve Questions 1 to 15 in homework notebook with step-by-step solutions.',
     dueDate: 'Tomorrow, 05:00 PM',
@@ -91,7 +91,7 @@ const INITIAL_HOMEWORK: Homework[] = [
   {
     id: 'hw-02',
     batchId: 'batch-phy-12',
-    batchName: 'Physics (Grade 12)',
+    batchName: 'Class 12 - Advanced',
     title: "Electrostatics & Gauss's Law Problems",
     description: 'Complete numerical practice sheet 3. Derive electric field due to infinite sheet.',
     dueDate: 'Monday, 10:00 AM',
@@ -105,7 +105,7 @@ const INITIAL_TESTS: Test[] = [
   {
     id: 'test-01',
     batchId: 'batch-math-10',
-    batchName: 'Mathematics (Grade 10)',
+    batchName: 'Class 10 - Alpha',
     title: 'Unit Test 2: Polynomials & Quadratics',
     date: '10 Sep 2026',
     maxMarks: 50,
@@ -115,7 +115,7 @@ const INITIAL_TESTS: Test[] = [
   {
     id: 'test-02',
     batchId: 'batch-phy-12',
-    batchName: 'Physics (Grade 12)',
+    batchName: 'Class 12 - Advanced',
     title: 'Monthly Assessment: Electrostatics',
     date: '08 Sep 2026',
     maxMarks: 40,

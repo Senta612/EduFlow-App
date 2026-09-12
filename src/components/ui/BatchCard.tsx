@@ -30,14 +30,14 @@ export function BatchCard({ batch, onPress, style }: BatchCardProps) {
       accessibilityRole="button"
       accessibilityLabel={`Open batch ${batch.subject} ${batch.grade}`}
     >
-      {/* Top Row: Subject, Grade & Student Count */}
+      {/* Top Row: Batch Name, Grade, Subject & Student Count */}
       <View style={styles.topRow}>
         <View style={styles.titleColumn}>
-          <Text variant="heading" style={styles.subjectText}>
-            {batch.subject}
+          <Text variant="heading" style={styles.batchNameText}>
+            {batch.name}
           </Text>
-          <Text variant="body" style={styles.gradeText}>
-            {batch.grade} • {batch.name}
+          <Text variant="body" style={styles.gradeSubjectText}>
+            {batch.grade} • {batch.subject}
           </Text>
         </View>
         <Badge
@@ -145,13 +145,15 @@ const styles = StyleSheet.create({
     gap: 2,
     marginRight: theme.spacing.sm,
   },
-  subjectText: {
+  batchNameText: {
     fontSize: theme.typography.sizes.lg,
+    fontWeight: theme.typography.weights.bold,
     color: theme.colors.text.primary,
   },
-  gradeText: {
+  gradeSubjectText: {
     color: theme.colors.text.secondary,
     fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.medium,
   },
   infoBox: {
     backgroundColor: '#F8FAFC',
