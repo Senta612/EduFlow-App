@@ -49,11 +49,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const unsubscribeMock = subscribeMockAuth((mockUser) => {
       if (!mounted) return;
       if (mockUser) {
+        activeUserIdRef.current = mockUser.id;
         setUser(createMockSupabaseUser(mockUser));
         setSession(createMockSession(mockUser));
         setProfile(createMockProfile(mockUser));
         setIsLoading(false);
       } else {
+        activeUserIdRef.current = null;
         setUser(null);
         setSession(null);
         setProfile(null);
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // 1. Check for stored mock user first
         const storedMockUser = await getStoredMockUser();
         if (storedMockUser && mounted) {
+          activeUserIdRef.current = storedMockUser.id;
           setUser(createMockSupabaseUser(storedMockUser));
           setSession(createMockSession(storedMockUser));
           setProfile(createMockProfile(storedMockUser));
@@ -82,25 +85,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return;
         }
 
+        const currentUser = currentSession?.user ?? null;
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        setUser(currentUser);
 
-        if (currentSession?.user) {
+        if (currentUser) {
+          activeUserIdRef.current = currentUser.id;
           try {
-            const currentProfile =
-              await profileService.getCurrentProfile();
-
+            const currentProfile = await profileService.getCurrentProfile();
             if (mounted) {
               setProfile(currentProfile);
             }
           } catch (error) {
             console.error('Failed to load profile:', error);
-
             if (mounted) {
               setProfile(null);
             }
           }
         } else {
+          activeUserIdRef.current = null;
           setProfile(null);
         }
       } catch (error) {
@@ -121,14 +124,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-        // If mock user is currently active, don't overwrite with null supabase session
-        const storedMockUser = await getStoredMockUser();
-        if (storedMockUser) {
-          return;
-        }
+      // If mock user is currently active, don't overwrite with null supabase session
+      const storedMockUser = await getStoredMockUser();
+      if (storedMockUser) {
+        return;
+      }
 
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
       const newUser = newSession?.user ?? null;
 
       // When signed out or no session exists
@@ -150,7 +151,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // Fetch or update profile if user changed or profile is not yet loaded
+      // Fetch or update profile if user changed
       if (activeUserIdRef.current !== newUser.id) {
         try {
           const currentProfile = await profileService.getCurrentProfile();
@@ -180,7 +181,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = async () => {
     await removeStoredMockUser();
-    // Synchronously clear local state for instant user feedback
     activeUserIdRef.current = null;
     setUser(null);
     setSession(null);
@@ -188,11 +188,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       await supabase.auth.signOut();
-    } catch (error) {
-      console.warn('Supabase signOut notice:', error);
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Sign out error:', error);
+    } catch (err) {
+      console.warn('Supabase signOut notice:', err);
     }
   };
 

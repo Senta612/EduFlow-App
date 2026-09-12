@@ -7,6 +7,14 @@ import {
   User,
 } from '@supabase/supabase-js';
 
+import {
+  findMockUser,
+  setStoredMockUser,
+  removeStoredMockUser,
+  createMockSession,
+  createMockSupabaseUser,
+} from './mockAuth';
+
 /**
  * Categorises the typable auth failures so UI layers can respond and display
  * friendly copy without reaching into raw Supabase error objects.
@@ -126,14 +134,6 @@ export async function signUp(data: SignupFormData): Promise<SignUpResult> {
     errorKind: null,
   };
 }
-
-import {
-  findMockUser,
-  setStoredMockUser,
-  removeStoredMockUser,
-  createMockSession,
-  createMockSupabaseUser,
-} from './mockAuth';
 
 export interface SignInResult {
   session: Session | null;
