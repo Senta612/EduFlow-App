@@ -5,6 +5,7 @@ export default function TeacherLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="batch/create" options={{ headerShown: false }} />
       <Stack.Screen name="batch/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="attendance/[batchId]" options={{ headerShown: false }} />
       <Stack.Screen name="homework/create" options={{ headerShown: false }} />

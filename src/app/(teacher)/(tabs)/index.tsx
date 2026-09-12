@@ -70,6 +70,14 @@ export default function TeacherHomeScreen() {
 
   useEffect(() => {
     loadDashboardData();
+
+    const unsubscribe = teacherService.subscribeBatches(() => {
+      loadDashboardData();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [loadDashboardData]);
 
   const onRefresh = () => {

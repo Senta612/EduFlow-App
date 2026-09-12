@@ -225,11 +225,20 @@ export default function TakeAttendanceScreen() {
           { paddingBottom: insets.bottom + 100 },
         ]}
       >
-        <Card variant="outlined" padding="none" style={styles.rosterCard}>
-          {items.map((student, index) => {
-            const isLast = index === items.length - 1;
-            const isPresent = student.status === 'present';
-            const isAbsent = student.status === 'absent';
+        {items.length === 0 ? (
+          <EmptyState
+            icon="users"
+            title="No students enrolled yet"
+            description="Students will appear here once assigned to this batch by the institute owner."
+            actionLabel="Back to Batch"
+            onAction={() => router.back()}
+          />
+        ) : (
+          <Card variant="outlined" padding="none" style={styles.rosterCard}>
+            {items.map((student, index) => {
+              const isLast = index === items.length - 1;
+              const isPresent = student.status === 'present';
+              const isAbsent = student.status === 'absent';
 
             return (
               <View
@@ -322,6 +331,7 @@ export default function TakeAttendanceScreen() {
             );
           })}
         </Card>
+        )}
       </ScrollView>
 
       {/* Floating Bottom Submission Bar */}

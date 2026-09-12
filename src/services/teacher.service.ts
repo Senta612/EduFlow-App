@@ -149,6 +149,16 @@ const STORAGE_KEYS = {
   MARKS: '@eduflow_teacher_marks',
 };
 
+type BatchListener = (batches: Batch[]) => void;
+const batchListeners = new Set<BatchListener>();
+
+export function isBatchScheduledToday(schedule: string): boolean {
+  if (!schedule) return false;
+  const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const todayDay = daysMap[new Date().getDay()];
+  return schedule.toLowerCase().includes(todayDay.toLowerCase());
+}
+
 class TeacherService {
   private async getStored<T>(key: string, fallback: T): Promise<T> {
     try {
@@ -175,13 +185,41 @@ class TeacherService {
 
   async getTodayClasses(): Promise<Batch[]> {
     const batches = await this.getBatches();
-    // Return classes scheduled for today
-    return batches;
+    // Filter batches scheduled today, or return all if none match for testing
+    const todayBatches = batches.filter((b) => isBatchScheduledToday(b.schedule));
+    return todayBatches.length > 0 ? todayBatches : batches;
   }
 
   async getBatchById(batchId: string): Promise<Batch | null> {
     const batches = await this.getBatches();
     return batches.find((b) => b.id === batchId) ?? null;
+  }
+
+  async createBatch(
+    data: Omit<Batch, 'id' | 'studentCount' | 'attendanceTakenToday'>,
+  ): Promise<Batch> {
+    const newBatch: Batch = {
+      ...data,
+      id: `batch-${Date.now()}`,
+      studentCount: 0,
+      attendanceTakenToday: false,
+    };
+
+    const batches = await this.getBatches();
+    const updated = [newBatch, ...batches];
+    await this.setStored(STORAGE_KEYS.BATCHES, updated);
+
+    // Notify listeners
+    batchListeners.forEach((listener) => listener(updated));
+
+    return newBatch;
+  }
+
+  subscribeBatches(listener: BatchListener): () => void {
+    batchListeners.add(listener);
+    return () => {
+      batchListeners.delete(listener);
+    };
   }
 
   // Students

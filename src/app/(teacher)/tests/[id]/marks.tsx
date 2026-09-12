@@ -223,11 +223,20 @@ export default function EnterTestMarksScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <Card variant="outlined" padding="none" style={styles.tableCard}>
-            {marks.map((item, index) => {
-              const isLast = index === marks.length - 1;
-              const hasError = Boolean(inputErrors[item.studentId]);
-              const isFilled = item.marksObtained !== null;
+          {marks.length === 0 ? (
+            <EmptyState
+              icon="users"
+              title="No students enrolled"
+              description="Cannot enter marks because there are no students enrolled in this batch."
+              actionLabel="Back to Batch"
+              onAction={() => router.back()}
+            />
+          ) : (
+            <Card variant="outlined" padding="none" style={styles.tableCard}>
+              {marks.map((item, index) => {
+                const isLast = index === marks.length - 1;
+                const hasError = Boolean(inputErrors[item.studentId]);
+                const isFilled = item.marksObtained !== null;
 
               return (
                 <View
@@ -292,6 +301,7 @@ export default function EnterTestMarksScreen() {
               );
             })}
           </Card>
+          )}
         </ScrollView>
 
         {/* Floating Save Button Bar */}
