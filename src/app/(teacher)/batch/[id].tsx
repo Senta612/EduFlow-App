@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
@@ -96,9 +96,11 @@ export default function BatchDetailScreen() {
     }
   }, [id]);
 
-  useEffect(() => {
-    loadBatchData();
-  }, [loadBatchData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadBatchData();
+    }, [loadBatchData]),
+  );
 
   // Handlers for Student operations
   const handleOpenProfile = (student: Student) => {

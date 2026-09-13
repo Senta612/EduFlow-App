@@ -181,7 +181,16 @@ class TeacherService {
 
   // Batches
   async getBatches(): Promise<Batch[]> {
-    return this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
+    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const attendance = await this.getAttendanceRecords();
+    const attendanceMap = new Set(
+      attendance.filter((r) => r.date === todayStr).map((r) => r.batchId),
+    );
+    return batches.map((b) => ({
+      ...b,
+      attendanceTakenToday: attendanceMap.has(b.id) || Boolean(b.attendanceTakenToday),
+    }));
   }
 
   async getTodayClasses(): Promise<Batch[]> {
@@ -193,7 +202,13 @@ class TeacherService {
 
   async getBatchById(batchId: string): Promise<Batch | null> {
     const batches = await this.getBatches();
-    return batches.find((b) => b.id === batchId) ?? null;
+    const batch = batches.find((b) => b.id === batchId) ?? null;
+    if (!batch) return null;
+    const takenToday = await this.isAttendanceTakenToday(batchId);
+    return {
+      ...batch,
+      attendanceTakenToday: takenToday || Boolean(batch.attendanceTakenToday),
+    };
   }
 
   async createBatch(
@@ -206,7 +221,7 @@ class TeacherService {
       attendanceTakenToday: false,
     };
 
-    const batches = await this.getBatches();
+    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
     const updated = [newBatch, ...batches];
     await this.setStored(STORAGE_KEYS.BATCHES, updated);
 
@@ -344,7 +359,12 @@ class TeacherService {
 
   // Attendance
   async getAttendanceRecords(): Promise<AttendanceRecord[]> {
-    return this.getStored<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+    const stored = await this.getStored<AttendanceRecord[] | null>(STORAGE_KEYS.ATTENDANCE, null);
+    if (!stored) {
+      await this.setStored(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+      return [...INITIAL_ATTENDANCE];
+    }
+    return stored;
   }
 
   async getBatchAttendanceHistory(batchId: string): Promise<AttendanceRecord[]> {
@@ -383,12 +403,13 @@ class TeacherService {
     const updated = [newRecord, ...filtered];
     await this.setStored(STORAGE_KEYS.ATTENDANCE, updated);
 
-    // Update batch flag
+    // Update batch flag and notify listeners
     const batches = await this.getBatches();
     const updatedBatches = batches.map((b) =>
       b.id === batchId ? { ...b, attendanceTakenToday: true } : b,
     );
     await this.setStored(STORAGE_KEYS.BATCHES, updatedBatches);
+    batchListeners.forEach((listener) => listener(updatedBatches));
 
     return newRecord;
   }
