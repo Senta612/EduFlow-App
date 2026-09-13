@@ -152,7 +152,6 @@ export default function BatchDetailScreen() {
 
     try {
       if (editingStudent) {
-        // Update existing student
         const updated = await teacherService.updateStudent(batch.id, editingStudent.id, {
           name: formName.trim(),
           rollNumber: formRoll.trim(),
