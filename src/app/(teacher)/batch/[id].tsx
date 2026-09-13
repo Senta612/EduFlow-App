@@ -266,10 +266,24 @@ export default function BatchDetailScreen() {
         {activeTab === 'students' && (
           <View style={styles.sectionStack}>
             <View style={styles.blockHeader}>
-              <Text variant="heading" style={styles.blockTitle}>
-                Enrolled Students ({students.length})
-              </Text>
-              <Badge label="Roster (Read-Only)" variant="neutral" size="sm" />
+              <View style={styles.headerTitleGroup}>
+                <View style={styles.titleWithBadge}>
+                  <Text variant="heading" style={styles.blockTitle}>
+                    Enrolled Students
+                  </Text>
+                  {students.length > 0 && (
+                    <Badge
+                      label={`${students.length}`}
+                      variant="primary"
+                      size="sm"
+                    />
+                  )}
+                </View>
+                <Text variant="caption" style={styles.headerSubtitle}>
+                  Roster managed by Institute Owner
+                </Text>
+              </View>
+              <Badge label="Read-Only" variant="neutral" size="sm" />
             </View>
 
             {students.length === 0 ? (
@@ -317,11 +331,28 @@ export default function BatchDetailScreen() {
         {activeTab === 'attendance' && (
           <View style={styles.sectionStack}>
             <View style={styles.blockHeader}>
-              <Text variant="heading" style={styles.blockTitle}>
-                Attendance History
-              </Text>
+              <View style={styles.headerTitleGroup}>
+                <View style={styles.titleWithBadge}>
+                  <Text variant="heading" style={styles.blockTitle}>
+                    Attendance History
+                  </Text>
+                  {attendanceHistory.length > 0 && (
+                    <Badge
+                      label={`${attendanceHistory.length}`}
+                      variant="primary"
+                      size="sm"
+                    />
+                  )}
+                </View>
+                <Text variant="caption" style={styles.headerSubtitle}>
+                  Daily presence logs & summaries
+                </Text>
+              </View>
               <Button
-                title="+ Take Today"
+                title="Mark Today"
+                icon="check-square"
+                size="sm"
+                variant="primary"
                 onPress={() => router.push(`/(teacher)/attendance/${batch.id}`)}
               />
             </View>
@@ -372,11 +403,28 @@ export default function BatchDetailScreen() {
         {activeTab === 'homework' && (
           <View style={styles.sectionStack}>
             <View style={styles.blockHeader}>
-              <Text variant="heading" style={styles.blockTitle}>
-                Homework Assignments
-              </Text>
+              <View style={styles.headerTitleGroup}>
+                <View style={styles.titleWithBadge}>
+                  <Text variant="heading" style={styles.blockTitle}>
+                    Homework
+                  </Text>
+                  {homeworkList.length > 0 && (
+                    <Badge
+                      label={`${homeworkList.length}`}
+                      variant="primary"
+                      size="sm"
+                    />
+                  )}
+                </View>
+                <Text variant="caption" style={styles.headerSubtitle}>
+                  Assignments & submission tracking
+                </Text>
+              </View>
               <Button
-                title="+ Create Homework"
+                title="Create"
+                icon="plus"
+                size="sm"
+                variant="primary"
                 onPress={() =>
                   router.push(`/(teacher)/homework/create?batchId=${batch.id}`)
                 }
@@ -394,27 +442,67 @@ export default function BatchDetailScreen() {
                 }
               />
             ) : (
-              homeworkList.map((hw) => (
-                <Card key={hw.id} variant="elevated" padding="md" style={styles.hwCard}>
-                  <View style={styles.hwHeader}>
-                    <Text variant="heading" style={styles.hwTitle}>
-                      {hw.title}
+              homeworkList.map((hw) => {
+                const total = hw.totalStudents || 1;
+                const submissionRate = Math.round(((hw.submissionsCount || 0) / total) * 100);
+
+                return (
+                  <Card key={hw.id} variant="elevated" padding="md" style={styles.hwCard}>
+                    <View style={styles.hwTopRow}>
+                      <View style={styles.hwIconBox}>
+                        <Feather name="book-open" size={16} color={theme.colors.primary.main} />
+                      </View>
+                      <View style={styles.hwTitleWrapper}>
+                        <Text variant="heading" style={styles.hwTitle}>
+                          {hw.title}
+                        </Text>
+                        <View style={styles.hwMetaInline}>
+                          <Feather name="clock" size={11} color={theme.colors.text.disabled} />
+                          <Text variant="caption" style={styles.hwCreated}>
+                            Posted {hw.createdAt}
+                          </Text>
+                        </View>
+                      </View>
+                      <Badge
+                        label={`Due: ${hw.dueDate}`}
+                        variant="warning"
+                        icon="calendar"
+                        size="sm"
+                      />
+                    </View>
+
+                    <Text variant="body" numberOfLines={3} style={styles.hwDesc}>
+                      {hw.description}
                     </Text>
-                    <Badge label={`Due: ${hw.dueDate}`} variant="warning" size="sm" />
-                  </View>
-                  <Text variant="body" style={styles.hwDesc}>
-                    {hw.description}
-                  </Text>
-                  <View style={styles.hwFooter}>
-                    <Text variant="caption" style={styles.hwStats}>
-                      Submissions: {hw.submissionsCount} / {hw.totalStudents} students
-                    </Text>
-                    <Text variant="caption" style={styles.hwCreated}>
-                      Posted: {hw.createdAt}
-                    </Text>
-                  </View>
-                </Card>
-              ))
+
+                    {/* Progress tracking */}
+                    <View style={styles.progressSection}>
+                      <View style={styles.progressLabelRow}>
+                        <Text variant="caption" style={styles.progressLabel}>
+                          Submissions
+                        </Text>
+                        <Text variant="caption" style={styles.progressValue}>
+                          {hw.submissionsCount} / {hw.totalStudents} students ({submissionRate}%)
+                        </Text>
+                      </View>
+                      <View style={styles.progressBarBg}>
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            {
+                              width: `${Math.min(submissionRate, 100)}%`,
+                              backgroundColor:
+                                submissionRate >= 80
+                                  ? theme.colors.semantic.success.main
+                                  : theme.colors.primary.main,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  </Card>
+                );
+              })
             )}
           </View>
         )}
@@ -423,11 +511,28 @@ export default function BatchDetailScreen() {
         {activeTab === 'tests' && (
           <View style={styles.sectionStack}>
             <View style={styles.blockHeader}>
-              <Text variant="heading" style={styles.blockTitle}>
-                Tests & Examinations
-              </Text>
+              <View style={styles.headerTitleGroup}>
+                <View style={styles.titleWithBadge}>
+                  <Text variant="heading" style={styles.blockTitle}>
+                    Tests & Marks
+                  </Text>
+                  {testsList.length > 0 && (
+                    <Badge
+                      label={`${testsList.length}`}
+                      variant="primary"
+                      size="sm"
+                    />
+                  )}
+                </View>
+                <Text variant="caption" style={styles.headerSubtitle}>
+                  Assessments & student scoring
+                </Text>
+              </View>
               <Button
-                title="+ New Test"
+                title="New Test"
+                icon="plus"
+                size="sm"
+                variant="primary"
                 onPress={() =>
                   router.push(`/(teacher)/tests/create?batchId=${batch.id}`)
                 }
@@ -574,10 +679,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  headerTitleGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  titleWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   blockTitle: {
     color: theme.colors.text.primary,
     fontSize: theme.typography.sizes.lg,
+    fontWeight: theme.typography.weights.bold,
+  },
+  headerSubtitle: {
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.sizes.xs,
   },
   linkText: {
     color: theme.colors.primary.main,
@@ -660,36 +780,73 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   hwCard: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
   },
-  hwHeader: {
+  hwTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  hwIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.primary.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hwTitleWrapper: {
+    flex: 1,
+    gap: 2,
   },
   hwTitle: {
     color: theme.colors.text.primary,
     fontSize: theme.typography.sizes.base,
-    flex: 1,
-    marginRight: theme.spacing.sm,
+    fontWeight: theme.typography.weights.bold,
+  },
+  hwMetaInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  hwCreated: {
+    color: theme.colors.text.disabled,
+    fontSize: theme.typography.sizes.xs,
   },
   hwDesc: {
     color: theme.colors.text.secondary,
+    lineHeight: 20,
   },
-  hwFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  progressSection: {
+    gap: 6,
     paddingTop: theme.spacing.xs,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.light,
   },
-  hwStats: {
-    color: theme.colors.primary.main,
-    fontWeight: theme.typography.weights.medium,
+  progressLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  hwCreated: {
-    color: theme.colors.text.disabled,
+  progressLabel: {
+    color: theme.colors.text.secondary,
+    fontWeight: theme.typography.weights.medium,
+    fontSize: theme.typography.sizes.xs,
+  },
+  progressValue: {
+    color: theme.colors.primary.main,
+    fontWeight: theme.typography.weights.bold,
+    fontSize: theme.typography.sizes.xs,
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: theme.radii.full,
+    backgroundColor: '#F1F5F9',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: theme.radii.full,
   },
   testCard: {
     gap: theme.spacing.md,

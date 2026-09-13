@@ -2,15 +2,19 @@ import {
     ActivityIndicator,
     Pressable,
     StyleSheet,
+    View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
 import { theme } from '@/theme';
-import { ButtonProps } from '@/types/components';
+import { ButtonProps, ButtonSize } from '@/types/components';
 
 export function Button({
     title,
     variant = 'primary',
+    size = 'md',
+    icon,
     loading = false,
     disabled = false,
     fullWidth = false,
@@ -19,7 +23,7 @@ export function Button({
 }: ButtonProps) {
     const isDisabled = disabled || loading;
 
-    const getSpinnerColor = () => {
+    const getIconAndSpinnerColor = () => {
         switch (variant) {
             case 'primary':
             case 'danger':
@@ -50,6 +54,8 @@ export function Button({
         }
     };
 
+    const iconSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16;
+
     return (
         <Pressable
             {...props}
@@ -63,6 +69,7 @@ export function Button({
                 return [
                     styles.base,
                     styles[variant],
+                    styles[`size_${size}` as `size_${ButtonSize}`],
                     fullWidth && styles.fullWidth,
                     isDisabled && styles.disabled,
                     state.pressed && !isDisabled && styles.pressed,
@@ -73,15 +80,30 @@ export function Button({
             {loading ? (
                 <ActivityIndicator
                     size="small"
-                    color={getSpinnerColor()}
+                    color={getIconAndSpinnerColor()}
                 />
             ) : (
-                <Text
-                    variant="label"
-                    style={[styles.label, getLabelStyle()]}
-                >
-                    {title}
-                </Text>
+                <View style={styles.contentRow}>
+                    {icon && (
+                        <Feather
+                            name={icon}
+                            size={iconSize}
+                            color={getIconAndSpinnerColor()}
+                            style={styles.btnIcon}
+                        />
+                    )}
+                    <Text
+                        variant={size === 'sm' ? 'caption' : 'label'}
+                        style={[
+                            styles.label,
+                            getLabelStyle(),
+                            size === 'sm' && styles.labelSm,
+                            size === 'lg' && styles.labelLg,
+                        ]}
+                    >
+                        {title}
+                    </Text>
+                </View>
             )}
         </Pressable>
     );
@@ -89,12 +111,41 @@ export function Button({
 
 const styles = StyleSheet.create({
     base: {
-        minHeight: theme.spacing.xxl,
-        paddingHorizontal: theme.spacing.lg,
         borderRadius: theme.radii.md,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
+    },
+
+    contentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+    },
+
+    btnIcon: {
+        marginRight: 2,
+    },
+
+    // Sizes
+    size_sm: {
+        minHeight: 34,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: 6,
+        borderRadius: theme.radii.full,
+    },
+
+    size_md: {
+        minHeight: 44,
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: 10,
+    },
+
+    size_lg: {
+        minHeight: 52,
+        paddingHorizontal: theme.spacing.xl,
+        paddingVertical: 14,
     },
 
     primary: {
@@ -128,13 +179,22 @@ const styles = StyleSheet.create({
     },
 
     pressed: {
-        opacity: 0.8,
-        transform: [{ scale: 0.99 }],
+        opacity: 0.85,
+        transform: [{ scale: 0.98 }],
     },
 
     label: {
         textAlign: 'center',
         fontWeight: theme.typography.weights.semibold,
+    },
+
+    labelSm: {
+        fontSize: theme.typography.sizes.xs + 1,
+        fontWeight: theme.typography.weights.bold,
+    },
+
+    labelLg: {
+        fontSize: theme.typography.sizes.base,
     },
 
     primaryLabel: {
