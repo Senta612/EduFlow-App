@@ -147,6 +147,7 @@ const STORAGE_KEYS = {
   HOMEWORK: '@eduflow_teacher_homework',
   TESTS: '@eduflow_teacher_tests',
   MARKS: '@eduflow_teacher_marks',
+  STUDENTS: '@eduflow_teacher_students',
 };
 
 type BatchListener = (batches: Batch[]) => void;
@@ -223,12 +224,90 @@ class TeacherService {
   }
 
   // Students
+  async getAllStudents(): Promise<Record<string, Student[]>> {
+    return this.getStored<Record<string, Student[]>>(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
+  }
+
   async getBatchStudents(batchId: string): Promise<Student[]> {
-    return INITIAL_STUDENTS[batchId] ?? [
+    const allStudents = await this.getAllStudents();
+    return allStudents[batchId] ?? [
       { id: 'st-mock-1', name: 'Aarav Kumar', rollNumber: '01' },
       { id: 'st-mock-2', name: 'Bhavna Sharma', rollNumber: '02' },
       { id: 'st-mock-3', name: 'Chetan Patel', rollNumber: '03' },
     ];
+  }
+
+  async addStudent(batchId: string, studentData: Omit<Student, 'id'>): Promise<Student> {
+    const allStudents = await this.getAllStudents();
+    const batchStudents = allStudents[batchId] ? [...allStudents[batchId]] : [];
+
+    const newStudent: Student = {
+      ...studentData,
+      id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    };
+
+    const updatedBatchStudents = [...batchStudents, newStudent];
+    allStudents[batchId] = updatedBatchStudents;
+    await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
+
+    // Update batch studentCount
+    const batches = await this.getBatches();
+    const batchIndex = batches.findIndex((b) => b.id === batchId);
+    if (batchIndex !== -1) {
+      batches[batchIndex] = {
+        ...batches[batchIndex],
+        studentCount: updatedBatchStudents.length,
+      };
+      await this.setStored(STORAGE_KEYS.BATCHES, batches);
+      batchListeners.forEach((listener) => listener(batches));
+    }
+
+    return newStudent;
+  }
+
+  async updateStudent(
+    batchId: string,
+    studentId: string,
+    studentData: Partial<Omit<Student, 'id'>>,
+  ): Promise<Student> {
+    const allStudents = await this.getAllStudents();
+    const batchStudents = allStudents[batchId] ? [...allStudents[batchId]] : [];
+    const index = batchStudents.findIndex((s) => s.id === studentId);
+
+    if (index === -1) {
+      throw new Error('Student not found');
+    }
+
+    const updatedStudent: Student = {
+      ...batchStudents[index],
+      ...studentData,
+    };
+
+    batchStudents[index] = updatedStudent;
+    allStudents[batchId] = batchStudents;
+    await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
+
+    return updatedStudent;
+  }
+
+  async deleteStudent(batchId: string, studentId: string): Promise<void> {
+    const allStudents = await this.getAllStudents();
+    const batchStudents = allStudents[batchId] ? [...allStudents[batchId]] : [];
+    const filtered = batchStudents.filter((s) => s.id !== studentId);
+    allStudents[batchId] = filtered;
+    await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
+
+    // Update batch studentCount
+    const batches = await this.getBatches();
+    const batchIndex = batches.findIndex((b) => b.id === batchId);
+    if (batchIndex !== -1) {
+      batches[batchIndex] = {
+        ...batches[batchIndex],
+        studentCount: filtered.length,
+      };
+      await this.setStored(STORAGE_KEYS.BATCHES, batches);
+      batchListeners.forEach((listener) => listener(batches));
+    }
   }
 
   // Attendance

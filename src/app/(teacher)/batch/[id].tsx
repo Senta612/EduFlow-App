@@ -5,7 +5,11 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  FlatList,
+  Modal,
+  Alert,
+  Linking,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +21,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Input } from '@/components/ui/Input';
 import { teacherService } from '@/services/teacher.service';
 import {
   Batch,
@@ -55,6 +60,20 @@ export default function BatchDetailScreen() {
   const [activeTab, setActiveTab] = useState<BatchSectionTab>('overview');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Student Profile & Form Modal States
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
+  const [isStudentFormModalVisible, setIsStudentFormModalVisible] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+
+  // Student Form Inputs
+  const [formName, setFormName] = useState('');
+  const [formRoll, setFormRoll] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formErrors, setFormErrors] = useState<{ name?: string; roll?: string }>({});
+  const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
+
   const loadBatchData = useCallback(async () => {
     if (!id) return;
     try {
@@ -80,6 +99,155 @@ export default function BatchDetailScreen() {
   useEffect(() => {
     loadBatchData();
   }, [loadBatchData]);
+
+  // Handlers for Student operations
+  const handleOpenProfile = (student: Student) => {
+    setSelectedStudent(student);
+    setIsProfileModalVisible(true);
+  };
+
+  const handleOpenAddStudent = () => {
+    setEditingStudent(null);
+    setFormName('');
+    // Suggest next roll number
+    const nextRoll = students.length > 0
+      ? String(Math.max(...students.map((s) => parseInt(s.rollNumber, 10) || 0)) + 1)
+      : '101';
+    setFormRoll(nextRoll);
+    setFormPhone('');
+    setFormEmail('');
+    setFormErrors({});
+    setIsStudentFormModalVisible(true);
+  };
+
+  const handleOpenEditStudent = (student: Student) => {
+    setEditingStudent(student);
+    setFormName(student.name);
+    setFormRoll(student.rollNumber);
+    setFormPhone(student.parentPhone || '');
+    setFormEmail(student.email || '');
+    setFormErrors({});
+    setIsProfileModalVisible(false);
+    setIsStudentFormModalVisible(true);
+  };
+
+  const handleSaveStudent = async () => {
+    const errors: { name?: string; roll?: string } = {};
+    if (!formName.trim()) {
+      errors.name = 'Student name is required';
+    }
+    if (!formRoll.trim()) {
+      errors.roll = 'Roll number is required';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    if (!batch) return;
+    setIsSubmittingStudent(true);
+
+    try {
+      if (editingStudent) {
+        // Update existing student
+        const updated = await teacherService.updateStudent(batch.id, editingStudent.id, {
+          name: formName.trim(),
+          rollNumber: formRoll.trim(),
+          parentPhone: formPhone.trim() || undefined,
+          email: formEmail.trim() || undefined,
+        });
+
+        setStudents((prev) =>
+          prev.map((s) => (s.id === editingStudent.id ? updated : s))
+        );
+
+        if (selectedStudent?.id === editingStudent.id) {
+          setSelectedStudent(updated);
+        }
+      } else {
+        // Add new student
+        const newStudent = await teacherService.addStudent(batch.id, {
+          name: formName.trim(),
+          rollNumber: formRoll.trim(),
+          parentPhone: formPhone.trim() || undefined,
+          email: formEmail.trim() || undefined,
+        });
+
+        setStudents((prev) => [...prev, newStudent]);
+        setBatch((prev) => (prev ? { ...prev, studentCount: prev.studentCount + 1 } : null));
+      }
+
+      setIsStudentFormModalVisible(false);
+    } catch (error) {
+      console.error('Failed to save student:', error);
+      Alert.alert('Error', 'Failed to save student details. Please try again.');
+    } finally {
+      setIsSubmittingStudent(false);
+    }
+  };
+
+  const handleDeleteStudent = (student: Student) => {
+    Alert.alert(
+      'Remove Student',
+      `Are you sure you want to remove ${student.name} from this batch?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            if (!batch) return;
+            try {
+              await teacherService.deleteStudent(batch.id, student.id);
+              setStudents((prev) => prev.filter((s) => s.id !== student.id));
+              setBatch((prev) =>
+                prev ? { ...prev, studentCount: Math.max(0, prev.studentCount - 1) } : null
+              );
+              setIsProfileModalVisible(false);
+              setSelectedStudent(null);
+            } catch (error) {
+              console.error('Failed to delete student:', error);
+              Alert.alert('Error', 'Failed to remove student. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCallParent = (phone?: string) => {
+    if (!phone) return;
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+      Alert.alert('Error', 'Unable to initiate phone call.');
+    });
+  };
+
+  const handleMessageParent = (phone?: string) => {
+    if (!phone) return;
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    Linking.openURL(`sms:${cleanPhone}`).catch(() => {
+      Alert.alert('Error', 'Unable to open SMS app.');
+    });
+  };
+
+  const handleEmailStudent = (email?: string) => {
+    if (!email) return;
+    Linking.openURL(`mailto:${email}`).catch(() => {
+      Alert.alert('Error', 'Unable to open email app.');
+    });
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  };
 
   if (isLoading) {
     return (
@@ -124,6 +292,8 @@ export default function BatchDetailScreen() {
         >
           {SECTION_TABS.map((tab) => {
             const isActive = activeTab === tab.key;
+            const tabLabel =
+              tab.key === 'students' ? `Students (${students.length})` : tab.label;
             return (
               <Pressable
                 key={tab.key}
@@ -146,7 +316,7 @@ export default function BatchDetailScreen() {
                     isActive && styles.tabButtonTextActive,
                   ]}
                 >
-                  {tab.label}
+                  {tabLabel}
                 </Text>
               </Pressable>
             );
@@ -262,67 +432,133 @@ export default function BatchDetailScreen() {
           </View>
         )}
 
-        {/* STUDENTS ROSTER (Read-Only Per PRD) */}
+        {/* STUDENTS ROSTER */}
         {activeTab === 'students' && (
           <View style={styles.sectionStack}>
             <View style={styles.blockHeader}>
               <View style={styles.headerTitleGroup}>
                 <View style={styles.titleWithBadge}>
                   <Text variant="heading" style={styles.blockTitle}>
-                    Enrolled Students
+                    Students
                   </Text>
-                  {students.length > 0 && (
-                    <Badge
-                      label={`${students.length}`}
-                      variant="primary"
-                      size="sm"
-                    />
-                  )}
+                  <Badge
+                    label={`${students.length} Total`}
+                    variant="primary"
+                    size="sm"
+                  />
                 </View>
                 <Text variant="caption" style={styles.headerSubtitle}>
-                  Roster managed by Institute Owner
+                  Tap on a student to view full profile & contact details
                 </Text>
               </View>
-              <Badge label="Read-Only" variant="neutral" size="sm" />
+              <Button
+                title="Add Student"
+                icon="plus"
+                size="sm"
+                variant="primary"
+                onPress={handleOpenAddStudent}
+              />
             </View>
 
             {students.length === 0 ? (
               <EmptyState
                 icon="users"
                 title="No students enrolled yet"
-                description="Students will appear here once assigned by the Institute Owner."
+                description="Add students to this batch to track attendance, homework, and test marks."
+                actionLabel="+ Add First Student"
+                onAction={handleOpenAddStudent}
               />
             ) : (
-              <Card variant="outlined" padding="none" style={styles.tableCard}>
-                {students.map((student, index) => {
-                  const isLast = index === students.length - 1;
-                  return (
-                    <View
-                      key={student.id}
-                      style={[
-                        styles.studentRow,
-                        !isLast && styles.studentRowBorder,
-                      ]}
+              <View style={styles.studentsListContainer}>
+                {students.map((student) => (
+                  <Card
+                    key={student.id}
+                    variant="outlined"
+                    padding="none"
+                    style={styles.studentCard}
+                  >
+                    <Pressable
+                      style={styles.studentCardContent}
+                      onPress={() => handleOpenProfile(student)}
                     >
-                      <View style={styles.rollBox}>
-                        <Text variant="caption" style={styles.rollText}>
-                          {student.rollNumber}
+                      <View style={styles.studentAvatarBox}>
+                        <Text variant="label" style={styles.studentAvatarText}>
+                          {getInitials(student.name)}
                         </Text>
                       </View>
+
                       <View style={styles.studentInfo}>
-                        <Text variant="label" style={styles.studentName}>
-                          {student.name}
-                        </Text>
-                        {student.parentPhone && (
-                          <Text variant="caption" style={styles.studentPhone}>
-                            Parent: {student.parentPhone}
+                        <View style={styles.studentNameRow}>
+                          <Text variant="label" style={styles.studentName}>
+                            {student.name}
                           </Text>
-                        )}
+                          <Badge
+                            label={`Roll #${student.rollNumber}`}
+                            variant="neutral"
+                            size="sm"
+                          />
+                        </View>
+                        <View style={styles.studentMetaRow}>
+                          {student.parentPhone ? (
+                            <View style={styles.studentMetaItem}>
+                              <Feather
+                                name="phone"
+                                size={12}
+                                color={theme.colors.text.secondary}
+                              />
+                              <Text variant="caption" style={styles.studentPhone}>
+                                {student.parentPhone}
+                              </Text>
+                            </View>
+                          ) : (
+                            <Text variant="caption" style={styles.studentNoPhone}>
+                              No phone added
+                            </Text>
+                          )}
+                          {student.email && (
+                            <View style={styles.studentMetaItem}>
+                              <Feather
+                                name="mail"
+                                size={12}
+                                color={theme.colors.text.disabled}
+                              />
+                              <Text
+                                variant="caption"
+                                numberOfLines={1}
+                                style={styles.studentEmailShort}
+                              >
+                                {student.email}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
-              </Card>
+
+                      <View style={styles.studentActionIcons}>
+                        <Pressable
+                          hitSlop={8}
+                          style={styles.studentRowEditBtn}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditStudent(student);
+                          }}
+                        >
+                          <Feather
+                            name="edit-2"
+                            size={15}
+                            color={theme.colors.primary.main}
+                          />
+                        </Pressable>
+                        <Feather
+                          name="chevron-right"
+                          size={18}
+                          color={theme.colors.text.disabled}
+                        />
+                      </View>
+                    </Pressable>
+                  </Card>
+                ))}
+              </View>
             )}
           </View>
         )}
@@ -493,7 +729,7 @@ export default function BatchDetailScreen() {
                               width: `${Math.min(submissionRate, 100)}%`,
                               backgroundColor:
                                 submissionRate >= 80
-                                  ? theme.colors.semantic.success.main
+                                   ? theme.colors.semantic.success.main
                                   : theme.colors.primary.main,
                             },
                           ]}
@@ -588,6 +824,269 @@ export default function BatchDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* STUDENT PROFILE MODAL */}
+      <Modal
+        visible={isProfileModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsProfileModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setIsProfileModalVisible(false)}
+        >
+          <Pressable
+            style={styles.modalCard}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {selectedStudent && (
+              <View style={styles.profileContainer}>
+                {/* Header with Close */}
+                <View style={styles.modalHeader}>
+                  <Text variant="heading" style={styles.modalTitle}>
+                    Student Profile
+                  </Text>
+                  <Pressable
+                    hitSlop={12}
+                    style={styles.closeBtn}
+                    onPress={() => setIsProfileModalVisible(false)}
+                  >
+                    <Feather name="x" size={20} color={theme.colors.text.secondary} />
+                  </Pressable>
+                </View>
+
+                {/* Profile Hero */}
+                <View style={styles.profileHero}>
+                  <View style={styles.profileAvatarLarge}>
+                    <Text variant="title" style={styles.profileAvatarText}>
+                      {getInitials(selectedStudent.name)}
+                    </Text>
+                  </View>
+                  <Text variant="heading" style={styles.profileName}>
+                    {selectedStudent.name}
+                  </Text>
+                  <View style={styles.profileBadgesRow}>
+                    <Badge
+                      label={`Roll #${selectedStudent.rollNumber}`}
+                      variant="primary"
+                      size="md"
+                    />
+                    <Badge
+                      label={batch.name}
+                      variant="neutral"
+                      size="md"
+                    />
+                  </View>
+                </View>
+
+                {/* Details Section */}
+                <View style={styles.profileDetailsSection}>
+                  <Text variant="caption" style={styles.sectionLabel}>
+                    CONTACT & INFO
+                  </Text>
+
+                  {/* Parent Phone */}
+                  <Card variant="outlined" padding="sm" style={styles.profileInfoCard}>
+                    <View style={styles.profileInfoRow}>
+                      <View style={styles.profileIconCircle}>
+                        <Feather name="phone" size={16} color={theme.colors.primary.main} />
+                      </View>
+                      <View style={styles.profileInfoTexts}>
+                        <Text variant="caption" style={styles.profileFieldLabel}>
+                          Parent / Guardian Phone
+                        </Text>
+                        <Text variant="label" style={styles.profileFieldValue}>
+                          {selectedStudent.parentPhone || 'Not provided'}
+                        </Text>
+                      </View>
+                      {selectedStudent.parentPhone && (
+                        <View style={styles.quickActionBtns}>
+                          <Pressable
+                            style={styles.quickBtn}
+                            onPress={() => handleCallParent(selectedStudent.parentPhone)}
+                          >
+                            <Feather name="phone-call" size={13} color={theme.colors.semantic.success.main} />
+                            <Text variant="caption" style={styles.quickBtnText}>Call</Text>
+                          </Pressable>
+                          <Pressable
+                            style={styles.quickBtn}
+                            onPress={() => handleMessageParent(selectedStudent.parentPhone)}
+                          >
+                            <Feather name="message-square" size={13} color={theme.colors.primary.main} />
+                            <Text variant="caption" style={styles.quickBtnText}>SMS</Text>
+                          </Pressable>
+                        </View>
+                      )}
+                    </View>
+                  </Card>
+
+                  {/* Email */}
+                  <Card variant="outlined" padding="sm" style={styles.profileInfoCard}>
+                    <View style={styles.profileInfoRow}>
+                      <View style={styles.profileIconCircle}>
+                        <Feather name="mail" size={16} color={theme.colors.primary.main} />
+                      </View>
+                      <View style={styles.profileInfoTexts}>
+                        <Text variant="caption" style={styles.profileFieldLabel}>
+                          Email Address
+                        </Text>
+                        <Text variant="label" numberOfLines={1} style={styles.profileFieldValue}>
+                          {selectedStudent.email || 'Not provided'}
+                        </Text>
+                      </View>
+                      {selectedStudent.email && (
+                        <Pressable
+                          style={styles.quickBtn}
+                          onPress={() => handleEmailStudent(selectedStudent.email)}
+                        >
+                          <Feather name="send" size={13} color={theme.colors.primary.main} />
+                          <Text variant="caption" style={styles.quickBtnText}>Email</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  </Card>
+                </View>
+
+                {/* Profile Actions */}
+                <View style={styles.profileActionsRow}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      title="Edit Student Info"
+                      icon="edit-2"
+                      variant="primary"
+                      fullWidth
+                      onPress={() => handleOpenEditStudent(selectedStudent)}
+                    />
+                  </View>
+                  <Button
+                    title="Remove"
+                    icon="trash-2"
+                    variant="danger"
+                    onPress={() => handleDeleteStudent(selectedStudent)}
+                  />
+                </View>
+              </View>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ADD / EDIT STUDENT MODAL */}
+      <Modal
+        visible={isStudentFormModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsStudentFormModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <Pressable
+            style={styles.modalBackdropTouch}
+            onPress={() => setIsStudentFormModalVisible(false)}
+          />
+          <View style={styles.modalFormSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text variant="heading" style={styles.modalTitle}>
+                  {editingStudent ? 'Edit Student Details' : 'Add New Student'}
+                </Text>
+                <Text variant="caption" style={styles.modalSubtitle}>
+                  {batch.name} • {batch.grade}
+                </Text>
+              </View>
+              <Pressable
+                hitSlop={12}
+                style={styles.closeBtn}
+                onPress={() => setIsStudentFormModalVisible(false)}
+              >
+                <Feather name="x" size={20} color={theme.colors.text.secondary} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.formContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Input
+                label="Student Full Name *"
+                placeholder="e.g. Aarav Sharma"
+                value={formName}
+                onChangeText={(text) => {
+                  setFormName(text);
+                  if (formErrors.name) setFormErrors((e) => ({ ...e, name: undefined }));
+                }}
+                error={formErrors.name}
+                leftContent={
+                  <Feather name="user" size={16} color={theme.colors.text.secondary} />
+                }
+              />
+
+              <Input
+                label="Roll Number / ID *"
+                placeholder="e.g. 101"
+                value={formRoll}
+                onChangeText={(text) => {
+                  setFormRoll(text);
+                  if (formErrors.roll) setFormErrors((e) => ({ ...e, roll: undefined }));
+                }}
+                error={formErrors.roll}
+                keyboardType="numeric"
+                leftContent={
+                  <Feather name="hash" size={16} color={theme.colors.text.secondary} />
+                }
+              />
+
+              <Input
+                label="Parent / Guardian Phone"
+                placeholder="e.g. +91 98765 43210"
+                value={formPhone}
+                onChangeText={setFormPhone}
+                keyboardType="phone-pad"
+                leftContent={
+                  <Feather name="phone" size={16} color={theme.colors.text.secondary} />
+                }
+                helperText="Used for automated attendance SMS and notifications"
+              />
+
+              <Input
+                label="Student Email (Optional)"
+                placeholder="e.g. student@school.edu"
+                value={formEmail}
+                onChangeText={setFormEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftContent={
+                  <Feather name="mail" size={16} color={theme.colors.text.secondary} />
+                }
+              />
+
+              <View style={styles.formBtnRow}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Cancel"
+                    variant="outline"
+                    fullWidth
+                    onPress={() => setIsStudentFormModalVisible(false)}
+                  />
+                </View>
+                <View style={{ flex: 2 }}>
+                  <Button
+                    title={editingStudent ? 'Save Changes' : 'Add Student'}
+                    variant="primary"
+                    fullWidth
+                    loading={isSubmittingStudent}
+                    onPress={handleSaveStudent}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -720,155 +1219,253 @@ const styles = StyleSheet.create({
   itemDesc: {
     color: theme.colors.text.secondary,
   },
-  tableCard: {
-    overflow: 'hidden',
+
+  // Students list styles
+  studentsListContainer: {
+    gap: theme.spacing.sm,
   },
-  studentRow: {
+  studentCard: {
+    overflow: 'hidden',
+    backgroundColor: theme.colors.background.paper,
+  },
+  studentCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: theme.spacing.md,
     gap: theme.spacing.md,
   },
-  studentRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border.light,
-  },
-  rollBox: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radii.sm,
-    backgroundColor: '#F1F5F9',
+  studentAvatarBox: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.primary.bg,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary.main + '30',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rollText: {
+  studentAvatarText: {
+    color: theme.colors.primary.main,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text.primary,
+    fontSize: theme.typography.sizes.sm,
   },
   studentInfo: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
-  studentName: {
-    color: theme.colors.text.primary,
-  },
-  studentPhone: {
-    color: theme.colors.text.secondary,
-  },
-  attCard: {
-    gap: theme.spacing.sm,
-  },
-  attCardHeader: {
+  studentNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: theme.spacing.xs,
   },
-  attDateGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  attDateText: {
+  studentName: {
     color: theme.colors.text.primary,
+    fontSize: theme.typography.sizes.base - 1,
     fontWeight: theme.typography.weights.semibold,
   },
-  attTotalText: {
-    color: theme.colors.text.secondary,
-  },
-  attStatsRow: {
+  studentMetaRow: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  hwCard: {
+    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: theme.spacing.md,
   },
-  hwTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing.sm,
-  },
-  hwIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.colors.primary.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hwTitleWrapper: {
-    flex: 1,
-    gap: 2,
-  },
-  hwTitle: {
-    color: theme.colors.text.primary,
-    fontSize: theme.typography.sizes.base,
-    fontWeight: theme.typography.weights.bold,
-  },
-  hwMetaInline: {
+  studentMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  hwCreated: {
-    color: theme.colors.text.disabled,
+  studentPhone: {
+    color: theme.colors.text.secondary,
     fontSize: theme.typography.sizes.xs,
   },
-  hwDesc: {
-    color: theme.colors.text.secondary,
-    lineHeight: 20,
+  studentNoPhone: {
+    color: theme.colors.text.disabled,
+    fontSize: theme.typography.sizes.xs,
+    fontStyle: 'italic',
   },
-  progressSection: {
-    gap: 6,
-    paddingTop: theme.spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border.light,
+  studentEmailShort: {
+    color: theme.colors.text.disabled,
+    fontSize: theme.typography.sizes.xs,
+    maxWidth: 130,
   },
-  progressLabelRow: {
+  studentActionIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  studentRowEditBtn: {
+    padding: 6,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.primary.bg,
+  },
+
+  // Modal styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+  },
+  modalBackdropTouch: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalFormSheet: {
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
   },
-  progressLabel: {
-    color: theme.colors.text.secondary,
-    fontWeight: theme.typography.weights.medium,
-    fontSize: theme.typography.sizes.xs,
-  },
-  progressValue: {
-    color: theme.colors.primary.main,
+  modalTitle: {
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
-    fontSize: theme.typography.sizes.xs,
   },
-  progressBarBg: {
-    height: 6,
+  modalSubtitle: {
+    color: theme.colors.text.secondary,
+    marginTop: 2,
+  },
+  closeBtn: {
+    padding: 4,
     borderRadius: theme.radii.full,
     backgroundColor: '#F1F5F9',
-    overflow: 'hidden',
   },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: theme.radii.full,
-  },
-  testCard: {
+
+  // Profile modal content
+  profileContainer: {
     gap: theme.spacing.md,
   },
-  testHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  profileHero: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: theme.spacing.sm,
   },
-  testTitleCol: {
+  profileAvatarLarge: {
+    width: 68,
+    height: 68,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.primary.bg,
+    borderWidth: 2,
+    borderColor: theme.colors.primary.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarText: {
+    color: theme.colors.primary.main,
+    fontSize: theme.typography.sizes.xl,
+    fontWeight: theme.typography.weights.bold,
+  },
+  profileName: {
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.sizes.lg + 2,
+    textAlign: 'center',
+  },
+  profileBadgesRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.xs,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  profileDetailsSection: {
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.xs,
+  },
+  sectionLabel: {
+    color: theme.colors.text.disabled,
+    fontWeight: theme.typography.weights.bold,
+    letterSpacing: 0.8,
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  profileInfoCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: theme.radii.md,
+  },
+  profileInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  profileIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.primary.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileInfoTexts: {
     flex: 1,
     gap: 2,
-    marginRight: theme.spacing.sm,
   },
-  testTitle: {
-    color: theme.colors.text.primary,
-    fontSize: theme.typography.sizes.base,
-  },
-  testDate: {
+  profileFieldLabel: {
     color: theme.colors.text.secondary,
+    fontSize: 11,
   },
-  testActionRow: {
-    marginTop: 2,
+  profileFieldValue: {
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.sizes.sm + 1,
+  },
+  quickActionBtns: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  quickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.background.paper,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+  },
+  quickBtnText: {
+    color: theme.colors.text.primary,
+    fontWeight: theme.typography.weights.semibold,
+    fontSize: 11,
+  },
+  profileActionsRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+  },
+
+  // Form styles
+  formContent: {
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  formBtnRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
 });
