@@ -115,49 +115,6 @@ export default function BatchDetailScreen() {
         showBack
       />
 
-      {/* Batch Overview Banner */}
-      <View style={styles.bannerContainer}>
-        <View style={styles.bannerMetaRow}>
-          <Badge
-            label={`${batch.studentCount} Students`}
-            variant="primary"
-            icon="users"
-          />
-          <Badge
-            label={batch.schedule}
-            variant="neutral"
-            icon="calendar"
-          />
-          <Badge
-            label={batch.timing}
-            variant="neutral"
-            icon="clock"
-          />
-        </View>
-
-        {/* Action Bar */}
-        <View style={styles.quickActionsBar}>
-          <Button
-            title={batch.attendanceTakenToday ? 'Update Attendance' : 'Take Attendance'}
-            variant="primary"
-            style={styles.actionBtn}
-            onPress={() => router.push(`/(teacher)/attendance/${batch.id}`)}
-          />
-          <Button
-            title="+ Homework"
-            variant="secondary"
-            style={styles.actionBtn}
-            onPress={() => router.push(`/(teacher)/homework/create?batchId=${batch.id}`)}
-          />
-          <Button
-            title="+ Test"
-            variant="outline"
-            style={styles.actionBtn}
-            onPress={() => router.push(`/(teacher)/tests/create?batchId=${batch.id}`)}
-          />
-        </View>
-      </View>
-
       {/* Section Tabs */}
       <View style={styles.tabsContainer}>
         <ScrollView
@@ -542,27 +499,6 @@ const styles = StyleSheet.create({
   loadingText: {
     color: theme.colors.text.secondary,
     marginTop: theme.spacing.sm,
-  },
-  bannerContainer: {
-    backgroundColor: theme.colors.background.paper,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border.light,
-    gap: theme.spacing.sm,
-  },
-  bannerMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.xs,
-  },
-  quickActionsBar: {
-    flexDirection: 'row',
-    gap: theme.spacing.xs,
-    marginTop: 4,
-  },
-  actionBtn: {
-    flex: 1,
   },
   tabsContainer: {
     backgroundColor: theme.colors.background.paper,
