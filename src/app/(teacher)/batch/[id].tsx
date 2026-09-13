@@ -424,9 +424,11 @@ export default function BatchDetailScreen() {
                       </Text>
                       <Badge label={`Due ${hw.dueDate}`} variant="info" size="sm" />
                     </View>
-                    <Text variant="caption" numberOfLines={2} style={styles.itemDesc}>
-                      {hw.description}
-                    </Text>
+                    {hw.description ? (
+                      <Text variant="caption" numberOfLines={2} style={styles.itemDesc}>
+                        {hw.description}
+                      </Text>
+                    ) : null}
                   </Card>
                 ))
               )}
@@ -709,9 +711,11 @@ export default function BatchDetailScreen() {
                       />
                     </View>
 
-                    <Text variant="body" numberOfLines={3} style={styles.hwDesc}>
-                      {hw.description}
-                    </Text>
+                    {hw.description ? (
+                      <Text variant="body" numberOfLines={3} style={styles.hwDesc}>
+                        {hw.description}
+                      </Text>
+                    ) : null}
 
                     {/* Progress tracking */}
                     <View style={styles.progressSection}>

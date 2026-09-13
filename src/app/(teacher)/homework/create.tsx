@@ -30,8 +30,9 @@ const homeworkSchema = z.object({
     .max(100, 'Title cannot exceed 100 characters'),
   description: z
     .string()
-    .min(5, 'Description must be at least 5 characters')
-    .max(500, 'Description cannot exceed 500 characters'),
+    .max(500, 'Description cannot exceed 500 characters')
+    .optional()
+    .default(''),
   dueDate: z.string().min(1, 'Please specify a due date'),
 });
 
@@ -200,8 +201,8 @@ export default function CreateHomeworkScreen() {
             name="description"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
-                label="Instructions & Details"
-                placeholder="Describe what students need to complete and submission guidelines..."
+                label="Instructions & Details (Optional)"
+                placeholder="Optional instructions, exercises, or submission guidelines..."
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}

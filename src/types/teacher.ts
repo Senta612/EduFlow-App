@@ -44,7 +44,7 @@ export interface Homework {
   batchId: string;
   batchName: string;
   title: string;
-  description: string;
+  description?: string;
   dueDate: string;
   createdAt: string;
   submissionsCount: number;
