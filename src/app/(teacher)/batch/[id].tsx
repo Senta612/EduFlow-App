@@ -742,6 +742,20 @@ export default function BatchDetailScreen() {
                         />
                       </View>
                     </View>
+
+                    {/* Check / Mark Submissions CTA */}
+                    <View style={styles.hwActionRow}>
+                      <Button
+                        title="Check & Mark Submissions →"
+                        icon="check-circle"
+                        variant="primary"
+                        fullWidth
+                        size="sm"
+                        onPress={() =>
+                          router.push(`/(teacher)/homework/${hw.id}/submissions`)
+                        }
+                      />
+                    </View>
                   </Card>
                 );
               })
@@ -1473,5 +1487,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: theme.spacing.sm,
     marginTop: theme.spacing.sm,
+  },
+  hwActionRow: {
+    marginTop: 4,
   },
 });

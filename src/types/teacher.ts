@@ -39,6 +39,16 @@ export interface AttendanceRecord {
   submittedAt: string;
 }
 
+export type HomeworkStatus = 'done' | 'half_done' | 'not_done';
+
+export interface StudentHomeworkItem {
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  status: HomeworkStatus;
+  remarks?: string;
+}
+
 export interface Homework {
   id: string;
   batchId: string;
@@ -49,6 +59,9 @@ export interface Homework {
   createdAt: string;
   submissionsCount: number;
   totalStudents: number;
+  doneCount?: number;
+  halfDoneCount?: number;
+  notDoneCount?: number;
 }
 
 export interface Test {

@@ -5,6 +5,7 @@ import {
   StudentAttendanceItem,
   AttendanceRecord,
   Homework,
+  StudentHomeworkItem,
   Test,
   StudentMark,
   TeacherTask,
@@ -148,6 +149,7 @@ const STORAGE_KEYS = {
   TESTS: '@eduflow_teacher_tests',
   MARKS: '@eduflow_teacher_marks',
   STUDENTS: '@eduflow_teacher_students',
+  HW_SUBMISSIONS: '@eduflow_teacher_hw_submissions',
 };
 
 type BatchListener = (batches: Batch[]) => void;
@@ -424,6 +426,11 @@ class TeacherService {
     return all.filter((h) => h.batchId === batchId);
   }
 
+  async getHomeworkById(homeworkId: string): Promise<Homework | null> {
+    const all = await this.getHomeworkList();
+    return all.find((h) => h.id === homeworkId) ?? null;
+  }
+
   async createHomework(
     data: Omit<Homework, 'id' | 'createdAt' | 'submissionsCount'>,
   ): Promise<Homework> {
@@ -432,11 +439,96 @@ class TeacherService {
       id: `hw-${Date.now()}`,
       createdAt: 'Just now',
       submissionsCount: 0,
+      doneCount: 0,
+      halfDoneCount: 0,
+      notDoneCount: data.totalStudents || 0,
     };
     const all = await this.getHomeworkList();
     const updated = [newHw, ...all];
     await this.setStored(STORAGE_KEYS.HOMEWORK, updated);
     return newHw;
+  }
+
+  async getHomeworkSubmissions(
+    homeworkId: string,
+    batchId: string,
+  ): Promise<StudentHomeworkItem[]> {
+    const key = `${STORAGE_KEYS.HW_SUBMISSIONS}_${homeworkId}`;
+    const stored = await this.getStored<StudentHomeworkItem[] | null>(key, null);
+    const students = await this.getBatchStudents(batchId);
+
+    if (stored && stored.length > 0) {
+      // Merge with any new students added to the batch
+      const storedMap = new Map(stored.map((s) => [s.studentId, s]));
+      return students.map((s) => {
+        const existing = storedMap.get(s.id);
+        if (existing) {
+          return {
+            ...existing,
+            studentName: s.name,
+            rollNumber: s.rollNumber,
+          };
+        }
+        return {
+          studentId: s.id,
+          studentName: s.name,
+          rollNumber: s.rollNumber,
+          status: 'not_done' as const,
+        };
+      });
+    }
+
+    // Initialize from students list
+    // Pre-seed some items if homework already had initial mock submissions count
+    const hw = await this.getHomeworkById(homeworkId);
+    const targetDone = hw?.submissionsCount ?? 0;
+
+    return students.map((s, index) => {
+      let status: 'done' | 'half_done' | 'not_done' = 'not_done';
+      if (index < targetDone - 2) {
+        status = 'done';
+      } else if (index < targetDone) {
+        status = 'half_done';
+      }
+      return {
+        studentId: s.id,
+        studentName: s.name,
+        rollNumber: s.rollNumber,
+        status,
+      };
+    });
+  }
+
+  async saveHomeworkSubmissions(
+    homeworkId: string,
+    batchId: string,
+    submissions: StudentHomeworkItem[],
+  ): Promise<void> {
+    const key = `${STORAGE_KEYS.HW_SUBMISSIONS}_${homeworkId}`;
+    await this.setStored(key, submissions);
+
+    const doneCount = submissions.filter((s) => s.status === 'done').length;
+    const halfDoneCount = submissions.filter((s) => s.status === 'half_done').length;
+    const notDoneCount = submissions.filter((s) => s.status === 'not_done').length;
+    const submissionsCount = doneCount + halfDoneCount;
+
+    // Update the homework object in storage
+    const all = await this.getHomeworkList();
+    const updated = all.map((hw) => {
+      if (hw.id === homeworkId) {
+        return {
+          ...hw,
+          submissionsCount,
+          totalStudents: submissions.length,
+          doneCount,
+          halfDoneCount,
+          notDoneCount,
+        };
+      }
+      return hw;
+    });
+
+    await this.setStored(STORAGE_KEYS.HOMEWORK, updated);
   }
 
   // Tests & Marks
