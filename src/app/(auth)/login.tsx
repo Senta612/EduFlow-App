@@ -253,9 +253,9 @@ const styles = StyleSheet.create({
   testAccountsContainer: {
     padding: theme.spacing.md,
     borderRadius: theme.radii.lg,
-    backgroundColor: theme.colors.background.card ?? '#f9fafb',
+    backgroundColor: theme.colors.background.paper,
     borderWidth: 1,
-    borderColor: theme.colors.border.main ?? '#e5e7eb',
+    borderColor: theme.colors.border.main,
     gap: theme.spacing.sm,
   },
 
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.md,
     backgroundColor: theme.colors.background.screen,
     borderWidth: 1,
-    borderColor: theme.colors.border.main ?? '#e5e7eb',
+    borderColor: theme.colors.border.main,
     alignItems: 'center',
     gap: 2,
   },
