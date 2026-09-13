@@ -225,21 +225,35 @@ class TeacherService {
 
   // Students
   async getAllStudents(): Promise<Record<string, Student[]>> {
-    return this.getStored<Record<string, Student[]>>(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
+    const stored = await this.getStored<Record<string, Student[]> | null>(STORAGE_KEYS.STUDENTS, null);
+    if (!stored) {
+      await this.setStored(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
+      return { ...INITIAL_STUDENTS };
+    }
+    return stored;
   }
 
   async getBatchStudents(batchId: string): Promise<Student[]> {
     const allStudents = await this.getAllStudents();
-    return allStudents[batchId] ?? [
-      { id: 'st-mock-1', name: 'Aarav Kumar', rollNumber: '01' },
-      { id: 'st-mock-2', name: 'Bhavna Sharma', rollNumber: '02' },
-      { id: 'st-mock-3', name: 'Chetan Patel', rollNumber: '03' },
+    if (allStudents[batchId] && allStudents[batchId].length >= 0) {
+      return allStudents[batchId];
+    }
+    const defaults = INITIAL_STUDENTS[batchId] ?? [
+      { id: `st-${batchId}-1`, name: 'Aarav Kumar', rollNumber: '01', parentPhone: '+91 98765 43210' },
+      { id: `st-${batchId}-2`, name: 'Bhavna Sharma', rollNumber: '02', parentPhone: '+91 98765 43211' },
+      { id: `st-${batchId}-3`, name: 'Chetan Patel', rollNumber: '03', parentPhone: '+91 98765 43212' },
     ];
+    allStudents[batchId] = defaults;
+    await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
+    return defaults;
   }
 
   async addStudent(batchId: string, studentData: Omit<Student, 'id'>): Promise<Student> {
     const allStudents = await this.getAllStudents();
-    const batchStudents = allStudents[batchId] ? [...allStudents[batchId]] : [];
+    let batchStudents = allStudents[batchId];
+    if (!batchStudents) {
+      batchStudents = await this.getBatchStudents(batchId);
+    }
 
     const newStudent: Student = {
       ...studentData,
@@ -271,11 +285,25 @@ class TeacherService {
     studentData: Partial<Omit<Student, 'id'>>,
   ): Promise<Student> {
     const allStudents = await this.getAllStudents();
-    const batchStudents = allStudents[batchId] ? [...allStudents[batchId]] : [];
+    let batchStudents = allStudents[batchId];
+    if (!batchStudents) {
+      batchStudents = await this.getBatchStudents(batchId);
+    }
+
     const index = batchStudents.findIndex((s) => s.id === studentId);
 
     if (index === -1) {
-      throw new Error('Student not found');
+      // Gracefully add if not existing
+      const newStudent: Student = {
+        id: studentId || `st-${Date.now()}`,
+        name: studentData.name || 'Student',
+        rollNumber: studentData.rollNumber || '01',
+        parentPhone: studentData.parentPhone,
+        email: studentData.email,
+      };
+      allStudents[batchId] = [...batchStudents, newStudent];
+      await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
+      return newStudent;
     }
 
     const updatedStudent: Student = {
@@ -284,7 +312,7 @@ class TeacherService {
     };
 
     batchStudents[index] = updatedStudent;
-    allStudents[batchId] = batchStudents;
+    allStudents[batchId] = [...batchStudents];
     await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
 
     return updatedStudent;
@@ -292,7 +320,11 @@ class TeacherService {
 
   async deleteStudent(batchId: string, studentId: string): Promise<void> {
     const allStudents = await this.getAllStudents();
-    const batchStudents = allStudents[batchId] ? [...allStudents[batchId]] : [];
+    let batchStudents = allStudents[batchId];
+    if (!batchStudents) {
+      batchStudents = await this.getBatchStudents(batchId);
+    }
+
     const filtered = batchStudents.filter((s) => s.id !== studentId);
     allStudents[batchId] = filtered;
     await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
