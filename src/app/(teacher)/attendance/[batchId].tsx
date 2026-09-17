@@ -21,6 +21,8 @@ import { teacherService } from '@/services/teacher.service';
 import { Batch, StudentAttendanceItem, AttendanceStatus } from '@/types/teacher';
 import { theme } from '@/theme';
 
+import { AttendanceSuccessModal, AttendanceSuccessData } from '@/components/attendance/AttendanceSuccessModal';
+
 function formatTodayDate(): string {
   return new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -39,6 +41,8 @@ export default function TakeAttendanceScreen() {
   const [items, setItems] = useState<StudentAttendanceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [successData, setSuccessData] = useState<AttendanceSuccessData | null>(null);
 
   const loadData = useCallback(async () => {
     if (!batchId) return;
@@ -92,29 +96,23 @@ export default function TakeAttendanceScreen() {
   const absentCount = items.filter((i) => i.status === 'absent').length;
 
   const handleSubmit = async () => {
-    if (!batchId || items.length === 0) return;
+    if (!batchId || items.length === 0 || !batch) return;
 
     setIsSubmitting(true);
     try {
       const todayIso = new Date().toISOString().split('T')[0];
       await teacherService.submitAttendance(batchId, todayIso, items);
 
-      Alert.alert(
-        'Attendance Recorded!',
-        `Successfully logged attendance for ${items.length} students (${presentCount} Present, ${absentCount} Absent).`,
-        [
-          {
-            text: 'Done',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(teacher)/(tabs)');
-              }
-            },
-          },
-        ],
-      );
+      setSuccessData({
+        batchName: batch.name,
+        grade: batch.grade,
+        subject: batch.subject,
+        totalStudents: items.length,
+        presentCount,
+        absentCount,
+        timing: batch.timing,
+      });
+      setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Error submitting attendance:', error);
       Alert.alert(
@@ -123,6 +121,26 @@ export default function TakeAttendanceScreen() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setIsSuccessModalVisible(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)');
+    }
+  };
+
+  const handleViewBatchDetails = () => {
+    setIsSuccessModalVisible(false);
+    if (batchId) {
+      router.replace(`/(teacher)/batch/${batchId}`);
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)');
     }
   };
 
@@ -357,6 +375,14 @@ export default function TakeAttendanceScreen() {
           style={styles.submitButton}
         />
       </View>
+
+      {/* Attendance Recorded Success Modal */}
+      <AttendanceSuccessModal
+        visible={isSuccessModalVisible}
+        onClose={handleSuccessClose}
+        data={successData}
+        onViewBatch={handleViewBatchDetails}
+      />
     </View>
   );
 }
