@@ -473,30 +473,18 @@ class TeacherService {
           studentId: s.id,
           studentName: s.name,
           rollNumber: s.rollNumber,
-          status: 'not_done' as const,
+          status: 'done' as const,
         };
       });
     }
 
-    // Initialize from students list
-    // Pre-seed some items if homework already had initial mock submissions count
-    const hw = await this.getHomeworkById(homeworkId);
-    const targetDone = hw?.submissionsCount ?? 0;
-
-    return students.map((s, index) => {
-      let status: 'done' | 'half_done' | 'not_done' = 'not_done';
-      if (index < targetDone - 2) {
-        status = 'done';
-      } else if (index < targetDone) {
-        status = 'half_done';
-      }
-      return {
-        studentId: s.id,
-        studentName: s.name,
-        rollNumber: s.rollNumber,
-        status,
-      };
-    });
+    // Initialize from students list - default all students to 'done' for fast 1-tap review
+    return students.map((s) => ({
+      studentId: s.id,
+      studentName: s.name,
+      rollNumber: s.rollNumber,
+      status: 'done' as const,
+    }));
   }
 
   async saveHomeworkSubmissions(
