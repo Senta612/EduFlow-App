@@ -1,1 +1,1 @@
-export * from './HomeworkSuccessModal';
+export {};

@@ -1,1 +1,1 @@
-export * from './AttendanceSuccessModal';
+export {};

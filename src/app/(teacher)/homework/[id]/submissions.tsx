@@ -27,7 +27,7 @@ import {
   HomeworkStatus,
 } from '@/types/teacher';
 import { theme } from '@/theme';
-import { HomeworkSuccessModal, HomeworkSuccessData } from '@/components/homework/HomeworkSuccessModal';
+import { SuccessModal } from '@/components/ui/SuccessModal';
 
 type FilterTab = 'all' | 'done' | 'half_done' | 'not_done';
 
@@ -43,7 +43,6 @@ export default function HomeworkSubmissionsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
-  const [successData, setSuccessData] = useState<HomeworkSuccessData | null>(null);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -120,16 +119,6 @@ export default function HomeworkSubmissionsScreen() {
     setIsSaving(true);
     try {
       await teacherService.saveHomeworkSubmissions(id, homework.batchId, items);
-
-      setSuccessData({
-        title: homework.title,
-        batchName: homework.batchName,
-        totalStudents: items.length,
-        doneCount,
-        halfDoneCount,
-        notDoneCount,
-        dueDate: homework.dueDate,
-      });
       setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Failed to save homework submissions:', error);
@@ -574,11 +563,57 @@ export default function HomeworkSubmissionsScreen() {
       </KeyboardAvoidingView>
 
       {/* Homework Status Saved Success Modal */}
-      <HomeworkSuccessModal
+      <SuccessModal
         visible={isSuccessModalVisible}
         onClose={handleSuccessClose}
-        data={successData}
-        onViewBatch={handleViewBatch}
+        title="Homework Status Saved!"
+        subtitle={
+          notDoneCount === 0 && halfDoneCount === 0 && totalCount > 0
+            ? 'All enrolled students have completed this assignment. Great work!'
+            : 'Student submission records have been successfully updated.'
+        }
+        badgeVariant="success"
+        contextBadge={
+          homework
+            ? {
+                icon: 'book-open',
+                label: `${homework.batchName} • ${homework.title}`,
+              }
+            : undefined
+        }
+        stats={[
+          {
+            label: 'Completed',
+            value: doneCount,
+            variant: 'success',
+            icon: 'check-circle',
+          },
+          {
+            label: 'Partial',
+            value: halfDoneCount,
+            variant: 'warning',
+            icon: 'clock',
+          },
+          {
+            label: 'Pending',
+            value: notDoneCount,
+            variant: 'danger',
+            icon: 'x-circle',
+          },
+        ]}
+        progress={{
+          label: 'Completion Rate',
+          percentage: donePercent,
+        }}
+        primaryAction={{
+          title: 'Done',
+          onPress: handleSuccessClose,
+        }}
+        secondaryAction={{
+          title: 'Back to Batch',
+          onPress: handleViewBatch,
+          variant: 'ghost',
+        }}
       />
     </View>
   );

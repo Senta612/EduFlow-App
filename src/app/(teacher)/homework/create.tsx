@@ -18,6 +18,7 @@ import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SuccessModal } from '@/components/ui/SuccessModal';
 import { teacherService } from '@/services/teacher.service';
 import { Batch } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -45,6 +46,8 @@ export default function CreateHomeworkScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [createdInfo, setCreatedInfo] = useState<{ title: string; batchName: string; dueDate: string } | null>(null);
 
   const {
     control,
@@ -84,37 +87,37 @@ export default function CreateHomeworkScreen() {
   const onSubmit = async (data: HomeworkFormData) => {
     try {
       const targetBatch = batches.find((b) => b.id === data.batchId);
+      const batchName = targetBatch ? `${targetBatch.name || targetBatch.subject} (${targetBatch.grade})` : 'General';
       await teacherService.createHomework({
         batchId: data.batchId,
-        batchName: targetBatch ? `${targetBatch.subject} (${targetBatch.grade})` : 'General',
+        batchName,
         title: data.title,
         description: data.description,
         dueDate: data.dueDate,
         totalStudents: targetBatch?.studentCount ?? 30,
       });
 
-      Alert.alert(
-        'Homework Published!',
-        `Your homework assignment "${data.title}" has been assigned to students.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(teacher)/(tabs)');
-              }
-            },
-          },
-        ],
-      );
+      setCreatedInfo({
+        title: data.title,
+        batchName,
+        dueDate: data.dueDate,
+      });
+      setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Failed to create homework:', error);
       Alert.alert(
         'Publication Error',
         'Could not publish homework. Please verify fields and try again.',
       );
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setIsSuccessModalVisible(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)');
     }
   };
 
@@ -244,6 +247,38 @@ export default function CreateHomeworkScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Homework Published Success Modal */}
+      <SuccessModal
+        visible={isSuccessModalVisible}
+        onClose={handleSuccessClose}
+        title="Homework Published!"
+        subtitle="Your homework assignment has been successfully assigned to students."
+        badgeVariant="success"
+        contextBadge={
+          createdInfo
+            ? {
+                icon: 'book-open',
+                label: `${createdInfo.batchName} • Due: ${createdInfo.dueDate}`,
+              }
+            : undefined
+        }
+        stats={
+          createdInfo
+            ? [
+                {
+                  label: 'Assignment',
+                  value: createdInfo.title,
+                  variant: 'primary',
+                },
+              ]
+            : undefined
+        }
+        primaryAction={{
+          title: 'Done',
+          onPress: handleSuccessClose,
+        }}
+      />
     </View>
   );
 }

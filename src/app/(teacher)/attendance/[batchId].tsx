@@ -21,7 +21,7 @@ import { teacherService } from '@/services/teacher.service';
 import { Batch, StudentAttendanceItem, AttendanceStatus } from '@/types/teacher';
 import { theme } from '@/theme';
 
-import { AttendanceSuccessModal, AttendanceSuccessData } from '@/components/attendance/AttendanceSuccessModal';
+import { SuccessModal } from '@/components/ui/SuccessModal';
 
 function formatTodayDate(): string {
   return new Date().toLocaleDateString('en-US', {
@@ -42,7 +42,6 @@ export default function TakeAttendanceScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
-  const [successData, setSuccessData] = useState<AttendanceSuccessData | null>(null);
 
   const loadData = useCallback(async () => {
     if (!batchId) return;
@@ -102,16 +101,6 @@ export default function TakeAttendanceScreen() {
     try {
       const todayIso = new Date().toISOString().split('T')[0];
       await teacherService.submitAttendance(batchId, todayIso, items);
-
-      setSuccessData({
-        batchName: batch.name,
-        grade: batch.grade,
-        subject: batch.subject,
-        totalStudents: items.length,
-        presentCount,
-        absentCount,
-        timing: batch.timing,
-      });
       setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Error submitting attendance:', error);
@@ -377,11 +366,52 @@ export default function TakeAttendanceScreen() {
       </View>
 
       {/* Attendance Recorded Success Modal */}
-      <AttendanceSuccessModal
+      <SuccessModal
         visible={isSuccessModalVisible}
         onClose={handleSuccessClose}
-        data={successData}
-        onViewBatch={handleViewBatchDetails}
+        title="Attendance Recorded!"
+        subtitle={
+          absentCount === 0 && items.length > 0
+            ? 'All enrolled students are present today. Outstanding!'
+            : 'Daily attendance roster has been successfully logged.'
+        }
+        badgeVariant="success"
+        contextBadge={
+          batch
+            ? {
+                icon: 'book-open',
+                label: `${batch.name} • ${batch.grade} • ${batch.subject}`,
+              }
+            : undefined
+        }
+        stats={[
+          { label: 'Total', value: items.length, variant: 'neutral' },
+          {
+            label: 'Present',
+            value: presentCount,
+            variant: 'success',
+            icon: 'check-circle',
+          },
+          {
+            label: 'Absent',
+            value: absentCount,
+            variant: 'danger',
+            icon: 'x-circle',
+          },
+        ]}
+        progress={{
+          label: 'Class Turnout Rate',
+          percentage: items.length > 0 ? Math.round((presentCount / items.length) * 100) : 0,
+        }}
+        primaryAction={{
+          title: 'Done',
+          onPress: handleSuccessClose,
+        }}
+        secondaryAction={{
+          title: 'View Batch Details',
+          onPress: handleViewBatchDetails,
+          variant: 'ghost',
+        }}
       />
     </View>
   );
