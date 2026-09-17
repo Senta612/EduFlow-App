@@ -27,6 +27,7 @@ import {
   HomeworkStatus,
 } from '@/types/teacher';
 import { theme } from '@/theme';
+import { HomeworkSuccessModal, HomeworkSuccessData } from '@/components/homework/HomeworkSuccessModal';
 
 type FilterTab = 'all' | 'done' | 'half_done' | 'not_done';
 
@@ -41,6 +42,8 @@ export default function HomeworkSubmissionsScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [successData, setSuccessData] = useState<HomeworkSuccessData | null>(null);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -118,27 +121,41 @@ export default function HomeworkSubmissionsScreen() {
     try {
       await teacherService.saveHomeworkSubmissions(id, homework.batchId, items);
 
-      Alert.alert(
-        'Homework Status Saved!',
-        `Updated status for ${items.length} students:\n• ${doneCount} Completed\n• ${halfDoneCount} Partially Done\n• ${notDoneCount} Pending`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(teacher)/(tabs)');
-              }
-            },
-          },
-        ]
-      );
+      setSuccessData({
+        title: homework.title,
+        batchName: homework.batchName,
+        totalStudents: items.length,
+        doneCount,
+        halfDoneCount,
+        notDoneCount,
+        dueDate: homework.dueDate,
+      });
+      setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Failed to save homework submissions:', error);
       Alert.alert('Error', 'Could not save submissions. Please try again.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setIsSuccessModalVisible(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)');
+    }
+  };
+
+  const handleViewBatch = () => {
+    setIsSuccessModalVisible(false);
+    if (homework?.batchId) {
+      router.replace(`/(teacher)/batch/${homework.batchId}`);
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)');
     }
   };
 
@@ -555,6 +572,14 @@ export default function HomeworkSubmissionsScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Homework Status Saved Success Modal */}
+      <HomeworkSuccessModal
+        visible={isSuccessModalVisible}
+        onClose={handleSuccessClose}
+        data={successData}
+        onViewBatch={handleViewBatch}
+      />
     </View>
   );
 }
