@@ -1,13 +1,24 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Modal,
   Pressable,
-  Animated,
-  Easing,
   Dimensions,
 } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  ZoomIn,
+  ZoomOut,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -37,72 +48,60 @@ export function AttendanceSuccessModal({
   data,
   onViewBatch,
 }: AttendanceSuccessModalProps) {
-  const scaleAnim = useRef(new Animated.Value(0.85)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const checkScaleAnim = useRef(new Animated.Value(0)).current;
-  const pulseRingAnim = useRef(new Animated.Value(0.8)).current;
+  const pulseScale = useSharedValue(1);
+  const pulseOpacity = useSharedValue(0.25);
+  const progressFill = useSharedValue(0);
+
+  const total = data?.totalStudents || 0;
+  const present = data?.presentCount || 0;
+  const absent = data?.absentCount || 0;
+  const attendanceRate = total > 0 ? Math.round((present / total) * 100) : 0;
+  const isPerfectAttendance = total > 0 && absent === 0;
 
   useEffect(() => {
     if (visible) {
-      // Card entrance animation
-      Animated.parallel([
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 220,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 7,
-          tension: 65,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Soft breathing glow on outer checkmark ring
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.2, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.95, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        true,
+      );
 
-      // Checkmark pop animation with slight delay
-      Animated.sequence([
-        Animated.delay(120),
-        Animated.spring(checkScaleAnim, {
-          toValue: 1,
-          friction: 5,
-          tension: 80,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      pulseOpacity.value = withRepeat(
+        withSequence(
+          withTiming(0.4, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.15, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        true,
+      );
 
-      // Soft pulse animation on outer ring
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseRingAnim, {
-            toValue: 1.15,
-            duration: 1200,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseRingAnim, {
-            toValue: 0.95,
-            duration: 1200,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      ).start();
+      // Smooth progress bar fill
+      progressFill.value = 0;
+      progressFill.value = withTiming(attendanceRate, {
+        duration: 750,
+        easing: Easing.out(Easing.cubic),
+      });
     } else {
-      scaleAnim.setValue(0.85);
-      opacityAnim.setValue(0);
-      checkScaleAnim.setValue(0);
-      pulseRingAnim.setValue(0.8);
+      pulseScale.value = 1;
+      pulseOpacity.value = 0.25;
+      progressFill.value = 0;
     }
-  }, [visible, scaleAnim, opacityAnim, checkScaleAnim, pulseRingAnim]);
+  }, [visible, attendanceRate, pulseScale, pulseOpacity, progressFill]);
+
+  const animatedPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    opacity: pulseOpacity.value,
+  }));
+
+  const animatedProgressStyle = useAnimatedStyle(() => ({
+    width: `${Math.min(100, Math.max(0, progressFill.value))}%`,
+  }));
 
   if (!data) return null;
-
-  const total = data.totalStudents || 0;
-  const present = data.presentCount || 0;
-  const absent = data.absentCount || 0;
-  const attendanceRate = total > 0 ? Math.round((present / total) * 100) : 0;
-  const isPerfectAttendance = total > 0 && absent === 0;
 
   return (
     <Modal
@@ -112,19 +111,21 @@ export function AttendanceSuccessModal({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Animated.View style={[styles.backdrop, { opacity: opacityAnim }]}>
+      {/* Dimmed backdrop with Reanimated Fade */}
+      <Animated.View
+        entering={FadeIn.duration(200)}
+        exiting={FadeOut.duration(150)}
+        style={styles.backdrop}
+      >
         <Pressable style={styles.backdropPressable} onPress={onClose}>
+          {/* Card Dialog with Reanimated Spring Pop */}
           <Animated.View
-            style={[
-              styles.cardContainer,
-              {
-                opacity: opacityAnim,
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
+            entering={ZoomIn.springify().damping(16).stiffness(140).mass(0.9)}
+            exiting={ZoomOut.duration(160)}
+            style={styles.cardContainer}
           >
             <Pressable onPress={(e) => e.stopPropagation()} style={styles.cardInner}>
-              {/* Close Button Top Right */}
+              {/* Dismiss Button */}
               <Pressable
                 onPress={onClose}
                 hitSlop={12}
@@ -135,36 +136,25 @@ export function AttendanceSuccessModal({
                 <Feather name="x" size={18} color={theme.colors.text.secondary} />
               </Pressable>
 
-              {/* Success Animated Badge */}
+              {/* Reanimated Animated Success Icon Badge */}
               <View style={styles.iconWrapper}>
+                <Animated.View style={[styles.pulseRing, animatedPulseStyle]} />
                 <Animated.View
-                  style={[
-                    styles.pulseRing,
-                    {
-                      transform: [{ scale: pulseRingAnim }],
-                    },
-                  ]}
-                />
-                <Animated.View
-                  style={[
-                    styles.iconCircle,
-                    {
-                      transform: [{ scale: checkScaleAnim }],
-                    },
-                  ]}
+                  entering={ZoomIn.delay(120).springify().damping(11).stiffness(160)}
+                  style={styles.iconCircle}
                 >
                   <Feather name="check" size={28} color="#FFFFFF" />
                 </Animated.View>
               </View>
 
-              {/* Title and Subtitle */}
+              {/* Title & Subtitle */}
               <Text variant="heading" style={styles.title}>
                 Attendance Recorded!
               </Text>
               <Text variant="body" style={styles.subtitle}>
                 {isPerfectAttendance
-                  ? 'All enrolled students are present today. Great job!'
-                  : 'Daily attendance roster has been saved successfully.'}
+                  ? 'All enrolled students are present today. Outstanding!'
+                  : 'Daily attendance roster has been successfully logged.'}
               </Text>
 
               {/* Batch Context Pill */}
@@ -182,7 +172,7 @@ export function AttendanceSuccessModal({
                 </Text>
               </View>
 
-              {/* Stats Summary Grid */}
+              {/* 3-Column Key Metric Breakdown Grid */}
               <View style={styles.statsGrid}>
                 {/* Total */}
                 <View style={[styles.statBox, styles.statBoxTotal]}>
@@ -241,7 +231,7 @@ export function AttendanceSuccessModal({
                 </View>
               </View>
 
-              {/* Attendance Rate Bar */}
+              {/* Attendance Rate Progress Bar with Dynamic Fill */}
               <View style={styles.rateContainer}>
                 <View style={styles.rateHeader}>
                   <Text variant="caption" style={styles.rateLabel}>
@@ -252,17 +242,17 @@ export function AttendanceSuccessModal({
                   </Text>
                 </View>
                 <View style={styles.progressBarTrack}>
-                  <View
+                  <Animated.View
                     style={[
                       styles.progressBarFill,
-                      { width: `${Math.min(100, Math.max(0, attendanceRate))}%` },
+                      animatedProgressStyle,
                       attendanceRate < 50 && styles.progressBarFillLow,
                     ]}
                   />
                 </View>
               </View>
 
-              {/* Actions Footer */}
+              {/* Action Buttons */}
               <View style={styles.actionGroup}>
                 <Button
                   title="Done"
@@ -352,7 +342,7 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: 'rgba(34, 197, 94, 0.18)',
+    backgroundColor: 'rgba(34, 197, 94, 0.22)',
   },
   iconCircle: {
     width: 58,
