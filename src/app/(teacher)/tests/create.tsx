@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,8 +19,9 @@ import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SuccessModal } from '@/components/ui/SuccessModal';
 import { teacherService } from '@/services/teacher.service';
-import { Batch } from '@/types/teacher';
+import { Batch, Test } from '@/types/teacher';
 import { theme } from '@/theme';
 
 const testSchema = z.object({
@@ -45,6 +47,8 @@ export default function CreateTestScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [createdTest, setCreatedTest] = useState<Test | null>(null);
 
   const {
     control,
@@ -83,8 +87,9 @@ export default function CreateTestScreen() {
 
   const onSubmit = async (data: TestFormData) => {
     try {
+      Keyboard.dismiss();
       const targetBatch = batches.find((b) => b.id === data.batchId);
-      const createdTest = await teacherService.createTest({
+      const newTest = await teacherService.createTest({
         batchId: data.batchId,
         batchName: targetBatch ? `${targetBatch.subject} (${targetBatch.grade})` : 'General',
         title: data.title,
@@ -93,32 +98,29 @@ export default function CreateTestScreen() {
         totalStudents: targetBatch?.studentCount ?? 30,
       });
 
-      Alert.alert(
-        'Assessment Created!',
-        `"${data.title}" is ready. Would you like to enter marks now?`,
-        [
-          {
-            text: 'Later',
-            style: 'cancel',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(teacher)/(tabs)');
-              }
-            },
-          },
-          {
-            text: 'Enter Marks Now',
-            onPress: () => {
-              router.replace(`/(teacher)/tests/${createdTest.id}/marks`);
-            },
-          },
-        ],
-      );
+      setCreatedTest(newTest);
+      setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Failed to create test:', error);
       Alert.alert('Error', 'Could not create assessment. Please try again.');
+    }
+  };
+
+  const handleEnterMarks = () => {
+    setIsSuccessModalVisible(false);
+    if (createdTest) {
+      router.replace(`/(teacher)/tests/${createdTest.id}/marks`);
+    } else {
+      router.replace('/(teacher)/(tabs)');
+    }
+  };
+
+  const handleClose = () => {
+    setIsSuccessModalVisible(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)');
     }
   };
 
@@ -246,6 +248,56 @@ export default function CreateTestScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Assessment Created Success Modal */}
+      <SuccessModal
+        visible={isSuccessModalVisible}
+        onClose={handleClose}
+        title="Assessment Created!"
+        subtitle={
+          createdTest
+            ? `"${createdTest.title}" has been successfully scheduled for ${createdTest.batchName}.`
+            : 'Your assessment has been created successfully.'
+        }
+        badgeIcon="award"
+        badgeVariant="success"
+        contextBadge={
+          createdTest
+            ? {
+                icon: 'calendar',
+                label: `${createdTest.batchName} • Date: ${createdTest.date}`,
+              }
+            : undefined
+        }
+        stats={
+          createdTest
+            ? [
+                {
+                  label: 'Max Marks',
+                  value: createdTest.maxMarks,
+                  variant: 'primary',
+                  icon: 'award',
+                },
+                {
+                  label: 'Total Students',
+                  value: createdTest.totalStudents,
+                  variant: 'neutral',
+                  icon: 'users',
+                },
+              ]
+            : undefined
+        }
+        primaryAction={{
+          title: 'Enter Marks Now',
+          icon: 'edit-3',
+          onPress: handleEnterMarks,
+        }}
+        secondaryAction={{
+          title: 'Done for Now',
+          icon: 'check',
+          onPress: handleClose,
+        }}
+      />
     </View>
   );
 }
