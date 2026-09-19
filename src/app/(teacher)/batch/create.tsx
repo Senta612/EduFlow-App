@@ -20,7 +20,9 @@ import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SuccessModal } from '@/components/ui/SuccessModal';
 import { teacherService } from '@/services/teacher.service';
+import { Batch } from '@/types/teacher';
 import { theme } from '@/theme';
 
 const CLASS_OPTIONS = [
@@ -82,6 +84,8 @@ export default function CreateBatchScreen() {
 
   const [selectedDays, setSelectedDays] = useState<string[]>(['Mon', 'Wed', 'Fri']);
   const [daysError, setDaysError] = useState<string | null>(null);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [createdBatch, setCreatedBatch] = useState<Batch | null>(null);
 
   const {
     control,
@@ -131,6 +135,7 @@ export default function CreateBatchScreen() {
     }
 
     try {
+      Keyboard.dismiss();
       const scheduleString = selectedDays.join(' • ');
 
       const newBatch = await teacherService.createBatch({
@@ -142,24 +147,32 @@ export default function CreateBatchScreen() {
         room: data.room?.trim() ? data.room.trim() : undefined,
       });
 
-      Alert.alert(
-        'Batch Created!',
-        `"${newBatch.subject} - ${newBatch.name}" (${newBatch.grade}) is now ready.`,
-        [
-          {
-            text: 'Open Workspace',
-            onPress: () => {
-              router.replace(`/(teacher)/batch/${newBatch.id}`);
-            },
-          },
-        ],
-      );
+      setCreatedBatch(newBatch);
+      setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Failed to create batch:', error);
       Alert.alert(
         'Creation Failed',
         'Could not create batch. Please check the entered fields and try again.',
       );
+    }
+  };
+
+  const handleOpenWorkspace = () => {
+    setIsSuccessModalVisible(false);
+    if (createdBatch) {
+      router.replace(`/(teacher)/batch/${createdBatch.id}`);
+    } else {
+      router.replace('/(teacher)/(tabs)/batches');
+    }
+  };
+
+  const handleBackToBatches = () => {
+    setIsSuccessModalVisible(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)/batches');
     }
   };
 
@@ -402,6 +415,66 @@ export default function CreateBatchScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Batch Created Success Modal */}
+      <SuccessModal
+        visible={isSuccessModalVisible}
+        onClose={handleOpenWorkspace}
+        title="Batch Created!"
+        subtitle={
+          createdBatch
+            ? `"${createdBatch.subject} - ${createdBatch.name}" (${createdBatch.grade}) is now ready.`
+            : 'Your new teaching batch has been created successfully.'
+        }
+        badgeIcon="check"
+        badgeVariant="success"
+        contextBadge={
+          createdBatch
+            ? {
+                icon: 'calendar',
+                label: `${createdBatch.schedule} • ${createdBatch.timing}`,
+              }
+            : undefined
+        }
+        stats={
+          createdBatch
+            ? [
+                {
+                  label: 'Subject',
+                  value: createdBatch.subject,
+                  variant: 'primary',
+                  icon: 'book-open',
+                },
+                {
+                  label: 'Class',
+                  value: createdBatch.grade,
+                  variant: 'neutral',
+                  icon: 'award',
+                },
+                ...(createdBatch.room
+                  ? [
+                      {
+                        label: 'Room',
+                        value: createdBatch.room,
+                        variant: 'neutral' as const,
+                        icon: 'map-pin' as const,
+                      },
+                    ]
+                  : []),
+              ]
+            : undefined
+        }
+        primaryAction={{
+          title: 'Open Workspace',
+          icon: 'arrow-right',
+          onPress: handleOpenWorkspace,
+        }}
+        secondaryAction={{
+          title: 'All Batches',
+          icon: 'grid',
+          onPress: handleBackToBatches,
+        }}
+      />
     </View>
   );
 }
