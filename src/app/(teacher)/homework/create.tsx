@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuccessModal } from '@/components/ui/SuccessModal';
+import { DatePickerInput } from '@/components/ui/DatePicker';
 import { teacherService } from '@/services/teacher.service';
 import { Batch } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -218,19 +219,19 @@ export default function CreateHomeworkScreen() {
             )}
           />
 
-          {/* Due Date */}
+          {/* Due Date & Time */}
           <Controller
             control={control}
             name="dueDate"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
+            render={({ field: { onChange, value } }) => (
+              <DatePickerInput
                 label="Due Date & Time"
-                placeholder="e.g. Tomorrow, 05:00 PM or 15 Sep 2026"
                 value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                onFocus={scrollToBottom}
+                onChange={onChange}
+                mode="datetime"
+                placeholder="Select submission deadline"
                 error={errors.dueDate?.message}
+                modalTitle="Set Due Date & Time"
               />
             )}
           />
