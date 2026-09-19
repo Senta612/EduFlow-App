@@ -24,6 +24,22 @@ import { teacherService } from '@/services/teacher.service';
 import { Batch, Test } from '@/types/teacher';
 import { theme } from '@/theme';
 
+function getFormattedDate(offsetDays: number = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
+const DATE_PRESETS = [
+  { label: 'Today', offset: 0 },
+  { label: 'Tomorrow', offset: 1 },
+  { label: 'In 3 Days', offset: 3 },
+  { label: 'Next Week', offset: 7 },
+];
+
 const testSchema = z.object({
   batchId: z.string().min(1, 'Please select a batch'),
   title: z
@@ -61,12 +77,13 @@ export default function CreateTestScreen() {
     defaultValues: {
       batchId: initialBatchId ?? '',
       title: '',
-      date: '15 Sep 2026',
+      date: getFormattedDate(0),
       maxMarks: '50',
     },
   });
 
   const selectedBatchId = watch('batchId');
+  const selectedDate = watch('date');
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -201,22 +218,65 @@ export default function CreateTestScreen() {
             )}
           />
 
-          {/* Test Date */}
-          <Controller
-            control={control}
-            name="date"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Test Date"
-                placeholder="e.g. 15 Sep 2026"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                onFocus={scrollToBottom}
-                error={errors.date?.message}
-              />
-            )}
-          />
+          {/* Test Date with Quick Presets */}
+          <View style={styles.formGroup}>
+            <View style={styles.labelRow}>
+              <Text variant="label" style={styles.fieldLabel}>
+                Test Date
+              </Text>
+              <Text variant="caption" style={styles.labelHint}>
+                {selectedDate === getFormattedDate(0) ? 'Today' : selectedDate}
+              </Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.datePresetsRow}
+            >
+              {DATE_PRESETS.map((preset) => {
+                const presetValue = getFormattedDate(preset.offset);
+                const isSelected = selectedDate === presetValue;
+                return (
+                  <Pressable
+                    key={preset.label}
+                    style={[
+                      styles.datePresetPill,
+                      isSelected && styles.datePresetPillSelected,
+                    ]}
+                    onPress={() => setValue('date', presetValue)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select date ${preset.label}`}
+                  >
+                    <Text
+                      variant="caption"
+                      style={[
+                        styles.datePresetText,
+                        isSelected && styles.datePresetTextSelected,
+                      ]}
+                    >
+                      {preset.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <Controller
+              control={control}
+              name="date"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  placeholder="e.g. 19 Sep 2026"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  onFocus={scrollToBottom}
+                  error={errors.date?.message}
+                />
+              )}
+            />
+          </View>
 
           {/* Max Marks */}
           <Controller
@@ -317,9 +377,43 @@ const styles = StyleSheet.create({
   formGroup: {
     gap: theme.spacing.xs,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   fieldLabel: {
     color: theme.colors.text.primary,
     fontWeight: theme.typography.weights.medium,
+  },
+  labelHint: {
+    color: theme.colors.primary.main,
+    fontWeight: theme.typography.weights.medium,
+  },
+  datePresetsRow: {
+    gap: theme.spacing.xs,
+    paddingBottom: 4,
+  },
+  datePresetPill: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radii.sm,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+  },
+  datePresetPillSelected: {
+    backgroundColor: theme.colors.primary.bg,
+    borderColor: theme.colors.primary.main,
+  },
+  datePresetText: {
+    fontSize: 12,
+    color: theme.colors.text.secondary,
+    fontWeight: theme.typography.weights.medium,
+  },
+  datePresetTextSelected: {
+    color: theme.colors.primary.main,
+    fontWeight: theme.typography.weights.bold,
   },
   batchSelectorRow: {
     flexDirection: 'row',
