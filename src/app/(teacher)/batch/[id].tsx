@@ -74,6 +74,19 @@ export default function BatchDetailScreen() {
   const [formErrors, setFormErrors] = useState<{ name?: string; roll?: string }>({});
   const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
 
+  // Attendance Record Detail Modal State
+  const [selectedAttRecord, setSelectedAttRecord] = useState<AttendanceRecord | null>(null);
+  const [isAttDetailModalVisible, setIsAttDetailModalVisible] = useState(false);
+  const [attRecordFilter, setAttRecordFilter] = useState<'all' | 'present' | 'absent'>('all');
+  const [attSearchQuery, setAttSearchQuery] = useState('');
+
+  const handleOpenAttendanceDetail = (record: AttendanceRecord) => {
+    setSelectedAttRecord(record);
+    setAttRecordFilter('all');
+    setAttSearchQuery('');
+    setIsAttDetailModalVisible(true);
+  };
+
   const loadBatchData = useCallback(async () => {
     if (!id) return;
     try {
@@ -251,6 +264,21 @@ export default function BatchDetailScreen() {
       .slice(0, 2)
       .join('')
       .toUpperCase();
+  };
+
+  const formatRecordDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   if (isLoading) {
@@ -658,35 +686,100 @@ export default function BatchDetailScreen() {
                 onAction={() => router.push(`/(teacher)/attendance/${batch.id}`)}
               />
             ) : (
-              attendanceHistory.map((rec) => (
-                <Card key={rec.id} variant="outlined" padding="md" style={styles.attCard}>
-                  <View style={styles.attCardHeader}>
-                    <View style={styles.attDateGroup}>
-                      <Feather name="calendar" size={16} color={theme.colors.primary.main} />
-                      <Text variant="label" style={styles.attDateText}>
-                        {rec.date}
-                      </Text>
-                    </View>
-                    <Text variant="caption" style={styles.attTotalText}>
-                      Total: {rec.totalStudents}
-                    </Text>
-                  </View>
-                  <View style={styles.attStatsRow}>
-                    <Badge
-                      label={`${rec.presentCount} Present`}
-                      variant="success"
-                      icon="check"
-                      size="sm"
-                    />
-                    <Badge
-                      label={`${rec.absentCount} Absent`}
-                      variant="danger"
-                      icon="x"
-                      size="sm"
-                    />
-                  </View>
-                </Card>
-              ))
+              attendanceHistory.map((rec) => {
+                const total = rec.totalStudents || 1;
+                const attendanceRate = Math.round((rec.presentCount / total) * 100);
+                const isGreat = attendanceRate >= 85;
+
+                return (
+                  <Card key={rec.id} variant="outlined" padding="none" style={styles.attCard}>
+                    <Pressable
+                      style={({ pressed }) => [styles.attCardPressable, pressed && styles.attCardPressed]}
+                      onPress={() => handleOpenAttendanceDetail(rec)}
+                    >
+                      <View style={styles.attCardHeader}>
+                        <View style={styles.attDateGroup}>
+                          <View
+                            style={[
+                              styles.attCalendarIconBox,
+                              {
+                                backgroundColor: isGreat
+                                  ? theme.colors.semantic.success.bg
+                                  : theme.colors.primary.bg,
+                              },
+                            ]}
+                          >
+                            <Feather
+                              name="calendar"
+                              size={16}
+                              color={
+                                isGreat
+                                  ? theme.colors.semantic.success.main
+                                  : theme.colors.primary.main
+                              }
+                            />
+                          </View>
+                          <View>
+                            <Text variant="label" style={styles.attDateText}>
+                              {formatRecordDate(rec.date)}
+                            </Text>
+                            <Text variant="caption" style={styles.attSubText}>
+                              {batch.name} • Class Session
+                            </Text>
+                          </View>
+                        </View>
+                        <Badge
+                          label={`${attendanceRate}% Present`}
+                          variant={isGreat ? 'success' : 'warning'}
+                          size="sm"
+                        />
+                      </View>
+
+                      {/* Presence Progress Bar */}
+                      <View style={styles.attProgressBarTrack}>
+                        <View
+                          style={[
+                            styles.attProgressBarFill,
+                            {
+                              width: `${Math.min(100, Math.max(0, attendanceRate))}%`,
+                              backgroundColor: isGreat
+                                ? theme.colors.semantic.success.main
+                                : theme.colors.semantic.warning.main,
+                            },
+                          ]}
+                        />
+                      </View>
+
+                      <View style={styles.attBottomRow}>
+                        <View style={styles.attStatsRow}>
+                          <Badge
+                            label={`${rec.presentCount} Present`}
+                            variant="success"
+                            icon="check"
+                            size="sm"
+                          />
+                          <Badge
+                            label={`${rec.absentCount} Absent`}
+                            variant="danger"
+                            icon="x"
+                            size="sm"
+                          />
+                        </View>
+                        <View style={styles.attViewHintRow}>
+                          <Text variant="caption" style={styles.attViewHintText}>
+                            View Students
+                          </Text>
+                          <Feather
+                            name="chevron-right"
+                            size={14}
+                            color={theme.colors.primary.main}
+                          />
+                        </View>
+                      </View>
+                    </Pressable>
+                  </Card>
+                );
+              })
             )}
           </View>
         )}
@@ -1159,6 +1252,264 @@ export default function BatchDetailScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ATTENDANCE RECORD DETAIL ROSTER MODAL */}
+      <Modal
+        visible={isAttDetailModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsAttDetailModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            style={styles.modalBackdropTouch}
+            onPress={() => setIsAttDetailModalVisible(false)}
+          />
+          {selectedAttRecord && (
+            <View style={[styles.attModalSheet, { paddingBottom: insets.bottom + 16 }]}>
+              {/* Modal Header */}
+              <View style={styles.attModalHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text variant="heading" style={styles.modalTitle}>
+                    Attendance Session Roster
+                  </Text>
+                  <Text variant="caption" style={styles.modalSubtitle}>
+                    {formatRecordDate(selectedAttRecord.date)} • {batch.name}
+                  </Text>
+                </View>
+                <Pressable
+                  hitSlop={12}
+                  style={styles.closeBtn}
+                  onPress={() => setIsAttDetailModalVisible(false)}
+                >
+                  <Feather name="x" size={20} color={theme.colors.text.secondary} />
+                </Pressable>
+              </View>
+
+              {/* Attendance Quick Stats Strip */}
+              <View style={styles.attSummaryStrip}>
+                <View style={styles.attSummaryCol}>
+                  <Text variant="heading" style={styles.attSummaryNum}>
+                    {selectedAttRecord.totalStudents}
+                  </Text>
+                  <Text variant="caption" style={styles.attSummaryLabel}>
+                    Total Students
+                  </Text>
+                </View>
+                <View style={styles.attSummaryDivider} />
+                <View style={styles.attSummaryCol}>
+                  <Text
+                    variant="heading"
+                    style={[styles.attSummaryNum, { color: theme.colors.semantic.success.main }]}
+                  >
+                    {selectedAttRecord.presentCount}
+                  </Text>
+                  <Text variant="caption" style={styles.attSummaryLabel}>
+                    Present ({Math.round((selectedAttRecord.presentCount / (selectedAttRecord.totalStudents || 1)) * 100)}%)
+                  </Text>
+                </View>
+                <View style={styles.attSummaryDivider} />
+                <View style={styles.attSummaryCol}>
+                  <Text
+                    variant="heading"
+                    style={[styles.attSummaryNum, { color: theme.colors.semantic.danger.main }]}
+                  >
+                    {selectedAttRecord.absentCount}
+                  </Text>
+                  <Text variant="caption" style={styles.attSummaryLabel}>
+                    Absent
+                  </Text>
+                </View>
+              </View>
+
+              {/* Search Box */}
+              <View style={styles.attSearchWrap}>
+                <Input
+                  placeholder="Search student name or roll number..."
+                  value={attSearchQuery}
+                  onChangeText={setAttSearchQuery}
+                  leftContent={
+                    <Feather name="search" size={16} color={theme.colors.text.secondary} />
+                  }
+                  rightContent={
+                    attSearchQuery ? (
+                      <Pressable hitSlop={8} onPress={() => setAttSearchQuery('')}>
+                        <Feather name="x-circle" size={16} color={theme.colors.text.disabled} />
+                      </Pressable>
+                    ) : null
+                  }
+                />
+              </View>
+
+              {/* Filter Chips */}
+              <View style={styles.attFilterChipsRow}>
+                <Pressable
+                  style={[styles.attFilterChip, attRecordFilter === 'all' && styles.attFilterChipActive]}
+                  onPress={() => setAttRecordFilter('all')}
+                >
+                  <Text
+                    variant="caption"
+                    style={[styles.attFilterChipText, attRecordFilter === 'all' && styles.attFilterChipTextActive]}
+                  >
+                    All ({selectedAttRecord.records?.length || 0})
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.attFilterChip, attRecordFilter === 'present' && styles.attFilterChipActive]}
+                  onPress={() => setAttRecordFilter('present')}
+                >
+                  <Text
+                    variant="caption"
+                    style={[styles.attFilterChipText, attRecordFilter === 'present' && styles.attFilterChipTextActive]}
+                  >
+                    Present ({selectedAttRecord.presentCount})
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.attFilterChip, attRecordFilter === 'absent' && styles.attFilterChipActive]}
+                  onPress={() => setAttRecordFilter('absent')}
+                >
+                  <Text
+                    variant="caption"
+                    style={[styles.attFilterChipText, attRecordFilter === 'absent' && styles.attFilterChipTextActive]}
+                  >
+                    Absent ({selectedAttRecord.absentCount})
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Students Attendance List */}
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.attRosterScroll}
+                keyboardShouldPersistTaps="handled"
+              >
+                {(() => {
+                  const filtered = (selectedAttRecord.records || []).filter((item) => {
+                    const matchStatus =
+                      attRecordFilter === 'all' || item.status === attRecordFilter;
+                    const q = attSearchQuery.toLowerCase().trim();
+                    const matchSearch =
+                      !q ||
+                      item.studentName.toLowerCase().includes(q) ||
+                      item.rollNumber.toLowerCase().includes(q);
+                    return matchStatus && matchSearch;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <EmptyState
+                        icon="users"
+                        title="No students matched"
+                        description={
+                          attSearchQuery
+                            ? `No students found matching "${attSearchQuery}".`
+                            : `No ${attRecordFilter} students in this session.`
+                        }
+                      />
+                    );
+                  }
+
+                  return filtered.map((item) => {
+                    const isPresent = item.status === 'present';
+                    const matchedStudent = students.find((s) => s.id === item.studentId);
+
+                    return (
+                      <Card
+                        key={item.studentId}
+                        variant="outlined"
+                        padding="none"
+                        style={styles.attStudentCard}
+                      >
+                        <Pressable
+                          style={styles.attStudentPressable}
+                          onPress={() => {
+                            setIsAttDetailModalVisible(false);
+                            router.push({
+                              pathname: '/(teacher)/student/[id]',
+                              params: { id: item.studentId, batchId: batch.id },
+                            });
+                          }}
+                        >
+                          <View
+                            style={[
+                              styles.attStudentAvatar,
+                              {
+                                backgroundColor: isPresent
+                                  ? theme.colors.semantic.success.bg
+                                  : theme.colors.semantic.danger.bg,
+                              },
+                            ]}
+                          >
+                            <Text
+                              variant="label"
+                              style={{
+                                color: isPresent
+                                  ? theme.colors.semantic.success.main
+                                  : theme.colors.semantic.danger.main,
+                                fontWeight: '700',
+                              }}
+                            >
+                              {getInitials(item.studentName)}
+                            </Text>
+                          </View>
+
+                          <View style={styles.attStudentInfo}>
+                            <View style={styles.attStudentNameRow}>
+                              <Text variant="label" style={styles.attStudentName}>
+                                {item.studentName}
+                              </Text>
+                              <Badge
+                                label={`Roll #${item.rollNumber}`}
+                                variant="neutral"
+                                size="sm"
+                              />
+                            </View>
+
+                            <Text variant="caption" style={styles.attStudentStatusSub}>
+                              {isPresent ? 'Marked Present' : 'Marked Absent'}
+                            </Text>
+                          </View>
+
+                          <View style={styles.attActionCol}>
+                            <Badge
+                              label={isPresent ? 'Present' : 'Absent'}
+                              variant={isPresent ? 'success' : 'danger'}
+                              size="sm"
+                            />
+
+                            {!isPresent && matchedStudent?.parentPhone ? (
+                              <Pressable
+                                hitSlop={8}
+                                style={styles.attCallBtn}
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  handleCallParent(matchedStudent.parentPhone);
+                                }}
+                              >
+                                <Feather
+                                  name="phone"
+                                  size={12}
+                                  color={theme.colors.semantic.success.main}
+                                />
+                                <Text variant="caption" style={styles.attCallText}>
+                                  Call
+                                </Text>
+                              </Pressable>
+                            ) : null}
+                          </View>
+                        </Pressable>
+                      </Card>
+                    );
+                  });
+                })()}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1574,5 +1925,198 @@ const styles = StyleSheet.create({
   },
   hwActionRow: {
     marginTop: 4,
+  },
+
+  // Attendance Card styles
+  attCard: {
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.lg,
+    overflow: 'hidden',
+  },
+  attCardPressable: {
+    padding: theme.spacing.md,
+    gap: 10,
+  },
+  attCardPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
+  },
+  attCalendarIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attSubText: {
+    color: theme.colors.text.disabled,
+    fontSize: 11,
+  },
+  attProgressBarTrack: {
+    height: 6,
+    backgroundColor: theme.colors.border.light,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  attProgressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  attBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  attViewHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  attViewHintText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.primary.main,
+  },
+
+  // Attendance Detail Modal styles
+  attModalSheet: {
+    width: '100%',
+    maxHeight: '90%',
+    backgroundColor: theme.colors.background.paper,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 16,
+    gap: 12,
+  },
+  attModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border.light,
+  },
+  attSummaryStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background.screen,
+    marginHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+  },
+  attSummaryCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  attSummaryNum: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: theme.colors.text.primary,
+  },
+  attSummaryLabel: {
+    fontSize: 10,
+    color: theme.colors.text.secondary,
+    fontWeight: '600',
+  },
+  attSummaryDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: theme.colors.border.main,
+  },
+  attSearchWrap: {
+    paddingHorizontal: 20,
+  },
+  attFilterChipsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  attFilterChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  attFilterChipActive: {
+    backgroundColor: theme.colors.primary.bg,
+    borderColor: theme.colors.primary.main,
+  },
+  attFilterChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.text.secondary,
+  },
+  attFilterChipTextActive: {
+    color: theme.colors.primary.main,
+    fontWeight: '700',
+  },
+  attRosterScroll: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 24,
+    gap: 8,
+  },
+  attStudentCard: {
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.md,
+    overflow: 'hidden',
+  },
+  attStudentPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+  },
+  attStudentAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attStudentInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  attStudentNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  attStudentName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  attStudentStatusSub: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+  },
+  attActionCol: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  attCallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.semantic.success.bg,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: theme.radii.sm,
+  },
+  attCallText: {
+    fontSize: 11,
+    color: theme.colors.semantic.success.main,
+    fontWeight: '600',
   },
 });
