@@ -38,6 +38,7 @@ interface AttendanceWeekCalendarProps {
   onResetToday: () => void;
   selectedDateStr: string;
   onSelectDate: (dateStr: string) => void;
+  onPressMonthTitle?: () => void;
   batches: Batch[];
   attendanceRecords: AttendanceRecord[];
   selectedDateBatchesCount: number;
@@ -53,6 +54,7 @@ export const AttendanceWeekCalendar: React.FC<AttendanceWeekCalendarProps> = ({
   onResetToday,
   selectedDateStr,
   onSelectDate,
+  onPressMonthTitle,
   batches,
   attendanceRecords,
   selectedDateBatchesCount,
@@ -116,14 +118,21 @@ export const AttendanceWeekCalendar: React.FC<AttendanceWeekCalendarProps> = ({
     <Card variant="elevated" padding="md" style={styles.calendarCard}>
       {/* Calendar Header with Navigation */}
       <View style={styles.calendarHeaderRow}>
-        <View style={styles.calendarTitleGroup}>
+        <Pressable
+          style={styles.calendarTitleGroup}
+          onPress={onPressMonthTitle}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Open full calendar for ${currentMonthTitle}`}
+        >
           <View style={styles.calendarIconCircle}>
             <Feather name="calendar" size={16} color={theme.colors.primary.main} />
           </View>
           <Text variant="heading" style={styles.calendarMonthText}>
             {currentMonthTitle}
           </Text>
-        </View>
+          <Feather name="chevron-down" size={16} color={theme.colors.text.secondary} />
+        </Pressable>
 
         {/* Week Switchers */}
         <View style={styles.weekNavControls}>
@@ -289,18 +298,24 @@ const styles = StyleSheet.create({
   calendarTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.background.screen,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
   },
   calendarIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: theme.colors.primary.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   calendarMonthText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     color: theme.colors.text.primary,
   },

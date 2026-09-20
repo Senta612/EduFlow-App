@@ -19,6 +19,7 @@ import {
   TodayClassCard,
   QuickActionGrid,
   UpcomingTestsSection,
+  MonthCalendarModal,
 } from '@/components/teacher';
 import { useAuth } from '@/hooks/useAuth';
 import { teacherService, isBatchScheduledOnDate } from '@/services/teacher.service';
@@ -66,6 +67,7 @@ export default function TeacherHomeScreen() {
   // Calendar State
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState<string>(toDateString(new Date()));
+  const [isMonthModalVisible, setIsMonthModalVisible] = useState(false);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -191,7 +193,7 @@ export default function TeacherHomeScreen() {
           </View>
         ) : (
           <>
-            {/* 1. Interactive Week Attendance Calendar */}
+            {/* 1. Interactive Week Attendance Calendar (Click Month to open full calendar modal) */}
             <AttendanceWeekCalendar
               weekOffset={weekOffset}
               onPrevWeek={() => setWeekOffset((prev) => prev - 1)}
@@ -202,6 +204,7 @@ export default function TeacherHomeScreen() {
               }}
               selectedDateStr={selectedDateStr}
               onSelectDate={setSelectedDateStr}
+              onPressMonthTitle={() => setIsMonthModalVisible(true)}
               batches={batches}
               attendanceRecords={attendanceRecords}
               selectedDateBatchesCount={selectedDateBatches.length}
@@ -284,6 +287,19 @@ export default function TeacherHomeScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* 5. Full Month Attendance Calendar Modal */}
+      <MonthCalendarModal
+        visible={isMonthModalVisible}
+        onClose={() => setIsMonthModalVisible(false)}
+        selectedDateStr={selectedDateStr}
+        onSelectDate={(dateStr, offset) => {
+          setSelectedDateStr(dateStr);
+          setWeekOffset(offset);
+        }}
+        batches={batches}
+        attendanceRecords={attendanceRecords}
+      />
     </View>
   );
 }
