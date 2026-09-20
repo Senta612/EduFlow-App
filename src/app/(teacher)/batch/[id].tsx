@@ -375,30 +375,80 @@ export default function BatchDetailScreen() {
 
             {/* Quick Stats Grid */}
             <View style={styles.statsGrid}>
-              <Card variant="outlined" padding="md" style={styles.statCard}>
-                <Text variant="caption" style={styles.statLabel}>
-                  Total Students
-                </Text>
-                <Text variant="title" style={styles.statNumber}>
-                  {students.length}
-                </Text>
-              </Card>
-              <Card variant="outlined" padding="md" style={styles.statCard}>
-                <Text variant="caption" style={styles.statLabel}>
-                  Homework Items
-                </Text>
-                <Text variant="title" style={styles.statNumber}>
-                  {homeworkList.length}
-                </Text>
-              </Card>
-              <Card variant="outlined" padding="md" style={styles.statCard}>
-                <Text variant="caption" style={styles.statLabel}>
-                  Tests Conducted
-                </Text>
-                <Text variant="title" style={styles.statNumber}>
-                  {testsList.length}
-                </Text>
-              </Card>
+              <Pressable
+                style={({ pressed }) => [styles.statCardWrapper, pressed && styles.statCardPressed]}
+                onPress={() => setActiveTab('students')}
+                accessibilityRole="button"
+                accessibilityLabel="View students list"
+              >
+                <Card variant="outlined" padding="md" style={styles.statCard}>
+                  <View style={[styles.statIconWrap, { backgroundColor: theme.colors.primary.bg }]}>
+                    <Feather name="users" size={16} color={theme.colors.primary.main} />
+                  </View>
+                  <Text variant="caption" numberOfLines={1} style={styles.statLabel}>
+                    Total Students
+                  </Text>
+                  <Text variant="title" style={styles.statNumber}>
+                    {students.length}
+                  </Text>
+                  <View style={styles.statArrowRow}>
+                    <Text variant="caption" style={styles.statActionHint}>
+                      View Roster
+                    </Text>
+                    <Feather name="chevron-right" size={12} color={theme.colors.primary.main} />
+                  </View>
+                </Card>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.statCardWrapper, pressed && styles.statCardPressed]}
+                onPress={() => setActiveTab('homework')}
+                accessibilityRole="button"
+                accessibilityLabel="View homework assignments"
+              >
+                <Card variant="outlined" padding="md" style={styles.statCard}>
+                  <View style={[styles.statIconWrap, { backgroundColor: '#E0F2FE' }]}>
+                    <Feather name="book-open" size={16} color="#0284C7" />
+                  </View>
+                  <Text variant="caption" numberOfLines={1} style={styles.statLabel}>
+                    Homework
+                  </Text>
+                  <Text variant="title" style={[styles.statNumber, { color: '#0284C7' }]}>
+                    {homeworkList.length}
+                  </Text>
+                  <View style={styles.statArrowRow}>
+                    <Text variant="caption" style={[styles.statActionHint, { color: '#0284C7' }]}>
+                      View All
+                    </Text>
+                    <Feather name="chevron-right" size={12} color="#0284C7" />
+                  </View>
+                </Card>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.statCardWrapper, pressed && styles.statCardPressed]}
+                onPress={() => setActiveTab('tests')}
+                accessibilityRole="button"
+                accessibilityLabel="View tests and marks"
+              >
+                <Card variant="outlined" padding="md" style={styles.statCard}>
+                  <View style={[styles.statIconWrap, { backgroundColor: '#F3E8FF' }]}>
+                    <Feather name="award" size={16} color="#8B5CF6" />
+                  </View>
+                  <Text variant="caption" numberOfLines={1} style={styles.statLabel}>
+                    Tests Done
+                  </Text>
+                  <Text variant="title" style={[styles.statNumber, { color: '#8B5CF6' }]}>
+                    {testsList.length}
+                  </Text>
+                  <View style={styles.statArrowRow}>
+                    <Text variant="caption" style={[styles.statActionHint, { color: '#8B5CF6' }]}>
+                      View Marks
+                    </Text>
+                    <Feather name="chevron-right" size={12} color="#8B5CF6" />
+                  </View>
+                </Card>
+              </Pressable>
             </View>
 
             {/* Recent Homework Preview */}
@@ -1180,18 +1230,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: theme.spacing.sm,
   },
-  statCard: {
+  statCardWrapper: {
     flex: 1,
+  },
+  statCardPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.97 }],
+  },
+  statCard: {
     alignItems: 'center',
-    gap: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    gap: 2,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.colors.background.paper,
+  },
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
   },
   statLabel: {
     color: theme.colors.text.secondary,
     textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '600',
   },
   statNumber: {
     color: theme.colors.primary.main,
-    fontSize: theme.typography.sizes.xl,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  statArrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 2,
+  },
+  statActionHint: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.colors.primary.main,
   },
   sectionBlock: {
     gap: theme.spacing.sm,
