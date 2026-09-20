@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
@@ -211,19 +211,19 @@ export default function StudentProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+      <SafeAreaView edges={['top']} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary.main} />
         <Text variant="body" style={styles.loadingText}>
           Loading student profile & reports...
         </Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!data) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader title="Student Profile" />
+      <SafeAreaView edges={['top']} style={styles.container}>
+        <ScreenHeader title="Student Profile" showBack />
         <View style={styles.emptyWrap}>
           <EmptyState
             icon="user-x"
@@ -233,7 +233,7 @@ export default function StudentProfileScreen() {
             onAction={() => router.back()}
           />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -260,12 +260,13 @@ export default function StudentProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       {/* Top App Header */}
       <ScreenHeader
         title="Student Profile"
         subtitle={`${batch.name} • ${batch.grade}`}
-        rightElement={
+        showBack
+        rightAction={
           <View style={styles.headerRightActions}>
             <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={handleOpenEdit}>
               <Feather name="edit-2" size={18} color={theme.colors.primary.main} />
@@ -1296,7 +1297,7 @@ export default function StudentProfileScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
