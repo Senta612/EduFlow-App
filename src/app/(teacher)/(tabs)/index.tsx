@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,11 +17,11 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
-import { teacherService } from '@/services/teacher.service';
-import { Batch, Test } from '@/types/teacher';
+import { teacherService, isBatchScheduledOnDate } from '@/services/teacher.service';
+import { Batch, Test, AttendanceRecord } from '@/types/teacher';
 import { theme } from '@/theme';
 
-function formatCurrentDate(): string {
+function formatTodayFullDate(): string {
   const date = new Date();
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -42,24 +42,56 @@ function getFirstName(fullName: string | null | undefined): string {
   return fullName.trim().split(/\s+/)[0];
 }
 
+function toDateString(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getWeekDates(offsetWeeks: number = 0): Date[] {
+  const now = new Date();
+  // Adjust by offset weeks
+  const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetWeeks * 7);
+
+  // Find Monday of the week
+  const dayOfWeek = anchor.getDay(); // 0 is Sun, 1 is Mon
+  const distanceToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + distanceToMon);
+
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const nextDay = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    days.push(nextDay);
+  }
+  return days;
+}
+
 export default function TeacherHomeScreen() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [classes, setClasses] = useState<Batch[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [upcomingTests, setUpcomingTests] = useState<Test[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Calendar State
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(toDateString(new Date()));
+
   const loadDashboardData = useCallback(async () => {
     try {
-      const [todayClasses, tests] = await Promise.all([
-        teacherService.getTodayClasses(),
+      const [allBatches, tests, attHistory] = await Promise.all([
+        teacherService.getBatches(),
         teacherService.getTestsList(),
+        teacherService.getAttendanceRecords(),
       ]);
-      setClasses(todayClasses);
+      setBatches(allBatches);
       setUpcomingTests(tests);
+      setAttendanceRecords(attHistory);
     } catch (error) {
       console.error('Failed to load teacher dashboard:', error);
     } finally {
@@ -85,22 +117,118 @@ export default function TeacherHomeScreen() {
     loadDashboardData();
   };
 
-  const pendingAttendanceCount = classes.filter(
-    (c) => !c.attendanceTakenToday,
+  // Compute week dates for calendar strip
+  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+
+  // Calendar month header (e.g. "September 2026")
+  const currentMonthTitle = useMemo(() => {
+    if (weekDates.length === 0) return '';
+    const midDate = weekDates[3] || weekDates[0];
+    return midDate.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+  }, [weekDates]);
+
+  // Compute attendance status for each day of the week
+  const weekDaysData = useMemo(() => {
+    const todayStr = toDateString(new Date());
+
+    return weekDates.map((dateObj) => {
+      const dateKey = toDateString(dateObj);
+      const isToday = dateKey === todayStr;
+      const isSelected = dateKey === selectedDateStr;
+      const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNum = dateObj.getDate();
+
+      // Find batches scheduled on this date
+      const scheduledBatches = batches.filter((b) =>
+        isBatchScheduledOnDate(b.schedule, dateObj),
+      );
+
+      // Find attendance records for this date
+      const dateRecords = attendanceRecords.filter((r) => r.date === dateKey);
+      const completedCount = dateRecords.length;
+      const totalScheduled = scheduledBatches.length > 0 ? scheduledBatches.length : batches.length;
+
+      let status: 'completed' | 'pending' | 'off' | 'future' = 'off';
+
+      if (totalScheduled === 0) {
+        status = 'off';
+      } else if (completedCount >= totalScheduled && totalScheduled > 0) {
+        status = 'completed';
+      } else if (dateObj <= new Date()) {
+        status = 'pending';
+      } else {
+        status = 'future';
+      }
+
+      return {
+        dateObj,
+        dateKey,
+        dayName,
+        dayNum,
+        isToday,
+        isSelected,
+        status,
+        scheduledCount: totalScheduled,
+        completedCount,
+      };
+    });
+  }, [weekDates, batches, attendanceRecords, selectedDateStr]);
+
+  // Batches for the currently selected date in the calendar
+  const selectedDateBatches = useMemo(() => {
+    const targetDate = new Date(selectedDateStr);
+    const dateRecords = attendanceRecords.filter((r) => r.date === selectedDateStr);
+    const recordMap = new Map(dateRecords.map((r) => [r.batchId, r]));
+
+    const scheduled = batches.filter((b) => isBatchScheduledOnDate(b.schedule, targetDate));
+    const list = scheduled.length > 0 ? scheduled : batches;
+
+    return list.map((b) => {
+      const rec = recordMap.get(b.id);
+      return {
+        ...b,
+        attendanceTakenForDate: Boolean(rec),
+        attendanceRecord: rec,
+      };
+    });
+  }, [batches, attendanceRecords, selectedDateStr]);
+
+  const isSelectedDateToday = selectedDateStr === toDateString(new Date());
+
+  const selectedDateLabel = useMemo(() => {
+    try {
+      const d = new Date(selectedDateStr);
+      if (isSelectedDateToday) {
+        return `Today • ${d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`;
+      }
+      return d.toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
+    } catch {
+      return selectedDateStr;
+    }
+  }, [selectedDateStr, isSelectedDateToday]);
+
+  const pendingAttendanceCount = selectedDateBatches.filter(
+    (c) => !c.attendanceTakenForDate,
+  ).length;
+
+  const completedAttendanceCount = selectedDateBatches.filter(
+    (c) => c.attendanceTakenForDate,
   ).length;
 
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top },
-      ]}
-    >
-      {/* Header */}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text variant="caption" style={styles.greetingSub}>
-            {formatCurrentDate()}
+            {formatTodayFullDate()}
           </Text>
           <Text variant="title" style={styles.greetingTitle}>
             {`${getGreeting()}, ${getFirstName(profile?.full_name)}`}
@@ -142,36 +270,196 @@ export default function TeacherHomeScreen() {
           </View>
         ) : (
           <>
-            {/* Today's Classes Section */}
+            {/* ================= ATTENDANCE CALENDAR SECTION ================= */}
+            <Card variant="elevated" padding="md" style={styles.calendarCard}>
+              {/* Calendar Header with Navigation */}
+              <View style={styles.calendarHeaderRow}>
+                <View style={styles.calendarTitleGroup}>
+                  <View style={styles.calendarIconCircle}>
+                    <Feather name="calendar" size={16} color={theme.colors.primary.main} />
+                  </View>
+                  <Text variant="heading" style={styles.calendarMonthText}>
+                    {currentMonthTitle}
+                  </Text>
+                </View>
+
+                {/* Week Switchers */}
+                <View style={styles.weekNavControls}>
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.navArrowBtn}
+                    onPress={() => setWeekOffset((prev) => prev - 1)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous week"
+                  >
+                    <Feather name="chevron-left" size={18} color={theme.colors.text.primary} />
+                  </Pressable>
+
+                  {weekOffset !== 0 ? (
+                    <Pressable
+                      style={styles.todayResetPill}
+                      onPress={() => {
+                        setWeekOffset(0);
+                        setSelectedDateStr(toDateString(new Date()));
+                      }}
+                    >
+                      <Text variant="caption" style={styles.todayResetText}>
+                        Today
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <View style={styles.currentWeekTag}>
+                      <Text variant="caption" style={styles.currentWeekText}>
+                        This Week
+                      </Text>
+                    </View>
+                  )}
+
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.navArrowBtn}
+                    onPress={() => setWeekOffset((prev) => prev + 1)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Next week"
+                  >
+                    <Feather name="chevron-right" size={18} color={theme.colors.text.primary} />
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* 7-Day Interactive Week Strip */}
+              <View style={styles.weekStripRow}>
+                {weekDaysData.map((day) => {
+                  const isSelected = day.isSelected;
+                  const isToday = day.isToday;
+
+                  return (
+                    <Pressable
+                      key={day.dateKey}
+                      style={[
+                        styles.dayPill,
+                        isSelected && styles.dayPillSelected,
+                        isToday && !isSelected && styles.dayPillToday,
+                      ]}
+                      onPress={() => setSelectedDateStr(day.dateKey)}
+                    >
+                      <Text
+                        variant="caption"
+                        style={[
+                          styles.dayNameText,
+                          isSelected && styles.dayNameTextSelected,
+                          isToday && !isSelected && styles.dayNameTextToday,
+                        ]}
+                      >
+                        {day.dayName.toUpperCase()}
+                      </Text>
+
+                      <Text
+                        variant="label"
+                        style={[
+                          styles.dayNumText,
+                          isSelected && styles.dayNumTextSelected,
+                          isToday && !isSelected && styles.dayNumTextToday,
+                        ]}
+                      >
+                        {day.dayNum}
+                      </Text>
+
+                      {/* Status Indicator Dot / Badge */}
+                      <View style={styles.dayStatusIndicatorWrap}>
+                        {day.status === 'completed' ? (
+                          <View style={[styles.statusDot, { backgroundColor: isSelected ? '#FFFFFF' : theme.colors.semantic.success.main }]}>
+                            {isSelected && <Feather name="check" size={8} color={theme.colors.primary.main} />}
+                          </View>
+                        ) : day.status === 'pending' ? (
+                          <View
+                            style={[
+                              styles.statusDot,
+                              {
+                                backgroundColor: isSelected
+                                  ? '#FEF08A'
+                                  : theme.colors.semantic.warning.main,
+                              },
+                            ]}
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.statusDotMuted,
+                              { backgroundColor: isSelected ? 'rgba(255,255,255,0.4)' : '#CBD5E1' },
+                            ]}
+                          />
+                        )}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Selected Day Status Summary Banner */}
+              <View style={styles.daySummaryBanner}>
+                <View style={styles.daySummaryInfo}>
+                  <Text variant="label" style={styles.daySummaryTitle}>
+                    {selectedDateLabel}
+                  </Text>
+                  <Text variant="caption" style={styles.daySummaryDesc}>
+                    {completedAttendanceCount === selectedDateBatches.length && selectedDateBatches.length > 0
+                      ? `All ${selectedDateBatches.length} classes marked • 100% attendance complete`
+                      : pendingAttendanceCount > 0
+                      ? `${pendingAttendanceCount} of ${selectedDateBatches.length} batch attendance pending`
+                      : `No scheduled classes for this date`}
+                  </Text>
+                </View>
+
+                {pendingAttendanceCount > 0 ? (
+                  <Badge
+                    label={`${pendingAttendanceCount} Pending`}
+                    variant="warning"
+                    icon="alert-circle"
+                    size="sm"
+                  />
+                ) : (
+                  <Badge
+                    label="All Done"
+                    variant="success"
+                    icon="check"
+                    size="sm"
+                  />
+                )}
+              </View>
+            </Card>
+
+            {/* ================= CLASSES FOR SELECTED DAY ================= */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
                   <Text variant="heading" style={styles.sectionTitle}>
-                    Today's Classes
+                    {isSelectedDateToday ? "Today's Classes" : `Classes for ${selectedDateLabel}`}
                   </Text>
                   <Badge
-                    label={`${classes.length} Classes`}
+                    label={`${selectedDateBatches.length} Classes`}
                     variant="primary"
                     size="sm"
                   />
                 </View>
                 <Pressable onPress={() => router.push('/(teacher)/(tabs)/batches')}>
                   <Text variant="label" style={styles.seeAllLink}>
-                    View All
+                    View All Batches
                   </Text>
                 </Pressable>
               </View>
 
-              {classes.length === 0 ? (
+              {selectedDateBatches.length === 0 ? (
                 <EmptyState
                   icon="calendar"
-                  title="No classes scheduled today"
-                  description="You have no classes lined up for today. Enjoy your day!"
+                  title="No classes scheduled"
+                  description={`You have no classes scheduled for ${selectedDateLabel}.`}
                 />
               ) : (
                 <View style={styles.classList}>
-                  {classes.map((cls) => {
-                    const isAttendancePending = !cls.attendanceTakenToday;
+                  {selectedDateBatches.map((cls) => {
+                    const isAttendancePending = !cls.attendanceTakenForDate;
+                    const rec = cls.attendanceRecord;
 
                     return (
                       <Card
@@ -193,6 +481,7 @@ export default function TeacherHomeScreen() {
                               {cls.grade} • {cls.subject}
                             </Text>
                           </View>
+
                           {isAttendancePending ? (
                             <Badge
                               label="Attendance Pending"
@@ -202,7 +491,7 @@ export default function TeacherHomeScreen() {
                             />
                           ) : (
                             <Badge
-                              label="Attendance Done"
+                              label={rec ? `${rec.presentCount} Present` : 'Attendance Done'}
                               variant="success"
                               size="sm"
                               icon="check"
@@ -285,7 +574,7 @@ export default function TeacherHomeScreen() {
               )}
             </View>
 
-            {/* Quick Actions Section */}
+            {/* ================= QUICK ACTIONS ================= */}
             <View style={styles.section}>
               <Text variant="heading" style={styles.sectionTitle}>
                 Quick Actions
@@ -295,7 +584,7 @@ export default function TeacherHomeScreen() {
                   style={styles.quickActionCard}
                   onPress={() => {
                     const firstPending =
-                      classes.find((c) => !c.attendanceTakenToday) ?? classes[0];
+                      selectedDateBatches.find((c) => !c.attendanceTakenForDate) ?? batches[0];
                     if (firstPending) {
                       router.push(`/(teacher)/attendance/${firstPending.id}`);
                     } else {
@@ -311,7 +600,7 @@ export default function TeacherHomeScreen() {
                   >
                     <Feather
                       name="check-square"
-                      size={24}
+                      size={22}
                       color={theme.colors.primary.main}
                     />
                   </View>
@@ -335,7 +624,7 @@ export default function TeacherHomeScreen() {
                   >
                     <Feather
                       name="book-open"
-                      size={24}
+                      size={22}
                       color={theme.colors.semantic.info.main}
                     />
                   </View>
@@ -367,7 +656,7 @@ export default function TeacherHomeScreen() {
                   >
                     <Feather
                       name="award"
-                      size={24}
+                      size={22}
                       color={theme.colors.semantic.warning.main}
                     />
                   </View>
@@ -381,7 +670,7 @@ export default function TeacherHomeScreen() {
               </View>
             </View>
 
-            {/* Upcoming Tests / Events */}
+            {/* ================= UPCOMING ASSESSMENTS ================= */}
             {upcomingTests.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -398,42 +687,38 @@ export default function TeacherHomeScreen() {
                 </View>
 
                 <View style={styles.upcomingList}>
-                  {upcomingTests.map((test) => (
+                  {upcomingTests.slice(0, 2).map((test) => (
                     <Card
                       key={test.id}
                       variant="outlined"
                       padding="md"
-                      style={styles.upcomingCard}
-                      onPress={() =>
-                        router.push(`/(teacher)/tests/${test.id}/marks`)
-                      }
+                      style={styles.testCard}
                     >
-                      <View style={styles.upcomingLeft}>
-                        <View style={styles.upcomingIconBox}>
-                          <Feather
-                            name="file-text"
-                            size={18}
-                            color={theme.colors.primary.main}
-                          />
-                        </View>
-                        <View style={styles.upcomingMeta}>
-                          <Text variant="label" style={styles.upcomingTitle}>
+                      <View style={styles.testHeader}>
+                        <View style={styles.testTitleCol}>
+                          <Text variant="heading" style={styles.testTitle}>
                             {test.title}
                           </Text>
-                          <Text variant="caption" style={styles.upcomingSub}>
+                          <Text variant="caption" style={styles.testSubtitle}>
                             {test.batchName} • Date: {test.date}
                           </Text>
                         </View>
-                      </View>
-                      <View style={styles.upcomingRight}>
                         <Badge
-                          label={`Max: ${test.maxMarks}m`}
+                          label={`Max ${test.maxMarks}m`}
                           variant="neutral"
                           size="sm"
                         />
-                        <Text variant="caption" style={styles.enterMarksHint}>
-                          Enter Marks →
-                        </Text>
+                      </View>
+
+                      <View style={styles.testActionRow}>
+                        <Button
+                          title="Enter / Review Marks →"
+                          variant="outline"
+                          fullWidth
+                          onPress={() =>
+                            router.push(`/(teacher)/tests/${test.id}/marks`)
+                          }
+                        />
                       </View>
                     </Card>
                   ))}
@@ -460,28 +745,34 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     backgroundColor: theme.colors.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border.light,
+    borderBottomColor: theme.colors.border.main,
   },
   headerLeft: {
-    gap: 2,
+    flex: 1,
   },
   greetingSub: {
     color: theme.colors.text.secondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    fontSize: 10,
+    fontWeight: '700',
   },
   greetingTitle: {
     color: theme.colors.text.primary,
-    fontSize: theme.typography.sizes.xl,
+    marginTop: 2,
+    fontSize: 18,
+    fontWeight: '800',
   },
   notifButton: {
+    position: 'relative',
     width: 40,
     height: 40,
     borderRadius: theme.radii.full,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.colors.background.screen,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
   },
   notifBadge: {
     position: 'absolute',
@@ -490,12 +781,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.semantic.warning.main,
+    backgroundColor: theme.colors.semantic.danger.main,
   },
   scrollContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
-    gap: theme.spacing.xl,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.lg,
   },
   loadingContainer: {
     paddingVertical: 60,
@@ -506,6 +796,172 @@ const styles = StyleSheet.create({
   loadingText: {
     color: theme.colors.text.secondary,
   },
+
+  // Calendar Card styles
+  calendarCard: {
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+    gap: 14,
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  calendarTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  calendarIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary.bg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarMonthText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  weekNavControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  navArrowBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.background.screen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+  },
+  todayResetPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary.bg,
+  },
+  todayResetText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.primary.main,
+  },
+  currentWeekTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  currentWeekText: {
+    fontSize: 10,
+    color: theme.colors.text.secondary,
+    fontWeight: '600',
+  },
+
+  // Week strip row
+  weekStripRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  dayPill: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.colors.background.screen,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+    gap: 3,
+  },
+  dayPillToday: {
+    borderColor: theme.colors.primary.main,
+    backgroundColor: theme.colors.primary.bg,
+  },
+  dayPillSelected: {
+    backgroundColor: theme.colors.primary.main,
+    borderColor: theme.colors.primary.main,
+    shadowColor: theme.colors.primary.main,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  dayNameText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.text.secondary,
+  },
+  dayNameTextToday: {
+    color: theme.colors.primary.main,
+  },
+  dayNameTextSelected: {
+    color: 'rgba(255,255,255,0.85)',
+  },
+  dayNumText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.colors.text.primary,
+  },
+  dayNumTextToday: {
+    color: theme.colors.primary.main,
+  },
+  dayNumTextSelected: {
+    color: '#FFFFFF',
+  },
+  dayStatusIndicatorWrap: {
+    marginTop: 2,
+    height: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusDotMuted: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+
+  // Day Summary Banner
+  daySummaryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.background.screen,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+  },
+  daySummaryInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  daySummaryTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  daySummaryDesc: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+  },
+
+  // Section Styles
   section: {
     gap: theme.spacing.sm,
   },
@@ -520,50 +976,53 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   sectionTitle: {
+    fontSize: theme.typography.sizes.base,
     color: theme.colors.text.primary,
-    fontSize: theme.typography.sizes.lg,
+    fontWeight: '700',
   },
   seeAllLink: {
     color: theme.colors.primary.main,
     fontWeight: theme.typography.weights.semibold,
+    fontSize: theme.typography.sizes.sm,
   },
+
+  // Class list styles
   classList: {
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   classCard: {
     gap: theme.spacing.md,
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.lg,
   },
   classCardPending: {
-    borderColor: '#FED7AA',
-    borderWidth: 1.5,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.semantic.warning.main,
   },
   classCardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: theme.spacing.sm,
   },
   classTitleGroup: {
-    gap: 2,
     flex: 1,
-    marginRight: theme.spacing.sm,
   },
   classSubject: {
-    fontSize: theme.typography.sizes.lg,
     color: theme.colors.text.primary,
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
   },
   classGrade: {
     color: theme.colors.text.secondary,
-    fontSize: theme.typography.sizes.sm,
+    marginTop: 2,
+    fontSize: theme.typography.sizes.xs,
   },
   classMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.border.light,
   },
   metaItem: {
     flexDirection: 'row',
@@ -583,6 +1042,8 @@ const styles = StyleSheet.create({
   actionBtnFlex: {
     flex: 1,
   },
+
+  // Quick actions
   quickActionsGrid: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
@@ -590,66 +1051,62 @@ const styles = StyleSheet.create({
   quickActionCard: {
     flex: 1,
     backgroundColor: theme.colors.background.paper,
-    borderRadius: theme.radii.lg,
     padding: theme.spacing.md,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
     borderColor: theme.colors.border.main,
+    alignItems: 'center',
     gap: 4,
   },
   quickActionIcon: {
     width: 44,
     height: 44,
-    borderRadius: theme.radii.md,
+    borderRadius: theme.radii.full,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   quickActionLabel: {
     color: theme.colors.text.primary,
-    fontWeight: theme.typography.weights.semibold,
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 12,
   },
   quickActionSub: {
-    color: theme.colors.text.secondary,
-    fontSize: 11,
+    color: theme.colors.text.disabled,
+    textAlign: 'center',
+    fontSize: 10,
   },
+
+  // Upcoming Tests
   upcomingList: {
     gap: theme.spacing.sm,
   },
-  upcomingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  upcomingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  testCard: {
     gap: theme.spacing.sm,
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.lg,
+  },
+  testHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  testTitleCol: {
     flex: 1,
   },
-  upcomingIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.primary.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  upcomingMeta: {
-    flex: 1,
-    gap: 2,
-  },
-  upcomingTitle: {
+  testTitle: {
     color: theme.colors.text.primary,
+    fontSize: theme.typography.sizes.sm + 1,
+    fontWeight: theme.typography.weights.bold,
   },
-  upcomingSub: {
+  testSubtitle: {
     color: theme.colors.text.secondary,
+    marginTop: 2,
+    fontSize: 11,
   },
-  upcomingRight: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  enterMarksHint: {
-    color: theme.colors.primary.main,
-    fontWeight: theme.typography.weights.medium,
+  testActionRow: {
+    marginTop: 2,
   },
 });

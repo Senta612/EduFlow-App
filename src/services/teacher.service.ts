@@ -260,6 +260,13 @@ export function isBatchScheduledToday(schedule: string): boolean {
   return schedule.toLowerCase().includes(todayDay.toLowerCase());
 }
 
+export function isBatchScheduledOnDate(schedule: string, date: Date): boolean {
+  if (!schedule) return true;
+  const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const targetDay = daysMap[date.getDay()];
+  return schedule.toLowerCase().includes(targetDay.toLowerCase());
+}
+
 class TeacherService {
   private async getStored<T>(key: string, fallback: T): Promise<T> {
     try {
@@ -298,6 +305,26 @@ class TeacherService {
     // Filter batches scheduled today, or return all if none match for testing
     const todayBatches = batches.filter((b) => isBatchScheduledToday(b.schedule));
     return todayBatches.length > 0 ? todayBatches : batches;
+  }
+
+  async getClassesForDate(dateStr: string): Promise<(Batch & { attendanceTakenForDate: boolean; attendanceRecord?: AttendanceRecord })[]> {
+    const batches = await this.getBatches();
+    const targetDate = new Date(dateStr);
+    const attendance = await this.getAttendanceRecords();
+    const dateRecords = attendance.filter((r) => r.date === dateStr);
+    const recordMap = new Map(dateRecords.map((r) => [r.batchId, r]));
+
+    const scheduledBatches = batches.filter((b) => isBatchScheduledOnDate(b.schedule, targetDate));
+    const list = scheduledBatches.length > 0 ? scheduledBatches : batches;
+
+    return list.map((b) => {
+      const rec = recordMap.get(b.id);
+      return {
+        ...b,
+        attendanceTakenForDate: Boolean(rec),
+        attendanceRecord: rec,
+      };
+    });
   }
 
   async getBatchById(batchId: string): Promise<Batch | null> {
