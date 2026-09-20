@@ -26,40 +26,70 @@ export const BatchOverviewSection: React.FC<BatchOverviewSectionProps> = ({
   onSwitchTab,
   onTakeAttendance,
 }) => {
+  const isAttendanceDone = Boolean(batch.attendanceTakenToday);
+
   return (
     <View style={styles.sectionStack}>
-      {/* Today Status Card */}
-      <Card variant="elevated" padding="md" style={styles.cardGap}>
-        <Text variant="heading" style={styles.cardTitle}>
-          Today's Attendance Status
-        </Text>
-        {batch.attendanceTakenToday ? (
-          <View style={styles.statusRow}>
-            <Badge
-              label="Attendance Completed for Today"
-              variant="success"
-              icon="check-circle"
-            />
-            <Button
-              title="View / Edit"
-              variant="outline"
-              onPress={onTakeAttendance}
-            />
+      {/* Today Status Card - 100% Responsive & Non-clipping */}
+      <Card
+        variant="elevated"
+        padding="md"
+        style={[
+          styles.todayCard,
+          isAttendanceDone ? styles.todayCardCompleted : styles.todayCardPending,
+        ]}
+      >
+        <View style={styles.todayHeaderRow}>
+          <View style={styles.todayHeaderLeft}>
+            <View
+              style={[
+                styles.todayIconCircle,
+                {
+                  backgroundColor: isAttendanceDone
+                    ? theme.colors.semantic.success.bg
+                    : theme.colors.semantic.warning.bg,
+                },
+              ]}
+            >
+              <Feather
+                name={isAttendanceDone ? 'check-circle' : 'clock'}
+                size={18}
+                color={
+                  isAttendanceDone
+                    ? theme.colors.semantic.success.main
+                    : theme.colors.semantic.warning.main
+                }
+              />
+            </View>
+            <View style={styles.todayTitleTexts}>
+              <Text variant="label" style={styles.todayCardTitle}>
+                Today's Attendance
+              </Text>
+              <Text variant="caption" style={styles.todayCardSubtitle}>
+                {isAttendanceDone
+                  ? 'Attendance is marked for today'
+                  : 'Daily roll call pending'}
+              </Text>
+            </View>
           </View>
-        ) : (
-          <View style={styles.statusRow}>
-            <Badge
-              label="Attendance Not Yet Marked"
-              variant="warning"
-              icon="alert-circle"
-            />
-            <Button
-              title="Mark Attendance Now"
-              variant="primary"
-              onPress={onTakeAttendance}
-            />
-          </View>
-        )}
+
+          <Badge
+            label={isAttendanceDone ? 'Completed' : 'Pending'}
+            variant={isAttendanceDone ? 'success' : 'warning'}
+            icon={isAttendanceDone ? 'check' : 'alert-circle'}
+            size="sm"
+          />
+        </View>
+
+        <View style={styles.todayActionRow}>
+          <Button
+            title={isAttendanceDone ? 'View & Update Attendance' : 'Mark Attendance Now'}
+            icon={isAttendanceDone ? 'edit-2' : 'check-square'}
+            variant={isAttendanceDone ? 'outline' : 'primary'}
+            fullWidth
+            onPress={onTakeAttendance}
+          />
+        </View>
       </Card>
 
       {/* Quick Stats Grid */}
@@ -182,19 +212,55 @@ const styles = StyleSheet.create({
   sectionStack: {
     gap: theme.spacing.lg,
   },
-  cardGap: {
-    gap: theme.spacing.md,
+  todayCard: {
+    gap: 14,
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
   },
-  cardTitle: {
-    fontSize: theme.typography.sizes.base,
-    color: theme.colors.text.primary,
-    fontWeight: '700',
+  todayCardCompleted: {
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.semantic.success.main,
   },
-  statusRow: {
+  todayCardPending: {
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.semantic.warning.main,
+  },
+  todayHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: theme.spacing.sm,
+    gap: 12,
+  },
+  todayHeaderLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  todayIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  todayTitleTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  todayCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  todayCardSubtitle: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+  },
+  todayActionRow: {
+    width: '100%',
   },
   statsGrid: {
     flexDirection: 'row',
