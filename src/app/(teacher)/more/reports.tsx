@@ -1,13 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Modal,
-  Linking,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,26 +16,11 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { EnrolledStudentsModal, EnrolledStudentItem } from '@/components/reports';
 import { teacherService } from '@/services/teacher.service';
-import { Batch, Test, Homework, Student } from '@/types/teacher';
+import { Batch, Test, Homework } from '@/types/teacher';
 import { theme } from '@/theme';
-
-interface EnrolledStudentItem extends Student {
-  batchId: string;
-  batchName: string;
-  batchSubject: string;
-  batchGrade: string;
-}
-
-function getInitials(name: string): string {
-  if (!name) return 'ST';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 export default function TeacherReportsScreen() {
   const insets = useSafeAreaInsets();
@@ -65,7 +49,6 @@ export default function TeacherReportsScreen() {
         setTests(t);
         setHomework(h);
 
-        // Fetch students for all batches
         const enrolled: EnrolledStudentItem[] = [];
         for (const batch of b) {
           const students = await teacherService.getBatchStudents(batch.id);
@@ -94,23 +77,6 @@ export default function TeacherReportsScreen() {
   const totalAssignedHw = homework.reduce((sum, h) => sum + h.totalStudents, 0);
   const hwCompletionRate =
     totalAssignedHw > 0 ? Math.round((totalSubmissions / totalAssignedHw) * 100) : 0;
-
-  // Filter students based on search query and batch filter
-  const filteredStudents = useMemo(() => {
-    return allStudents.filter((s) => {
-      const matchBatch =
-        selectedBatchFilter === 'all' || s.batchId === selectedBatchFilter;
-      const q = searchQuery.toLowerCase().trim();
-      const matchQuery =
-        !q ||
-        s.name.toLowerCase().includes(q) ||
-        s.rollNumber.toLowerCase().includes(q) ||
-        s.batchName.toLowerCase().includes(q) ||
-        s.batchSubject.toLowerCase().includes(q);
-
-      return matchBatch && matchQuery;
-    });
-  }, [allStudents, selectedBatchFilter, searchQuery]);
 
   const handleCallParent = (phone?: string) => {
     if (!phone) {
@@ -157,7 +123,6 @@ export default function TeacherReportsScreen() {
           <>
             {/* Quick Metrics Grid */}
             <View style={styles.metricsGrid}>
-              {/* Pressable Total Students Card */}
               <Pressable
                 style={({ pressed }) => [
                   styles.metricCardWrapper,
@@ -249,45 +214,47 @@ export default function TeacherReportsScreen() {
             >
               <View style={styles.studentsBannerLeft}>
                 <View style={styles.studentsBannerIcon}>
-                  <Feather name="user-check" size={20} color={theme.colors.primary.main} />
+                  <Feather name="users" size={20} color={theme.colors.primary.main} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View>
                   <Text variant="label" style={styles.studentsBannerTitle}>
-                    Student Directory ({totalStudents} Students)
+                    Enrolled Students Directory
                   </Text>
                   <Text variant="caption" style={styles.studentsBannerSub}>
-                    Tap to view and search all students across your {batches.length} batches
+                    Browse, search & view all {totalStudents} students across all batches
                   </Text>
                 </View>
               </View>
-              <Feather name="chevron-right" size={20} color={theme.colors.text.secondary} />
+              <Feather name="chevron-right" size={20} color={theme.colors.primary.main} />
             </Pressable>
 
-            {/* Batch Performance Breakdown */}
+            {/* Attendance Performance per Batch */}
             <View style={styles.section}>
               <Text variant="heading" style={styles.sectionTitle}>
-                Batch Attendance Summary
+                Attendance by Batch
               </Text>
+
               <View style={styles.batchList}>
-                {batches.map((batch) => (
-                  <Card key={batch.id} variant="outlined" padding="md" style={styles.batchReportCard}>
+                {batches.map((b) => (
+                  <Card key={b.id} variant="outlined" padding="md" style={styles.batchReportCard}>
                     <Pressable
                       style={styles.batchReportPressable}
-                      onPress={() => router.push(`/(teacher)/batch/${batch.id}`)}
+                      onPress={() => router.push(`/(teacher)/batch/${b.id}`)}
                     >
                       <View style={styles.batchReportHeader}>
                         <View style={styles.batchInfo}>
                           <Text variant="label" style={styles.batchSubject}>
-                            {batch.name} • {batch.subject}
+                            {b.name}
                           </Text>
                           <Text variant="caption" style={styles.batchGrade}>
-                            {batch.grade} • {batch.studentCount} Students
+                            {b.grade} • {b.studentCount} Students enrolled
                           </Text>
                         </View>
-                        <Badge label="95% Present" variant="success" size="sm" />
+                        <Badge label="94% Rate" variant="success" size="sm" />
                       </View>
+
                       <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: '95%' }]} />
+                        <View style={[styles.progressFill, { width: '94%' }]} />
                       </View>
                     </Pressable>
                   </Card>
@@ -295,29 +262,33 @@ export default function TeacherReportsScreen() {
               </View>
             </View>
 
-            {/* Recent Assessments Summary */}
+            {/* Recent Assessment Performance */}
             <View style={styles.section}>
               <Text variant="heading" style={styles.sectionTitle}>
-                Assessment Performance
+                Recent Tests & Assessments
               </Text>
+
               <View style={styles.testList}>
-                {tests.map((test) => (
-                  <Card key={test.id} variant="outlined" padding="md" style={styles.testReportCard}>
+                {tests.map((t) => (
+                  <Card key={t.id} variant="outlined" padding="md" style={styles.testReportCard}>
                     <View style={styles.testReportHeader}>
                       <View style={styles.testInfo}>
                         <Text variant="label" style={styles.testTitle}>
-                          {test.title}
+                          {t.title}
                         </Text>
                         <Text variant="caption" style={styles.testBatch}>
-                          {test.batchName} • Max {test.maxMarks} Marks • Date: {test.date}
+                          {t.batchName} • Date: {t.date}
                         </Text>
                       </View>
-                      <Badge
-                        label={`${test.submittedCount}/${test.totalStudents} Graded`}
-                        variant={test.submittedCount === test.totalStudents ? 'success' : 'warning'}
-                        size="sm"
-                      />
+                      <Badge label={`Max ${t.maxMarks} Marks`} variant="neutral" size="sm" />
                     </View>
+
+                    <Button
+                      title="View / Enter Marks →"
+                      variant="outline"
+                      size="sm"
+                      onPress={() => router.push(`/(teacher)/tests/${t.id}/marks`)}
+                    />
                   </Card>
                 ))}
               </View>
@@ -326,202 +297,19 @@ export default function TeacherReportsScreen() {
         )}
       </ScrollView>
 
-      {/* ALL ENROLLED STUDENTS DIRECTORY MODAL */}
-      <Modal
+      {/* Modular Enrolled Students Modal */}
+      <EnrolledStudentsModal
         visible={isStudentsModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsStudentsModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <Pressable
-            style={styles.modalBackdropTouch}
-            onPress={() => setIsStudentsModalVisible(false)}
-          />
-          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]}>
-            {/* Sheet Header */}
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text variant="heading" style={styles.modalTitle}>
-                  Enrolled Students Directory
-                </Text>
-                <Text variant="caption" style={styles.modalSubtitle}>
-                  {filteredStudents.length} of {totalStudents} Students across {batches.length} batches
-                </Text>
-              </View>
-              <Pressable
-                hitSlop={12}
-                style={styles.modalCloseBtn}
-                onPress={() => setIsStudentsModalVisible(false)}
-              >
-                <Feather name="x" size={20} color={theme.colors.text.secondary} />
-              </Pressable>
-            </View>
-
-            {/* Search Input */}
-            <View style={styles.searchWrap}>
-              <Input
-                placeholder="Search by student name, roll no, batch..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                leftContent={
-                  <Feather name="search" size={16} color={theme.colors.text.secondary} />
-                }
-                rightContent={
-                  searchQuery.length > 0 ? (
-                    <Pressable hitSlop={8} onPress={() => setSearchQuery('')}>
-                      <Feather name="x-circle" size={16} color={theme.colors.text.disabled} />
-                    </Pressable>
-                  ) : null
-                }
-              />
-            </View>
-
-            {/* Batch Filter Chips */}
-            <View style={styles.filterChipsRow}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterChipsContent}
-              >
-                <Pressable
-                  style={[
-                    styles.filterChip,
-                    selectedBatchFilter === 'all' && styles.filterChipActive,
-                  ]}
-                  onPress={() => setSelectedBatchFilter('all')}
-                >
-                  <Text
-                    variant="caption"
-                    style={[
-                      styles.filterChipText,
-                      selectedBatchFilter === 'all' && styles.filterChipTextActive,
-                    ]}
-                  >
-                    All Batches ({totalStudents})
-                  </Text>
-                </Pressable>
-
-                {batches.map((b) => {
-                  const count = allStudents.filter((s) => s.batchId === b.id).length;
-                  const isSelected = selectedBatchFilter === b.id;
-                  return (
-                    <Pressable
-                      key={b.id}
-                      style={[
-                        styles.filterChip,
-                        isSelected && styles.filterChipActive,
-                      ]}
-                      onPress={() => setSelectedBatchFilter(b.id)}
-                    >
-                      <Text
-                        variant="caption"
-                        style={[
-                          styles.filterChipText,
-                          isSelected && styles.filterChipTextActive,
-                        ]}
-                      >
-                        {b.subject} ({count})
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            {/* Students List */}
-            {filteredStudents.length === 0 ? (
-              <View style={styles.modalEmptyWrap}>
-                <EmptyState
-                  icon="users"
-                  title="No students matched"
-                  description={
-                    searchQuery
-                      ? `No students found matching "${searchQuery}".`
-                      : 'No students enrolled in this batch yet.'
-                  }
-                  actionLabel={searchQuery ? 'Clear Search' : undefined}
-                  onAction={searchQuery ? () => setSearchQuery('') : undefined}
-                />
-              </View>
-            ) : (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.studentsListScroll}
-                keyboardShouldPersistTaps="handled"
-              >
-                {filteredStudents.map((student) => (
-                  <Card
-                    key={`${student.batchId}-${student.id}`}
-                    variant="outlined"
-                    padding="none"
-                    style={styles.studentRosterCard}
-                  >
-                    <Pressable
-                      style={styles.studentRosterPressable}
-                      onPress={() => handleOpenStudentProfile(student)}
-                    >
-                      {/* Avatar */}
-                      <View style={styles.studentAvatar}>
-                        <Text variant="label" style={styles.studentAvatarText}>
-                          {getInitials(student.name)}
-                        </Text>
-                      </View>
-
-                      {/* Info */}
-                      <View style={styles.studentMainInfo}>
-                        <View style={styles.studentTitleRow}>
-                          <Text variant="label" style={styles.studentFullName}>
-                            {student.name}
-                          </Text>
-                          <Badge
-                            label={`Roll #${student.rollNumber}`}
-                            variant="neutral"
-                            size="sm"
-                          />
-                        </View>
-
-                        <View style={styles.studentMetaLine}>
-                          <Badge
-                            label={`${student.batchName} • ${student.batchGrade}`}
-                            variant="primary"
-                            size="sm"
-                          />
-                        </View>
-                      </View>
-
-                      {/* Call Button & Chevron */}
-                      <View style={styles.studentActionsGroup}>
-                        {student.parentPhone ? (
-                          <Pressable
-                            hitSlop={8}
-                            style={styles.quickCallBtn}
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              handleCallParent(student.parentPhone);
-                            }}
-                          >
-                            <Feather
-                              name="phone"
-                              size={14}
-                              color={theme.colors.semantic.success.main}
-                            />
-                          </Pressable>
-                        ) : null}
-                        <Feather
-                          name="chevron-right"
-                          size={18}
-                          color={theme.colors.text.disabled}
-                        />
-                      </View>
-                    </Pressable>
-                  </Card>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsStudentsModalVisible(false)}
+        batches={batches}
+        allStudents={allStudents}
+        searchQuery={searchQuery}
+        onChangeSearchQuery={setSearchQuery}
+        selectedBatchFilter={selectedBatchFilter}
+        onSelectBatchFilter={setSelectedBatchFilter}
+        onCallParent={handleCallParent}
+        onSelectStudent={handleOpenStudentProfile}
+      />
     </SafeAreaView>
   );
 }
@@ -599,8 +387,6 @@ const styles = StyleSheet.create({
     color: theme.colors.text.disabled,
     marginTop: 2,
   },
-
-  // Students shortcut banner
   studentsBannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -644,8 +430,6 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
     marginTop: 2,
   },
-
-  // Batch section
   section: {
     gap: theme.spacing.sm,
   },
@@ -692,15 +476,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.semantic.success.main,
     borderRadius: 3,
   },
-
-  // Tests
   testList: {
     gap: theme.spacing.sm,
   },
   testReportCard: {
     backgroundColor: theme.colors.background.paper,
     borderRadius: theme.radii.md,
-    gap: 4,
+    gap: 8,
   },
   testReportHeader: {
     flexDirection: 'row',
@@ -718,147 +500,5 @@ const styles = StyleSheet.create({
   testBatch: {
     color: theme.colors.text.secondary,
     fontSize: 11,
-  },
-
-  // Modal Sheet
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'flex-end',
-  },
-  modalBackdropTouch: {
-    flex: 1,
-  },
-  modalSheet: {
-    backgroundColor: theme.colors.background.paper,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    paddingTop: 16,
-    gap: 12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border.light,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
-    marginTop: 2,
-  },
-  modalCloseBtn: {
-    padding: 6,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-  },
-  searchWrap: {
-    paddingHorizontal: 20,
-  },
-  filterChipsRow: {
-    maxHeight: 36,
-  },
-  filterChipsContent: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  filterChipActive: {
-    backgroundColor: theme.colors.primary.bg,
-    borderColor: theme.colors.primary.main,
-  },
-  filterChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: theme.colors.text.secondary,
-  },
-  filterChipTextActive: {
-    color: theme.colors.primary.main,
-    fontWeight: '700',
-  },
-  modalEmptyWrap: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  studentsListScroll: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 24,
-    gap: 8,
-  },
-  studentRosterCard: {
-    backgroundColor: theme.colors.background.paper,
-    borderRadius: theme.radii.md,
-    overflow: 'hidden',
-  },
-  studentRosterPressable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: 12,
-  },
-  studentAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: theme.colors.primary.bg,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  studentAvatarText: {
-    color: theme.colors.primary.main,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  studentMainInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  studentTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  studentFullName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-  },
-  studentMetaLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  studentActionsGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickCallBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.semantic.success.bg,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
