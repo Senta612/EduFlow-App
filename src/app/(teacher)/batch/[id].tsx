@@ -104,8 +104,11 @@ export default function BatchDetailScreen() {
 
   // Handlers for Student operations
   const handleOpenProfile = (student: Student) => {
-    setSelectedStudent(student);
-    setIsProfileModalVisible(true);
+    if (!batch) return;
+    router.push({
+      pathname: '/(teacher)/student/[id]',
+      params: { id: student.id, batchId: batch.id },
+    });
   };
 
   const handleOpenAddStudent = () => {

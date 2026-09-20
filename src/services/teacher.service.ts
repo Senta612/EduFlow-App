@@ -4,11 +4,17 @@ import {
   Student,
   StudentAttendanceItem,
   AttendanceRecord,
+  AttendanceStatus,
   Homework,
+  HomeworkStatus,
   StudentHomeworkItem,
   Test,
   StudentMark,
   TeacherTask,
+  StudentProfileData,
+  StudentAttendanceHistoryItem,
+  StudentHomeworkReportItem,
+  StudentTestReportItem,
 } from '@/types/teacher';
 
 // Initial baseline teaching data
@@ -126,6 +132,98 @@ const INITIAL_TESTS: Test[] = [
 ];
 
 const INITIAL_ATTENDANCE: AttendanceRecord[] = [
+  {
+    id: 'att-math-1',
+    batchId: 'batch-math-10',
+    date: '2026-09-18',
+    records: [
+      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
+      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
+      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'present' },
+      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'absent' },
+      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'present' },
+      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
+      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'present' },
+      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
+      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'absent' },
+      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
+      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
+      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
+    ],
+    totalStudents: 12,
+    presentCount: 10,
+    absentCount: 2,
+    submittedAt: '2026-09-18T10:35:00Z',
+  },
+  {
+    id: 'att-math-2',
+    batchId: 'batch-math-10',
+    date: '2026-09-16',
+    records: [
+      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
+      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
+      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'absent' },
+      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'present' },
+      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'present' },
+      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
+      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'present' },
+      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
+      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'present' },
+      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
+      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
+      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
+    ],
+    totalStudents: 12,
+    presentCount: 11,
+    absentCount: 1,
+    submittedAt: '2026-09-16T10:30:00Z',
+  },
+  {
+    id: 'att-math-3',
+    batchId: 'batch-math-10',
+    date: '2026-09-14',
+    records: [
+      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
+      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
+      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'present' },
+      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'present' },
+      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'present' },
+      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
+      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'absent' },
+      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
+      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'present' },
+      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
+      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
+      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
+    ],
+    totalStudents: 12,
+    presentCount: 11,
+    absentCount: 1,
+    submittedAt: '2026-09-14T10:25:00Z',
+  },
+  {
+    id: 'att-math-4',
+    batchId: 'batch-math-10',
+    date: '2026-09-11',
+    records: [
+      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
+      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
+      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'present' },
+      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'present' },
+      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'absent' },
+      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
+      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'present' },
+      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
+      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'present' },
+      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
+      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
+      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
+    ],
+    totalStudents: 12,
+    presentCount: 11,
+    absentCount: 1,
+    submittedAt: '2026-09-11T10:32:00Z',
+  },
   {
     id: 'att-chem-today',
     batchId: 'batch-chem-11',
@@ -457,6 +555,23 @@ class TeacherService {
     const stored = await this.getStored<StudentHomeworkItem[] | null>(key, null);
     const students = await this.getBatchStudents(batchId);
 
+    const initialHwMap: Record<string, Record<string, { status: HomeworkStatus; remarks?: string }>> = {
+      'hw-01': {
+        'st-01': { status: 'done', remarks: 'Excellent step-by-step solutions!' },
+        'st-02': { status: 'done', remarks: 'Neat notebook work.' },
+        'st-03': { status: 'half_done', remarks: 'Completed 8 out of 15 questions.' },
+        'st-04': { status: 'done', remarks: 'Good work.' },
+        'st-05': { status: 'done', remarks: 'All formulas verified.' },
+        'st-06': { status: 'done', remarks: 'Complete.' },
+        'st-07': { status: 'not_done', remarks: 'Needs to submit tomorrow.' },
+        'st-08': { status: 'done', remarks: 'Very neat.' },
+        'st-09': { status: 'done', remarks: 'Good attempt.' },
+        'st-10': { status: 'done', remarks: 'Complete.' },
+        'st-11': { status: 'half_done', remarks: 'Need to finish Q12-15.' },
+        'st-12': { status: 'done', remarks: 'Good.' },
+      },
+    };
+
     if (stored && stored.length > 0) {
       // Merge with any new students added to the batch
       const storedMap = new Map(stored.map((s) => [s.studentId, s]));
@@ -478,13 +593,18 @@ class TeacherService {
       });
     }
 
-    // Initialize from students list - default all students to 'done' for fast 1-tap review
-    return students.map((s) => ({
-      studentId: s.id,
-      studentName: s.name,
-      rollNumber: s.rollNumber,
-      status: 'done' as const,
-    }));
+    // Default with initial map if available
+    const hwPreset = initialHwMap[homeworkId];
+    return students.map((s) => {
+      const preset = hwPreset ? hwPreset[s.id] : undefined;
+      return {
+        studentId: s.id,
+        studentName: s.name,
+        rollNumber: s.rollNumber,
+        status: preset?.status ?? 'done',
+        remarks: preset?.remarks,
+      };
+    });
   }
 
   async saveHomeworkSubmissions(
@@ -551,13 +671,36 @@ class TeacherService {
     const stored = await this.getStored<StudentMark[] | null>(key, null);
     if (stored) return stored;
 
+    const initialMarksMap: Record<string, Record<string, number>> = {
+      'test-01': {
+        'st-01': 46,
+        'st-02': 49,
+        'st-03': 41,
+        'st-04': 38,
+        'st-05': 44,
+        'st-06': 48,
+        'st-07': 42,
+        'st-08': 45,
+        'st-09': 39,
+        'st-10': 47,
+        'st-11': 43,
+        'st-12': 40,
+      },
+      'test-02': {
+        'st-21': 36,
+        'st-22': 38,
+        'st-23': 32,
+      },
+    };
+
     // Generate initial mark template from students
     const students = await this.getBatchStudents(batchId);
+    const testPreset = initialMarksMap[testId];
     return students.map((s) => ({
       studentId: s.id,
       studentName: s.name,
       rollNumber: s.rollNumber,
-      marksObtained: null,
+      marksObtained: testPreset && testPreset[s.id] !== undefined ? testPreset[s.id] : null,
     }));
   }
 
@@ -572,6 +715,161 @@ class TeacherService {
       t.id === testId ? { ...t, submittedCount: enteredCount } : t,
     );
     await this.setStored(STORAGE_KEYS.TESTS, updatedTests);
+  }
+
+  // Comprehensive Student Profile & Reports Aggregator
+  async getStudentProfileData(
+    batchId: string,
+    studentId: string,
+  ): Promise<StudentProfileData | null> {
+    const [batch, students, attendanceRecords, homeworkList, testsList] = await Promise.all([
+      this.getBatchById(batchId),
+      this.getBatchStudents(batchId),
+      this.getBatchAttendanceHistory(batchId),
+      this.getBatchHomework(batchId),
+      this.getBatchTests(batchId),
+    ]);
+
+    if (!batch) return null;
+    const student = students.find((s) => s.id === studentId);
+    if (!student) return null;
+
+    // 1. Attendance aggregation
+    const history: StudentAttendanceHistoryItem[] = [];
+    let presentCount = 0;
+    let absentCount = 0;
+
+    // Sort attendance records newest first
+    const sortedAttendance = [...attendanceRecords].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    for (const record of sortedAttendance) {
+      const item = record.records?.find((r) => r.studentId === studentId);
+      if (item) {
+        if (item.status === 'present') presentCount++;
+        else if (item.status === 'absent') absentCount++;
+
+        history.push({
+          id: record.id,
+          date: record.date,
+          status: item.status,
+          submittedAt: record.submittedAt,
+        });
+      }
+    }
+
+    const totalClasses = presentCount + absentCount;
+    const attendancePercentage =
+      totalClasses > 0 ? Math.round((presentCount / totalClasses) * 100) : 100;
+
+    // 2. Homework aggregation
+    const hwReportItems: StudentHomeworkReportItem[] = [];
+    let hwDoneCount = 0;
+    let hwHalfDoneCount = 0;
+    let hwNotDoneCount = 0;
+
+    for (const hw of homeworkList) {
+      const submissions = await this.getHomeworkSubmissions(hw.id, batchId);
+      const sub = submissions.find((s) => s.studentId === studentId);
+      const status: HomeworkStatus = sub ? sub.status : 'done';
+      if (status === 'done') hwDoneCount++;
+      else if (status === 'half_done') hwHalfDoneCount++;
+      else hwNotDoneCount++;
+
+      hwReportItems.push({
+        homeworkId: hw.id,
+        title: hw.title,
+        description: hw.description,
+        dueDate: hw.dueDate,
+        status,
+        remarks: sub?.remarks,
+      });
+    }
+
+    const totalAssigned = homeworkList.length;
+    const hwScoreSum = hwDoneCount + 0.5 * hwHalfDoneCount;
+    const completionPercentage =
+      totalAssigned > 0 ? Math.round((hwScoreSum / totalAssigned) * 100) : 100;
+
+    // 3. Tests & Marks aggregation
+    const testReportItems: StudentTestReportItem[] = [];
+    let testsAttempted = 0;
+    let totalMarksScored = 0;
+    let totalMaxMarks = 0;
+
+    for (const test of testsList) {
+      const marks = await this.getTestMarks(test.id, batchId);
+      const markEntry = marks.find((m) => m.studentId === studentId);
+      const marksObtained = markEntry?.marksObtained ?? null;
+
+      let percentage: number | null = null;
+      let gradeBadge = 'Pending';
+
+      if (marksObtained !== null) {
+        testsAttempted++;
+        totalMarksScored += marksObtained;
+        totalMaxMarks += test.maxMarks;
+        percentage = test.maxMarks > 0 ? Math.round((marksObtained / test.maxMarks) * 100) : 0;
+        if (percentage >= 90) gradeBadge = 'Outstanding';
+        else if (percentage >= 80) gradeBadge = 'Excellent';
+        else if (percentage >= 70) gradeBadge = 'Good';
+        else if (percentage >= 60) gradeBadge = 'Average';
+        else gradeBadge = 'Needs Attention';
+      }
+
+      testReportItems.push({
+        testId: test.id,
+        title: test.title,
+        date: test.date,
+        maxMarks: test.maxMarks,
+        marksObtained,
+        percentage,
+        gradeBadge,
+      });
+    }
+
+    const averagePercentage =
+      totalMaxMarks > 0 ? Math.round((totalMarksScored / totalMaxMarks) * 100) : 0;
+
+    let gradeLetter = 'N/A';
+    if (testsAttempted > 0) {
+      if (averagePercentage >= 90) gradeLetter = 'A+';
+      else if (averagePercentage >= 80) gradeLetter = 'A';
+      else if (averagePercentage >= 70) gradeLetter = 'B';
+      else if (averagePercentage >= 60) gradeLetter = 'C';
+      else if (averagePercentage >= 50) gradeLetter = 'D';
+      else gradeLetter = 'F';
+    }
+
+    return {
+      student,
+      batch,
+      attendance: {
+        totalClasses,
+        presentCount,
+        absentCount,
+        percentage: attendancePercentage,
+        history,
+      },
+      homework: {
+        totalAssigned,
+        doneCount: hwDoneCount,
+        halfDoneCount: hwHalfDoneCount,
+        notDoneCount: hwNotDoneCount,
+        completionPercentage,
+        items: hwReportItems,
+      },
+      tests: {
+        totalTests: testsList.length,
+        testsAttempted,
+        totalMarksScored,
+        totalMaxMarks,
+        averagePercentage,
+        gradeLetter,
+        items: testReportItems,
+      },
+    };
   }
 
   // Tasks Aggregator

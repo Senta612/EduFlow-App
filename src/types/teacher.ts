@@ -98,3 +98,59 @@ export interface TeacherTask {
   progressText?: string;
   route: string;
 }
+
+export interface StudentAttendanceHistoryItem {
+  id: string;
+  date: string;
+  status: AttendanceStatus;
+  submittedAt: string;
+}
+
+export interface StudentHomeworkReportItem {
+  homeworkId: string;
+  title: string;
+  description?: string;
+  dueDate: string;
+  status: HomeworkStatus;
+  remarks?: string;
+}
+
+export interface StudentTestReportItem {
+  testId: string;
+  title: string;
+  date: string;
+  maxMarks: number;
+  marksObtained: number | null;
+  percentage: number | null;
+  gradeBadge: string;
+}
+
+export interface StudentProfileData {
+  student: Student;
+  batch: Batch;
+  attendance: {
+    totalClasses: number;
+    presentCount: number;
+    absentCount: number;
+    percentage: number;
+    history: StudentAttendanceHistoryItem[];
+  };
+  homework: {
+    totalAssigned: number;
+    doneCount: number;
+    halfDoneCount: number;
+    notDoneCount: number;
+    completionPercentage: number;
+    items: StudentHomeworkReportItem[];
+  };
+  tests: {
+    totalTests: number;
+    testsAttempted: number;
+    totalMarksScored: number;
+    totalMaxMarks: number;
+    averagePercentage: number;
+    gradeLetter: string;
+    items: StudentTestReportItem[];
+  };
+}
+
