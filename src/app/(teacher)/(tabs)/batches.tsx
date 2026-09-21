@@ -18,6 +18,7 @@ import { BatchCard } from '@/components/ui/BatchCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { teacherService, isBatchScheduledToday } from '@/services/teacher.service';
 import { Batch } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 type FilterType = 'all' | 'today';
@@ -25,6 +26,7 @@ type FilterType = 'all' | 'today';
 export default function TeacherBatchesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,10 +96,10 @@ export default function TeacherBatchesScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text variant="heading" style={styles.headerTitle}>
-            Batches
+            {t('tabs.batches')}
           </Text>
           <Text variant="caption" style={styles.headerSubtitle}>
-            Your teaching groups & rosters
+            {t('batches.subtitle')}
           </Text>
         </View>
         <Pressable
@@ -123,7 +125,7 @@ export default function TeacherBatchesScreen() {
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search batches by name, subject, or grade..."
+            placeholder={t('batches.searchPlaceholder')}
             placeholderTextColor={theme.colors.text.disabled}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -164,7 +166,7 @@ export default function TeacherBatchesScreen() {
                 activeFilter === 'all' && styles.filterPillTextActive,
               ]}
             >
-              All Batches ({batches.length})
+              {t('batches.allBatchesWithCount').replace('{count}', String(batches.length))}
             </Text>
           </Pressable>
 
@@ -184,7 +186,7 @@ export default function TeacherBatchesScreen() {
                 activeFilter === 'today' && styles.filterPillTextActive,
               ]}
             >
-              Today ({todayCount})
+              {t('batches.todayWithCount').replace('{count}', String(todayCount))}
             </Text>
           </Pressable>
         </View>
@@ -195,16 +197,16 @@ export default function TeacherBatchesScreen() {
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary.main} />
           <Text variant="body" style={styles.loadingText}>
-            Loading teaching groups...
+            {t('batches.loadingBatches')}
           </Text>
         </View>
       ) : hasError ? (
         <View style={styles.centerContainer}>
           <EmptyState
             icon="alert-triangle"
-            title="Couldn't load your batches"
-            description="Something went wrong while loading your teaching groups."
-            actionLabel="Try Again"
+            title={t('batches.errorTitle')}
+            description={t('batches.errorDesc')}
+            actionLabel={t('common.retry')}
             onAction={loadBatches}
           />
         </View>
@@ -237,19 +239,19 @@ export default function TeacherBatchesScreen() {
               icon={searchQuery ? 'search' : 'layers'}
               title={
                 searchQuery
-                  ? `No batches matching "${searchQuery}"`
+                  ? t('batches.noBatchesMatched').replace('{query}', searchQuery)
                   : activeFilter === 'today'
-                  ? 'No batches scheduled today'
-                  : 'No batches yet'
+                  ? t('batches.noBatchesToday')
+                  : t('batches.noBatchesYet')
               }
               description={
                 searchQuery
-                  ? 'Try searching with a different subject or grade name.'
+                  ? t('batches.noBatchesSearchDesc')
                   : activeFilter === 'today'
-                  ? 'None of your batches have a class scheduled for today.'
-                  : 'Your assigned teaching groups will appear here. Tap the + button to create one.'
+                  ? t('batches.noBatchesTodayDesc')
+                  : t('batches.noBatchesYetDesc')
               }
-              actionLabel={searchQuery ? 'Clear Search' : '+ Create Batch'}
+              actionLabel={searchQuery ? t('reports.clearSearch') : `+ ${t('batches.createBatch')}`}
               onAction={
                 searchQuery
                   ? () => setSearchQuery('')
@@ -268,7 +270,7 @@ export default function TeacherBatchesScreen() {
         ]}
         onPress={() => router.push('/(teacher)/batch/create')}
         accessibilityRole="button"
-        accessibilityLabel="Create Batch"
+        accessibilityLabel={t('batches.createBatch')}
       >
         <Feather name="plus" size={26} color="#FFFFFF" />
       </Pressable>

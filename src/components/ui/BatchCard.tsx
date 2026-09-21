@@ -10,6 +10,7 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from './Text';
 import { Badge } from './Badge';
 import { Batch } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 export interface BatchCardProps {
@@ -19,6 +20,8 @@ export interface BatchCardProps {
 }
 
 export function BatchCard({ batch, onPress, style }: BatchCardProps) {
+  const { t } = useTranslation();
+
   return (
     <Pressable
       onPress={onPress}
@@ -41,7 +44,7 @@ export function BatchCard({ batch, onPress, style }: BatchCardProps) {
           </Text>
         </View>
         <Badge
-          label={`${batch.studentCount} Students`}
+          label={`${batch.studentCount} ${t('common.students')}`}
           variant="primary"
           icon="users"
           size="sm"
@@ -90,20 +93,20 @@ export function BatchCard({ batch, onPress, style }: BatchCardProps) {
       <View style={styles.footerRow}>
         {batch.attendanceTakenToday ? (
           <Badge
-            label="✓ Attendance Completed"
+            label={t('batches.attendanceCompleted')}
             variant="success"
             size="sm"
           />
         ) : (
           <Badge
-            label="Attendance Pending"
+            label={t('batches.attendancePending')}
             variant="warning"
             size="sm"
           />
         )}
         <View style={styles.openHint}>
           <Text variant="label" style={styles.openText}>
-            Open
+            {t('batches.open')}
           </Text>
           <Feather
             name="arrow-right"

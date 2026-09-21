@@ -82,6 +82,34 @@ export interface TranslationDictionary {
     subject: string;
     grade: string;
     batchDetails: string;
+    title: string;
+    subtitle: string;
+    searchPlaceholder: string;
+    allBatchesWithCount: string;
+    todayWithCount: string;
+    loadingBatches: string;
+    errorTitle: string;
+    errorDesc: string;
+    noBatchesMatched: string;
+    noBatchesToday: string;
+    noBatchesYet: string;
+    noBatchesSearchDesc: string;
+    noBatchesTodayDesc: string;
+    noBatchesYetDesc: string;
+    attendanceCompleted: string;
+    attendancePending: string;
+    open: string;
+  };
+  tasks: {
+    title: string;
+    subtitle: string;
+    allTasks: string;
+    inProgress: string;
+    loadingTasks: string;
+    allCaughtUp: string;
+    allCaughtUpDesc: string;
+    noTasksForCategory: string;
+    reviewHomework: string;
   };
   attendance: {
     title: string;
