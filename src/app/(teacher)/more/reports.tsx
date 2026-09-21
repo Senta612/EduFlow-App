@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,77 +7,112 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { EnrolledStudentsModal, EnrolledStudentItem } from '@/components/reports';
-import { teacherService } from '@/services/teacher.service';
-import { Batch, Test, Homework } from '@/types/teacher';
+import {
+  ReportsOverviewCards,
+  DefaultersAlertSection,
+  TestToppersSection,
+  BatchAttendanceSection,
+  ShareStudentReportModal,
+  EnrolledStudentsModal,
+  EnrolledStudentItem,
+} from '@/components/reports';
+import {
+  teacherService,
+  formatDefaulterWhatsAppMessage,
+  formatTopperWhatsAppMessage,
+} from '@/services/teacher.service';
+import {
+  Batch,
+  TuitionAnalyticsSummary,
+  DefaulterStudent,
+  TestRankStudent,
+} from '@/types/teacher';
 import { theme } from '@/theme';
 
 export default function TeacherReportsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [batches, setBatches] = useState<Batch[]>([]);
-  const [tests, setTests] = useState<Test[]>([]);
-  const [homework, setHomework] = useState<Homework[]>([]);
   const [allStudents, setAllStudents] = useState<EnrolledStudentItem[]>([]);
+  const [analytics, setAnalytics] = useState<TuitionAnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Filter State
+  const [selectedBatchId, setSelectedBatchId] = useState<string>('all');
 
   // Student Directory Modal State
   const [isStudentsModalVisible, setIsStudentsModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
+  const [directoryBatchFilter, setDirectoryBatchFilter] = useState<string>('all');
+
+  // Share Progress Slip Modal State
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+  const [shareTargetStudent, setShareTargetStudent] = useState<{
+    studentId: string;
+    studentName: string;
+    rollNumber: string;
+    parentPhone?: string;
+    batchId: string;
+    batchName: string;
+  } | null>(null);
+
+  const loadData = useCallback(async (batchFilter: string = selectedBatchId) => {
+    try {
+      const [bList, analyticsData] = await Promise.all([
+        teacherService.getBatches(),
+        teacherService.getTuitionAnalytics(batchFilter),
+      ]);
+      setBatches(bList);
+      setAnalytics(analyticsData);
+
+      // Load enrolled students list for directory
+      const enrolled: EnrolledStudentItem[] = [];
+      for (const b of bList) {
+        const students = await teacherService.getBatchStudents(b.id);
+        for (const s of students) {
+          enrolled.push({
+            ...s,
+            batchId: b.id,
+            batchName: b.name,
+            batchSubject: b.subject,
+            batchGrade: b.grade,
+          });
+        }
+      }
+      setAllStudents(enrolled);
+    } catch (error) {
+      console.error('Failed to load tuition report data:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [selectedBatchId]);
 
   useEffect(() => {
-    async function loadReportData() {
-      try {
-        const [b, t, h] = await Promise.all([
-          teacherService.getBatches(),
-          teacherService.getTestsList(),
-          teacherService.getHomeworkList(),
-        ]);
-        setBatches(b);
-        setTests(t);
-        setHomework(h);
+    loadData(selectedBatchId);
+  }, [selectedBatchId, loadData]);
 
-        const enrolled: EnrolledStudentItem[] = [];
-        for (const batch of b) {
-          const students = await teacherService.getBatchStudents(batch.id);
-          for (const s of students) {
-            enrolled.push({
-              ...s,
-              batchId: batch.id,
-              batchName: batch.name,
-              batchSubject: batch.subject,
-              batchGrade: batch.grade,
-            });
-          }
-        }
-        setAllStudents(enrolled);
-      } catch (error) {
-        console.error('Failed to load report data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadReportData();
-  }, []);
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    loadData(selectedBatchId);
+  };
 
-  const totalStudents = allStudents.length;
-  const totalSubmissions = homework.reduce((sum, h) => sum + h.submissionsCount, 0);
-  const totalAssignedHw = homework.reduce((sum, h) => sum + h.totalStudents, 0);
-  const hwCompletionRate =
-    totalAssignedHw > 0 ? Math.round((totalSubmissions / totalAssignedHw) * 100) : 0;
+  const handleSelectBatchFilter = (batchId: string) => {
+    setSelectedBatchId(batchId);
+  };
 
+  // WhatsApp & Phone Communication Handlers
   const handleCallParent = (phone?: string) => {
     if (!phone) {
       Alert.alert('No Phone Number', 'No parent phone number provided for this student.');
@@ -85,8 +120,74 @@ export default function TeacherReportsScreen() {
     }
     const cleanPhone = phone.replace(/[^0-9+]/g, '');
     Linking.openURL(`tel:${cleanPhone}`).catch(() => {
-      Alert.alert('Call Failed', 'Unable to initiate phone call.');
+      Alert.alert('Call Failed', 'Unable to initiate phone call on this device.');
     });
+  };
+
+  const handleDefaulterWhatsApp = (student: DefaulterStudent) => {
+    const issuesSummary = student.issues.map((i) => `${i.label} (${i.details})`).join(' • ');
+    const message = formatDefaulterWhatsAppMessage({
+      studentName: student.studentName,
+      batchName: student.batchName,
+      issuesSummary,
+    });
+
+    const cleanPhone = (student.parentPhone || '').replace(/[^0-9]/g, '');
+    const whatsappUrl = cleanPhone
+      ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
+      : `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+    const fallbackUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    Linking.openURL(whatsappUrl).catch(() => {
+      Linking.openURL(fallbackUrl).catch(() => {
+        Alert.alert('WhatsApp Error', 'Unable to launch WhatsApp on this device.');
+      });
+    });
+  };
+
+  const handleTopperWhatsApp = (
+    topper: TestRankStudent,
+    testTitle: string,
+    batchName: string,
+  ) => {
+    const message = formatTopperWhatsAppMessage({
+      studentName: topper.studentName,
+      batchName,
+      testTitle,
+      rank: topper.rank,
+      marksObtained: topper.marksObtained,
+      maxMarks: topper.maxMarks,
+    });
+
+    const cleanPhone = (topper.parentPhone || '').replace(/[^0-9]/g, '');
+    const whatsappUrl = cleanPhone
+      ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
+      : `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+    const fallbackUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    Linking.openURL(whatsappUrl).catch(() => {
+      Linking.openURL(fallbackUrl).catch(() => {
+        Alert.alert('WhatsApp Error', 'Unable to launch WhatsApp on this device.');
+      });
+    });
+  };
+
+  const handleOpenStudentReportModal = (student: {
+    studentId: string;
+    studentName: string;
+    rollNumber: string;
+    parentPhone?: string;
+    batchId: string;
+    batchName: string;
+  }) => {
+    setShareTargetStudent(student);
+    setIsShareModalVisible(true);
   };
 
   const handleOpenStudentProfile = (student: EnrolledStudentItem) => {
@@ -100,204 +201,166 @@ export default function TeacherReportsScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
       <ScreenHeader
-        title="Teaching Reports"
-        subtitle="Attendance trends & student academic progress"
+        title="Tuition Reports & Analytics"
+        subtitle="Attendance trends, at-risk alerts & test rankings"
         showBack
       />
 
+      {/* Batch Scope Filter Pills */}
+      <View style={styles.batchFilterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.batchFilterContent}
+        >
+          <Pressable
+            style={[
+              styles.batchFilterChip,
+              selectedBatchId === 'all' && styles.batchFilterChipActive,
+            ]}
+            onPress={() => handleSelectBatchFilter('all')}
+          >
+            <Text
+              variant="caption"
+              style={[
+                styles.batchFilterChipText,
+                selectedBatchId === 'all' && styles.batchFilterChipTextActive,
+              ]}
+            >
+              All Batches
+            </Text>
+          </Pressable>
+
+          {batches.map((b) => {
+            const isSelected = selectedBatchId === b.id;
+            return (
+              <Pressable
+                key={b.id}
+                style={[
+                  styles.batchFilterChip,
+                  isSelected && styles.batchFilterChipActive,
+                ]}
+                onPress={() => handleSelectBatchFilter(b.id)}
+              >
+                <Text
+                  variant="caption"
+                  style={[
+                    styles.batchFilterChipText,
+                    isSelected && styles.batchFilterChipTextActive,
+                  ]}
+                >
+                  {b.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + 32 },
         ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary.main}
+          />
+        }
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary.main} />
             <Text variant="body" style={styles.loadingText}>
-              Aggregating teaching insights...
+              Aggregating tuition performance insights...
             </Text>
           </View>
         ) : (
-          <>
-            {/* Quick Metrics Grid */}
-            <View style={styles.metricsGrid}>
+          analytics && (
+            <>
+              {/* 1. Tuition Overview Metric Cards */}
+              <ReportsOverviewCards
+                totalStudents={analytics.totalStudentsCount}
+                averageAttendance={analytics.averageAttendance}
+                defaultersCount={analytics.defaulters.length}
+                hwCompletionRate={analytics.hwCompletionRate}
+                totalTests={analytics.totalTestsConducted}
+                onPressStudents={() => {
+                  setDirectoryBatchFilter(selectedBatchId);
+                  setIsStudentsModalVisible(true);
+                }}
+              />
+
+              {/* 2. Quick Student Directory Banner */}
               <Pressable
                 style={({ pressed }) => [
-                  styles.metricCardWrapper,
-                  pressed && styles.metricCardPressed,
+                  styles.directoryBanner,
+                  pressed && styles.bannerPressed,
                 ]}
-                onPress={() => setIsStudentsModalVisible(true)}
+                onPress={() => {
+                  setDirectoryBatchFilter(selectedBatchId);
+                  setIsStudentsModalVisible(true);
+                }}
                 accessibilityRole="button"
-                accessibilityLabel="View all enrolled students"
+                accessibilityLabel="Open student directory"
               >
-                <Card variant="elevated" padding="md" style={styles.metricCard}>
-                  <View style={styles.metricIconBox}>
-                    <Feather name="users" size={18} color={theme.colors.primary.main} />
+                <View style={styles.directoryBannerLeft}>
+                  <View style={styles.directoryIconBox}>
+                    <Feather name="users" size={20} color={theme.colors.primary.main} />
                   </View>
-                  <Text variant="title" style={styles.metricValue}>
-                    {totalStudents}
-                  </Text>
-                  <Text variant="caption" style={styles.metricLabel}>
-                    Total Students
-                  </Text>
-                  <View style={styles.metricHintRow}>
-                    <Text variant="caption" style={styles.metricHintText}>
-                      View List
+                  <View style={{ flex: 1 }}>
+                    <Text variant="label" style={styles.directoryBannerTitle}>
+                      Student Directory & Progress Slips
                     </Text>
-                    <Feather name="chevron-right" size={12} color={theme.colors.primary.main} />
+                    <Text variant="caption" style={styles.directoryBannerSubtitle}>
+                      Search, view records & send WhatsApp report slips
+                    </Text>
                   </View>
-                </Card>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.colors.primary.main} />
               </Pressable>
 
-              <View style={styles.metricCardWrapper}>
-                <Card variant="elevated" padding="md" style={styles.metricCard}>
-                  <View
-                    style={[
-                      styles.metricIconBox,
-                      { backgroundColor: theme.colors.semantic.success.bg },
-                    ]}
-                  >
-                    <Feather
-                      name="check-circle"
-                      size={18}
-                      color={theme.colors.semantic.success.main}
-                    />
-                  </View>
-                  <Text variant="title" style={styles.metricValue}>
-                    94%
-                  </Text>
-                  <Text variant="caption" style={styles.metricLabel}>
-                    Avg Attendance
-                  </Text>
-                  <Text variant="caption" style={styles.metricSubInfo}>
-                    All Batches
-                  </Text>
-                </Card>
-              </View>
+              {/* 3. At-Risk / Defaulters Alert Section */}
+              <DefaultersAlertSection
+                defaulters={analytics.defaulters}
+                onWhatsApp={handleDefaulterWhatsApp}
+                onCall={handleCallParent}
+                onOpenReport={(item) =>
+                  handleOpenStudentReportModal({
+                    studentId: item.studentId,
+                    studentName: item.studentName,
+                    rollNumber: item.rollNumber,
+                    parentPhone: item.parentPhone,
+                    batchId: item.batchId,
+                    batchName: item.batchName,
+                  })
+                }
+              />
 
-              <View style={styles.metricCardWrapper}>
-                <Card variant="elevated" padding="md" style={styles.metricCard}>
-                  <View
-                    style={[
-                      styles.metricIconBox,
-                      { backgroundColor: theme.colors.semantic.info.bg },
-                    ]}
-                  >
-                    <Feather
-                      name="book-open"
-                      size={18}
-                      color={theme.colors.semantic.info.main}
-                    />
-                  </View>
-                  <Text variant="title" style={styles.metricValue}>
-                    {hwCompletionRate}%
-                  </Text>
-                  <Text variant="caption" style={styles.metricLabel}>
-                    HW Rate
-                  </Text>
-                  <Text variant="caption" style={styles.metricSubInfo}>
-                    {totalSubmissions} Done
-                  </Text>
-                </Card>
-              </View>
-            </View>
+              {/* 4. Weekly Test Leaderboards & Topper Showcase */}
+              <TestToppersSection
+                leaderboards={analytics.testLeaderboards}
+                onTopperWhatsApp={handleTopperWhatsApp}
+                onOpenMarksheet={(testId) =>
+                  router.push(`/(teacher)/tests/${testId}/marks`)
+                }
+              />
 
-            {/* Quick Students Banner Shortcut */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.studentsBannerCard,
-                pressed && styles.studentsBannerPressed,
-              ]}
-              onPress={() => setIsStudentsModalVisible(true)}
-            >
-              <View style={styles.studentsBannerLeft}>
-                <View style={styles.studentsBannerIcon}>
-                  <Feather name="users" size={20} color={theme.colors.primary.main} />
-                </View>
-                <View>
-                  <Text variant="label" style={styles.studentsBannerTitle}>
-                    Enrolled Students Directory
-                  </Text>
-                  <Text variant="caption" style={styles.studentsBannerSub}>
-                    Browse, search & view all {totalStudents} students across all batches
-                  </Text>
-                </View>
-              </View>
-              <Feather name="chevron-right" size={20} color={theme.colors.primary.main} />
-            </Pressable>
-
-            {/* Attendance Performance per Batch */}
-            <View style={styles.section}>
-              <Text variant="heading" style={styles.sectionTitle}>
-                Attendance by Batch
-              </Text>
-
-              <View style={styles.batchList}>
-                {batches.map((b) => (
-                  <Card key={b.id} variant="outlined" padding="md" style={styles.batchReportCard}>
-                    <Pressable
-                      style={styles.batchReportPressable}
-                      onPress={() => router.push(`/(teacher)/batch/${b.id}`)}
-                    >
-                      <View style={styles.batchReportHeader}>
-                        <View style={styles.batchInfo}>
-                          <Text variant="label" style={styles.batchSubject}>
-                            {b.name}
-                          </Text>
-                          <Text variant="caption" style={styles.batchGrade}>
-                            {b.grade} • {b.studentCount} Students enrolled
-                          </Text>
-                        </View>
-                        <Badge label="94% Rate" variant="success" size="sm" />
-                      </View>
-
-                      <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: '94%' }]} />
-                      </View>
-                    </Pressable>
-                  </Card>
-                ))}
-              </View>
-            </View>
-
-            {/* Recent Assessment Performance */}
-            <View style={styles.section}>
-              <Text variant="heading" style={styles.sectionTitle}>
-                Recent Tests & Assessments
-              </Text>
-
-              <View style={styles.testList}>
-                {tests.map((t) => (
-                  <Card key={t.id} variant="outlined" padding="md" style={styles.testReportCard}>
-                    <View style={styles.testReportHeader}>
-                      <View style={styles.testInfo}>
-                        <Text variant="label" style={styles.testTitle}>
-                          {t.title}
-                        </Text>
-                        <Text variant="caption" style={styles.testBatch}>
-                          {t.batchName} • Date: {t.date}
-                        </Text>
-                      </View>
-                      <Badge label={`Max ${t.maxMarks} Marks`} variant="neutral" size="sm" />
-                    </View>
-
-                    <Button
-                      title="View / Enter Marks →"
-                      variant="outline"
-                      size="sm"
-                      onPress={() => router.push(`/(teacher)/tests/${t.id}/marks`)}
-                    />
-                  </Card>
-                ))}
-              </View>
-            </View>
-          </>
+              {/* 5. Batch Attendance & Health Register */}
+              <BatchAttendanceSection
+                batchSummaries={analytics.batchSummaries}
+                onOpenBatch={(batchId) => router.push(`/(teacher)/batch/${batchId}`)}
+              />
+            </>
+          )
         )}
       </ScrollView>
 
-      {/* Modular Enrolled Students Modal */}
+      {/* Modular Enrolled Students Directory Modal */}
       <EnrolledStudentsModal
         visible={isStudentsModalVisible}
         onClose={() => setIsStudentsModalVisible(false)}
@@ -305,10 +368,20 @@ export default function TeacherReportsScreen() {
         allStudents={allStudents}
         searchQuery={searchQuery}
         onChangeSearchQuery={setSearchQuery}
-        selectedBatchFilter={selectedBatchFilter}
-        onSelectBatchFilter={setSelectedBatchFilter}
+        selectedBatchFilter={directoryBatchFilter}
+        onSelectBatchFilter={setDirectoryBatchFilter}
         onCallParent={handleCallParent}
         onSelectStudent={handleOpenStudentProfile}
+      />
+
+      {/* Modular 1-Tap Student Progress Card Modal */}
+      <ShareStudentReportModal
+        visible={isShareModalVisible}
+        onClose={() => {
+          setIsShareModalVisible(false);
+          setShareTargetStudent(null);
+        }}
+        targetStudent={shareTargetStudent}
       />
     </SafeAreaView>
   );
@@ -318,6 +391,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  batchFilterBar: {
+    backgroundColor: theme.colors.background.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border.light,
+    paddingVertical: 8,
+  },
+  batchFilterContent: {
+    paddingHorizontal: theme.spacing.lg,
+    gap: 8,
+  },
+  batchFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.background.screen,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+  },
+  batchFilterChipActive: {
+    backgroundColor: theme.colors.primary.main,
+    borderColor: theme.colors.primary.main,
+  },
+  batchFilterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.text.secondary,
+  },
+  batchFilterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   scrollContent: {
     padding: theme.spacing.lg,
@@ -332,62 +436,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: theme.colors.text.secondary,
   },
-  metricsGrid: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  metricCardWrapper: {
-    flex: 1,
-  },
-  metricCardPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.97 }],
-  },
-  metricCard: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    gap: 2,
-    borderRadius: theme.radii.lg,
-    backgroundColor: theme.colors.background.paper,
-  },
-  metricIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.primary.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  metricValue: {
-    color: theme.colors.text.primary,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  metricLabel: {
-    color: theme.colors.text.secondary,
-    textAlign: 'center',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  metricHintRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginTop: 2,
-  },
-  metricHintText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: theme.colors.primary.main,
-  },
-  metricSubInfo: {
-    fontSize: 10,
-    color: theme.colors.text.disabled,
-    marginTop: 2,
-  },
-  studentsBannerCard: {
+  directoryBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -402,17 +451,17 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  studentsBannerPressed: {
+  bannerPressed: {
     opacity: 0.8,
     transform: [{ scale: 0.99 }],
   },
-  studentsBannerLeft: {
+  directoryBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     flex: 1,
   },
-  studentsBannerIcon: {
+  directoryIconBox: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -420,85 +469,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  studentsBannerTitle: {
+  directoryBannerTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: theme.colors.text.primary,
   },
-  studentsBannerSub: {
+  directoryBannerSubtitle: {
     fontSize: 11,
     color: theme.colors.text.secondary,
     marginTop: 2,
-  },
-  section: {
-    gap: theme.spacing.sm,
-  },
-  sectionTitle: {
-    color: theme.colors.text.primary,
-    fontSize: theme.typography.sizes.base,
-    fontWeight: '700',
-  },
-  batchList: {
-    gap: theme.spacing.sm,
-  },
-  batchReportCard: {
-    backgroundColor: theme.colors.background.paper,
-    borderRadius: theme.radii.md,
-  },
-  batchReportPressable: {
-    gap: theme.spacing.sm,
-  },
-  batchReportHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  batchInfo: {
-    gap: 2,
-  },
-  batchSubject: {
-    color: theme.colors.text.primary,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  batchGrade: {
-    color: theme.colors.text.secondary,
-    fontSize: 11,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#F1F5F9',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: theme.colors.semantic.success.main,
-    borderRadius: 3,
-  },
-  testList: {
-    gap: theme.spacing.sm,
-  },
-  testReportCard: {
-    backgroundColor: theme.colors.background.paper,
-    borderRadius: theme.radii.md,
-    gap: 8,
-  },
-  testReportHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  testInfo: {
-    gap: 2,
-  },
-  testTitle: {
-    color: theme.colors.text.primary,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  testBatch: {
-    color: theme.colors.text.secondary,
-    fontSize: 11,
   },
 });

@@ -154,3 +154,63 @@ export interface StudentProfileData {
   };
 }
 
+export interface DefaulterIssue {
+  type: 'attendance' | 'homework' | 'test';
+  severity: 'high' | 'medium';
+  label: string;
+  details: string;
+}
+
+export interface DefaulterStudent {
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  parentPhone?: string;
+  batchId: string;
+  batchName: string;
+  issues: DefaulterIssue[];
+  attendancePercentage: number;
+  missedHwCount: number;
+  recentTestScore?: string;
+}
+
+export interface TestRankStudent {
+  rank: number;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  marksObtained: number;
+  maxMarks: number;
+  percentage: number;
+  parentPhone?: string;
+}
+
+export interface TestLeaderboardItem {
+  test: Test;
+  highestMarks: number;
+  lowestMarks: number;
+  averageMarks: number;
+  topStudents: TestRankStudent[];
+  totalEntered: number;
+}
+
+export interface BatchAnalyticsSummary {
+  batch: Batch;
+  totalStudents: number;
+  attendancePercentage: number;
+  attendanceStatus: 'excellent' | 'good' | 'needs_attention';
+  totalClasses: number;
+  hwCompletionPercentage: number;
+  activeTestsCount: number;
+}
+
+export interface TuitionAnalyticsSummary {
+  totalStudentsCount: number;
+  averageAttendance: number;
+  hwCompletionRate: number;
+  totalTestsConducted: number;
+  defaulters: DefaulterStudent[];
+  testLeaderboards: TestLeaderboardItem[];
+  batchSummaries: BatchAnalyticsSummary[];
+}
+
