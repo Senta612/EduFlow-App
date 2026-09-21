@@ -64,6 +64,11 @@ export const gu: TranslationDictionary = {
     postHomework: 'લેસન આપો',
     createTest: 'નવી પરીક્ષા બનાવો',
     viewReports: 'રિપોર્ટ જુઓ',
+    loadingSchedule: 'આજનું સમયપત્રક લોડ થઈ રહ્યું છે...',
+    viewAllBatches: 'બધી બેચ જુઓ',
+    classesCount: '{count} ક્લાસ',
+    noClassesScheduled: 'કોઈ ક્લાસ નિર્ધારિત નથી',
+    noClassesScheduledDesc: '{date} માટે કોઈ ક્લાસનું સમયપત્રક નથી.',
   },
   batches: {
     activeBatches: 'ચાલુ બેચ',

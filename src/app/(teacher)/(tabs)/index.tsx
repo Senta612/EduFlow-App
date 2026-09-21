@@ -190,7 +190,7 @@ export default function TeacherHomeScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary.main} />
             <Text variant="body" style={styles.loadingText}>
-              Loading today's schedule...
+              {t('dashboard.loadingSchedule')}
             </Text>
           </View>
         ) : (
@@ -220,17 +220,17 @@ export default function TeacherHomeScreen() {
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
                   <Text variant="heading" style={styles.sectionTitle}>
-                    {isSelectedDateToday ? "Today's Classes" : `Classes for ${selectedDateLabel}`}
+                    {isSelectedDateToday ? t('dashboard.todaySchedule') : `${t('dashboard.todaySchedule')} (${selectedDateLabel})`}
                   </Text>
                   <Badge
-                    label={`${selectedDateBatches.length} Classes`}
+                    label={t('dashboard.classesCount').replace('{count}', String(selectedDateBatches.length))}
                     variant="primary"
                     size="sm"
                   />
                 </View>
                 <Pressable onPress={() => router.push('/(teacher)/(tabs)/batches')}>
                   <Text variant="label" style={styles.seeAllLink}>
-                    View All Batches
+                    {t('dashboard.viewAllBatches')}
                   </Text>
                 </Pressable>
               </View>
@@ -238,8 +238,8 @@ export default function TeacherHomeScreen() {
               {selectedDateBatches.length === 0 ? (
                 <EmptyState
                   icon="calendar"
-                  title="No classes scheduled"
-                  description={`You have no classes scheduled for ${selectedDateLabel}.`}
+                  title={t('dashboard.noClassesScheduled')}
+                  description={t('dashboard.noClassesScheduledDesc').replace('{date}', selectedDateLabel)}
                 />
               ) : (
                 <View style={styles.classList}>

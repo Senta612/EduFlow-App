@@ -64,6 +64,11 @@ export const en: TranslationDictionary = {
     postHomework: 'Post Homework',
     createTest: 'Create Test',
     viewReports: 'View Reports',
+    loadingSchedule: "Loading today's schedule...",
+    viewAllBatches: 'View All Batches',
+    classesCount: '{count} Classes',
+    noClassesScheduled: 'No classes scheduled',
+    noClassesScheduledDesc: 'You have no classes scheduled for {date}.',
   },
   batches: {
     activeBatches: 'Active Batches',

@@ -64,6 +64,11 @@ export const hi: TranslationDictionary = {
     postHomework: 'गृहकार्य दें',
     createTest: 'नई परीक्षा बनाएं',
     viewReports: 'रिपोर्ट देखें',
+    loadingSchedule: 'आज की समय सारणी लोड हो रही है...',
+    viewAllBatches: 'सभी बैच देखें',
+    classesCount: '{count} कक्षाएं',
+    noClassesScheduled: 'कोई कक्षा निर्धारित नहीं',
+    noClassesScheduledDesc: '{date} के लिए कोई कक्षा निर्धारित नहीं है।',
   },
   batches: {
     activeBatches: 'सक्रिय बैच',
