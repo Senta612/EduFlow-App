@@ -3,10 +3,12 @@ import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 export default function TeacherTabsLayout() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -31,7 +33,7 @@ export default function TeacherTabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size ?? 22} color={color} />
           ),
@@ -40,7 +42,7 @@ export default function TeacherTabsLayout() {
       <Tabs.Screen
         name="batches"
         options={{
-          title: 'Batches',
+          title: t('tabs.batches'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="layers" size={size ?? 22} color={color} />
           ),
@@ -49,7 +51,7 @@ export default function TeacherTabsLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: 'Tasks',
+          title: t('tabs.tasks'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="check-square" size={size ?? 22} color={color} />
           ),
@@ -58,7 +60,7 @@ export default function TeacherTabsLayout() {
       <Tabs.Screen
         name="more"
         options={{
-          title: 'More',
+          title: t('tabs.more'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="grid" size={size ?? 22} color={color} />
           ),

@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-
 import { Text } from '@/components/ui/Text';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 interface QuickActionGridProps {
@@ -16,10 +16,12 @@ export const QuickActionGrid: React.FC<QuickActionGridProps> = ({
   onPressHomework,
   onPressMarks,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.section}>
       <Text variant="heading" style={styles.sectionTitle}>
-        Quick Actions
+        {t('dashboard.quickActions')}
       </Text>
       <View style={styles.quickActionsGrid}>
         <Pressable style={styles.quickActionCard} onPress={onPressAttendance}>
@@ -36,10 +38,10 @@ export const QuickActionGrid: React.FC<QuickActionGridProps> = ({
             />
           </View>
           <Text variant="label" style={styles.quickActionLabel}>
-            Attendance
+            {t('common.attendance')}
           </Text>
           <Text variant="caption" style={styles.quickActionSub}>
-            Mark daily presence
+            {t('attendance.markAttendance')}
           </Text>
         </Pressable>
 
@@ -57,10 +59,10 @@ export const QuickActionGrid: React.FC<QuickActionGridProps> = ({
             />
           </View>
           <Text variant="label" style={styles.quickActionLabel}>
-            Homework
+            {t('common.homework')}
           </Text>
           <Text variant="caption" style={styles.quickActionSub}>
-            Publish assignment
+            {t('homework.createHomework')}
           </Text>
         </Pressable>
 
@@ -78,10 +80,10 @@ export const QuickActionGrid: React.FC<QuickActionGridProps> = ({
             />
           </View>
           <Text variant="label" style={styles.quickActionLabel}>
-            Marks
+            {t('common.marks')}
           </Text>
           <Text variant="caption" style={styles.quickActionSub}>
-            Record test scores
+            {t('tests.enterMarks')}
           </Text>
         </Pressable>
       </View>

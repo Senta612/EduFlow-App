@@ -22,6 +22,7 @@ import {
   MonthCalendarModal,
 } from '@/components/teacher';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/i18n';
 import { teacherService, isBatchScheduledOnDate } from '@/services/teacher.service';
 import { Batch, Test, AttendanceRecord } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -32,13 +33,6 @@ function formatTodayFullDate(): string {
     day: 'numeric',
     month: 'long',
   });
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
 }
 
 function getFirstName(fullName: string | null | undefined): string {
@@ -55,8 +49,16 @@ function toDateString(d: Date): string {
 
 export default function TeacherHomeScreen() {
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t('dashboard.greetingMorning');
+    if (hour < 17) return t('dashboard.greetingAfternoon');
+    return t('dashboard.greetingEvening');
+  };
 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [upcomingTests, setUpcomingTests] = useState<Test[]>([]);

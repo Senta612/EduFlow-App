@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 interface MenuItem {
@@ -26,53 +27,54 @@ interface MenuItem {
   badge?: string;
 }
 
-const MENU_SECTIONS: { title: string; items: MenuItem[] }[] = [
-  {
-    title: 'Teaching & Insights',
-    items: [
-      {
-        icon: 'bar-chart-2',
-        title: 'Reports & Analytics',
-        subtitle: 'Attendance summaries & test performance',
-        route: '/(teacher)/more/reports',
-      },
-      {
-        icon: 'bell',
-        title: 'Notifications',
-        subtitle: 'Announcements & system updates',
-        route: '/(teacher)/more/notifications',
-      },
-    ],
-  },
-  {
-    title: 'Account & Preferences',
-    items: [
-      {
-        icon: 'user',
-        title: 'My Profile',
-        subtitle: 'Personal & assigned institute details',
-        route: '/(teacher)/more/profile',
-      },
-      {
-        icon: 'settings',
-        title: 'App Settings',
-        subtitle: 'Notification & theme preferences',
-        route: '/(teacher)/more/settings',
-      },
-    ],
-  },
-];
-
 export default function TeacherMoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile, user, signOut } = useAuth();
+  const { t } = useTranslation();
+
+  const menuSections: { title: string; items: MenuItem[] }[] = [
+    {
+      title: 'Teaching & Insights',
+      items: [
+        {
+          icon: 'bar-chart-2',
+          title: t('reports.title'),
+          subtitle: t('reports.subtitle'),
+          route: '/(teacher)/more/reports',
+        },
+        {
+          icon: 'bell',
+          title: 'Notifications',
+          subtitle: 'Announcements & system updates',
+          route: '/(teacher)/more/notifications',
+        },
+      ],
+    },
+    {
+      title: 'Account & Preferences',
+      items: [
+        {
+          icon: 'user',
+          title: t('profile.title'),
+          subtitle: t('profile.subtitle'),
+          route: '/(teacher)/more/profile',
+        },
+        {
+          icon: 'settings',
+          title: t('settings.title'),
+          subtitle: t('settings.subtitle'),
+          route: '/(teacher)/more/settings',
+        },
+      ],
+    },
+  ];
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out of EduFlow?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('auth.signOut'), t('auth.signOutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t('auth.signOut'),
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -123,7 +125,7 @@ export default function TeacherMoreScreen() {
         </Card>
 
         {/* Menu Sections */}
-        {MENU_SECTIONS.map((section) => (
+        {menuSections.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text variant="caption" style={styles.sectionHeaderTitle}>
               {section.title}
