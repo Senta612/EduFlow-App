@@ -71,6 +71,11 @@ export interface TranslationDictionary {
     postHomework: string;
     createTest: string;
     viewReports: string;
+    loadingSchedule: string;
+    viewAllBatches: string;
+    classesCount: string;
+    noClassesScheduled: string;
+    noClassesScheduledDesc: string;
   };
   batches: {
     activeBatches: string;

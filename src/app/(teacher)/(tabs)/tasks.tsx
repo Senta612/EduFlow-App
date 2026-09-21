@@ -20,16 +20,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { teacherService } from '@/services/teacher.service';
 import { TeacherTask, TaskType } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 type FilterCategory = 'all' | TaskType;
-
-const FILTER_TABS: { key: FilterCategory; label: string }[] = [
-  { key: 'all', label: 'All Tasks' },
-  { key: 'attendance', label: 'Attendance' },
-  { key: 'homework', label: 'Homework' },
-  { key: 'marks', label: 'Marks' },
-];
 
 function getTaskIcon(type: TaskType): keyof typeof Feather.glyphMap {
   switch (type) {
@@ -42,27 +36,35 @@ function getTaskIcon(type: TaskType): keyof typeof Feather.glyphMap {
   }
 }
 
-function getTaskBadge(status: string): { label: string; variant: BadgeVariant } {
-  switch (status) {
-    case 'pending':
-      return { label: 'Pending', variant: 'warning' };
-    case 'in_progress':
-      return { label: 'In Progress', variant: 'info' };
-    case 'completed':
-      return { label: 'Completed', variant: 'success' };
-    default:
-      return { label: 'Pending', variant: 'neutral' };
-  }
-}
-
 export default function TeacherTasksScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [tasks, setTasks] = useState<TeacherTask[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const filterTabs: { key: FilterCategory; label: string }[] = [
+    { key: 'all', label: t('tasks.allTasks') },
+    { key: 'attendance', label: t('common.attendance') },
+    { key: 'homework', label: t('common.homework') },
+    { key: 'marks', label: t('common.marks') },
+  ];
+
+  const getTaskBadge = (status: string): { label: string; variant: BadgeVariant } => {
+    switch (status) {
+      case 'pending':
+        return { label: t('common.pending'), variant: 'warning' };
+      case 'in_progress':
+        return { label: t('tasks.inProgress'), variant: 'info' };
+      case 'completed':
+        return { label: t('common.done'), variant: 'success' };
+      default:
+        return { label: t('common.pending'), variant: 'neutral' };
+    }
+  };
 
   const loadTasks = useCallback(async () => {
     try {
@@ -90,11 +92,14 @@ export default function TeacherTasksScreen() {
     return task.type === activeFilter;
   });
 
+  const activeTabLabel =
+    filterTabs.find((f) => f.key === activeFilter)?.label || t('tasks.allTasks');
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
-        title="Pending Tasks"
-        subtitle="Action items requiring your attention"
+        title={t('tasks.title')}
+        subtitle={t('tasks.subtitle')}
       />
 
       {/* Filter Tabs */}
@@ -104,7 +109,7 @@ export default function TeacherTasksScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterTabsContent}
         >
-          {FILTER_TABS.map((tab) => {
+          {filterTabs.map((tab) => {
             const isActive = activeFilter === tab.key;
             return (
               <Pressable
@@ -149,17 +154,17 @@ export default function TeacherTasksScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary.main} />
             <Text variant="body" style={styles.loadingText}>
-              Loading actionable tasks...
+              {t('tasks.loadingTasks')}
             </Text>
           </View>
         ) : filteredTasks.length === 0 ? (
           <EmptyState
             icon="check-circle"
-            title="You're all caught up!"
+            title={t('tasks.allCaughtUp')}
             description={
               activeFilter === 'all'
-                ? 'No pending attendance, reviews, or marks recording needed right now.'
-                : `No pending ${activeFilter} tasks.`
+                ? t('tasks.allCaughtUpDesc')
+                : t('tasks.noTasksForCategory').replace('{category}', activeTabLabel)
             }
           />
         ) : (
@@ -214,10 +219,10 @@ export default function TeacherTasksScreen() {
                     <Button
                       title={
                         task.type === 'attendance'
-                          ? 'Take Attendance'
+                          ? t('dashboard.takeAttendance')
                           : task.type === 'homework'
-                          ? 'Review Homework'
-                          : 'Enter Marks'
+                          ? t('tasks.reviewHomework')
+                          : t('tests.enterMarks')
                       }
                       variant="primary"
                       fullWidth
