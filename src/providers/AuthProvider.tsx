@@ -26,6 +26,7 @@ interface AuthContextValue {
   profile: Profile | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<Profile>) => Promise<Profile>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -193,6 +194,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const updateProfile = async (updates: Partial<Profile>): Promise<Profile> => {
+    const targetId = activeUserIdRef.current || profile?.id || 'teacher-default';
+    const updated = await profileService.updateProfile(targetId, updates);
+    setProfile(updated);
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -201,6 +209,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         profile,
         isLoading,
         signOut,
+        updateProfile,
       }}
     >
       {children}
