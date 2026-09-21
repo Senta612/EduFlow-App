@@ -108,8 +108,8 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
               placeholder="Search by name, roll no, batch or subject..."
               value={searchQuery}
               onChangeText={onChangeSearchQuery}
-              leftIcon={<Feather name="search" size={16} color={theme.colors.text.secondary} />}
-              rightIcon={
+              leftContent={<Feather name="search" size={16} color={theme.colors.text.secondary} />}
+              rightContent={
                 searchQuery ? (
                   <Pressable hitSlop={8} onPress={() => onChangeSearchQuery('')}>
                     <Feather name="x-circle" size={16} color={theme.colors.text.secondary} />

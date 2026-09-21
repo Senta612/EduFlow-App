@@ -84,7 +84,7 @@ export const BatchHomeworkSection: React.FC<BatchHomeworkSectionProps> = ({
                 </View>
                 <Badge
                   label={`Due ${hw.dueDate}`}
-                  variant={hw.isGraded ? 'neutral' : 'warning'}
+                  variant="warning"
                   size="sm"
                 />
               </View>

@@ -87,7 +87,7 @@ export const StudentTestsTab: React.FC<StudentTestsTabProps> = ({ tests }) => {
           {tests.items.map((test) => {
             const hasMarks = test.marksObtained !== undefined && test.marksObtained !== null;
             return (
-              <Card key={test.id} variant="outlined" padding="md" style={styles.testCard}>
+              <Card key={test.testId} variant="outlined" padding="md" style={styles.testCard}>
                 <View style={styles.testHeaderRow}>
                   <View style={styles.testTitleWrap}>
                     <Text variant="heading" style={styles.testTitle}>
@@ -100,7 +100,7 @@ export const StudentTestsTab: React.FC<StudentTestsTabProps> = ({ tests }) => {
 
                   {hasMarks ? (
                     <Badge
-                      label={`Grade ${test.gradeLetter}`}
+                      label={test.gradeBadge}
                       variant={
                         test.percentage && test.percentage >= 75
                           ? 'success'

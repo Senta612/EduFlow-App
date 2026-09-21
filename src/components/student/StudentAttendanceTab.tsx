@@ -152,11 +152,11 @@ export const StudentAttendanceTab: React.FC<StudentAttendanceTabProps> = ({
                     <Text variant="label" style={styles.historyDate}>
                       {formatDate(item.date)}
                     </Text>
-                    {item.timing && (
+                    {item.submittedAt ? (
                       <Text variant="caption" style={styles.historyMeta}>
-                        {item.timing}
+                        Recorded {new Date(item.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Text>
-                    )}
+                    ) : null}
                   </View>
                 </View>
 

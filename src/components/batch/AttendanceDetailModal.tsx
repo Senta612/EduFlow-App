@@ -71,7 +71,8 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
   const attendanceRate = Math.round((record.presentCount / total) * 100);
 
   const studentAttendanceList = students.map((s) => {
-    const status = record.students[s.id] || 'present';
+    const recItem = record.records?.find((r) => r.studentId === s.id);
+    const status = recItem?.status || 'present';
     return {
       ...s,
       status,
@@ -181,8 +182,8 @@ export const AttendanceDetailModal: React.FC<AttendanceDetailModalProps> = ({
               placeholder="Search by student name or roll..."
               value={searchQuery}
               onChangeText={onChangeSearchQuery}
-              leftIcon={<Feather name="search" size={16} color={theme.colors.text.secondary} />}
-              rightIcon={
+              leftContent={<Feather name="search" size={16} color={theme.colors.text.secondary} />}
+              rightContent={
                 searchQuery ? (
                   <Pressable hitSlop={8} onPress={() => onChangeSearchQuery('')}>
                     <Feather name="x-circle" size={16} color={theme.colors.text.secondary} />

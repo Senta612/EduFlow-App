@@ -78,7 +78,7 @@ export const BatchTestsSection: React.FC<BatchTestsSectionProps> = ({
       ) : (
         testsList.map((test) => {
           const total = test.totalStudents || 1;
-          const marksEnteredRate = Math.round(((test.marksEnteredCount || 0) / total) * 100);
+          const marksEnteredRate = Math.round(((test.submittedCount || 0) / total) * 100);
 
           return (
             <Card key={test.id} variant="elevated" padding="md" style={styles.testCard}>
@@ -108,7 +108,7 @@ export const BatchTestsSection: React.FC<BatchTestsSectionProps> = ({
               <View style={styles.testProgressSection}>
                 <View style={styles.testProgressLabelRow}>
                   <Text variant="caption" style={styles.testProgressText}>
-                    Graded: {test.marksEnteredCount || 0} of {total} Students
+                    Graded: {test.submittedCount || 0} of {total} Students
                   </Text>
                   <Text variant="caption" style={styles.testProgressPct}>
                     {marksEnteredRate}%

@@ -60,7 +60,7 @@ export const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
               Pending
             </Text>
             <Text variant="heading" style={[styles.summaryNum, { color: theme.colors.semantic.warning.main }]}>
-              {homework.pendingCount}
+              {homework.halfDoneCount + homework.notDoneCount}
             </Text>
           </View>
           <View style={styles.summaryDivider} />
@@ -109,7 +109,7 @@ export const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
             variant="label"
             style={[styles.filterChipText, filter === 'pending' && styles.filterChipTextActive]}
           >
-            Pending ({homework.pendingCount})
+            Pending ({homework.halfDoneCount + homework.notDoneCount})
           </Text>
         </Pressable>
       </View>
@@ -124,7 +124,7 @@ export const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
       ) : (
         <View style={styles.hwList}>
           {filteredItems.map((item) => (
-            <Card key={item.id} variant="outlined" padding="md" style={styles.hwCard}>
+            <Card key={item.homeworkId} variant="outlined" padding="md" style={styles.hwCard}>
               <View style={styles.hwHeader}>
                 <View style={styles.hwTitleWrap}>
                   <Text variant="heading" style={styles.hwTitle}>
@@ -155,11 +155,11 @@ export const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
                 />
               </View>
 
-              {item.notes && (
+              {item.remarks && (
                 <View style={styles.hwNotesWrap}>
                   <Feather name="message-square" size={12} color={theme.colors.text.secondary} />
                   <Text variant="caption" style={styles.hwNotesText}>
-                    {item.notes}
+                    {item.remarks}
                   </Text>
                 </View>
               )}
