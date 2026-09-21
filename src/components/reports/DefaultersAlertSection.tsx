@@ -4,6 +4,7 @@ import { Feather, FontAwesome } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { DefaulterStudent } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 interface DefaultersAlertSectionProps {
@@ -19,6 +20,8 @@ export function DefaultersAlertSection({
   onCall,
   onOpenReport,
 }: DefaultersAlertSectionProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
@@ -27,7 +30,7 @@ export function DefaultersAlertSection({
             <Feather name="alert-triangle" size={16} color={theme.colors.semantic.danger.main} />
           </View>
           <Text variant="heading" style={styles.title}>
-            Students Needing Attention
+            {t('reports.needsAttentionTitle')}
           </Text>
           {defaulters.length > 0 && (
             <View style={styles.countBadge}>
@@ -38,7 +41,7 @@ export function DefaultersAlertSection({
           )}
         </View>
         <Text variant="caption" style={styles.subtitle}>
-          Irregular attendance, pending homeworks, or low test scores
+          {t('reports.needsAttentionSubtitle')}
         </Text>
       </View>
 
@@ -49,10 +52,10 @@ export function DefaultersAlertSection({
           </View>
           <View style={{ flex: 1 }}>
             <Text variant="label" style={styles.allGoodTitle}>
-              All Students on Track! 🌟
+              {t('reports.allOnTrackTitle')}
             </Text>
             <Text variant="caption" style={styles.allGoodSubtitle}>
-              No critical attendance drops or recurring homework defaults detected.
+              {t('reports.allOnTrackSubtitle')}
             </Text>
           </View>
         </Card>
@@ -98,7 +101,7 @@ export function DefaultersAlertSection({
                   onPress={() => onOpenReport(item)}
                 >
                   <Text variant="caption" style={styles.profilePillText}>
-                    Report
+                    {t('reports.report')}
                   </Text>
                   <Feather name="chevron-right" size={12} color={theme.colors.primary.main} />
                 </Pressable>
@@ -153,7 +156,7 @@ export function DefaultersAlertSection({
                 >
                   <FontAwesome name="whatsapp" size={15} color="#FFFFFF" />
                   <Text variant="caption" style={styles.whatsappButtonText}>
-                    WhatsApp Parent
+                    {t('reports.whatsappParent')}
                   </Text>
                 </Pressable>
 

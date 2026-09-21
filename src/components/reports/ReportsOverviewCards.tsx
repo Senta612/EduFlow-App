@@ -3,6 +3,7 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 interface ReportsOverviewCardsProps {
@@ -24,6 +25,8 @@ export function ReportsOverviewCards({
   onPressStudents,
   onPressDefaulters,
 }: ReportsOverviewCardsProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       {/* Top 2 Major Cards */}
@@ -42,7 +45,7 @@ export function ReportsOverviewCards({
               </View>
               <View style={styles.badgeHint}>
                 <Text variant="caption" style={styles.badgeHintText}>
-                  Directory
+                  {t('reports.directory')}
                 </Text>
                 <Feather name="arrow-right" size={11} color={theme.colors.primary.main} />
               </View>
@@ -51,7 +54,7 @@ export function ReportsOverviewCards({
               {totalStudents}
             </Text>
             <Text variant="caption" style={styles.metricLabel}>
-              Enrolled Students
+              {t('reports.enrolledStudents')}
             </Text>
           </Card>
         </Pressable>
@@ -111,7 +114,7 @@ export function ReportsOverviewCards({
                       fontSize: 10,
                     }}
                   >
-                    Action Needed
+                    {t('reports.actionNeeded')}
                   </Text>
                 </View>
               )}
@@ -126,7 +129,7 @@ export function ReportsOverviewCards({
               {defaultersCount}
             </Text>
             <Text variant="caption" style={styles.metricLabel}>
-              {defaultersCount === 1 ? 'Needs Attention' : 'Need Attention'}
+              {t('reports.needsAttention')}
             </Text>
           </Card>
         </Pressable>
@@ -164,7 +167,7 @@ export function ReportsOverviewCards({
                     fontSize: 10,
                   }}
                 >
-                  Overall
+                  {t('reports.overall')}
                 </Text>
               </View>
             </View>
@@ -172,7 +175,7 @@ export function ReportsOverviewCards({
               {averageAttendance}%
             </Text>
             <Text variant="caption" style={styles.metricLabel}>
-              Avg Attendance Rate
+              {t('reports.avgAttendanceRate')}
             </Text>
           </Card>
         </View>
@@ -197,7 +200,7 @@ export function ReportsOverviewCards({
                     fontSize: 10,
                   }}
                 >
-                  {totalTests} Tests
+                  {t('reports.testsCount', { count: totalTests })}
                 </Text>
               </View>
             </View>
@@ -205,7 +208,7 @@ export function ReportsOverviewCards({
               {hwCompletionRate}%
             </Text>
             <Text variant="caption" style={styles.metricLabel}>
-              HW Completion Rate
+              {t('reports.hwCompletionRate')}
             </Text>
           </Card>
         </View>

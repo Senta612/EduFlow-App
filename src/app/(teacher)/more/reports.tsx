@@ -35,11 +35,13 @@ import {
   DefaulterStudent,
   TestRankStudent,
 } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 export default function TeacherReportsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, language } = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
 
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -130,6 +132,7 @@ export default function TeacherReportsScreen() {
       studentName: student.studentName,
       batchName: student.batchName,
       issuesSummary,
+      language,
     });
 
     const cleanPhone = (student.parentPhone || '').replace(/[^0-9]/g, '');
@@ -160,6 +163,7 @@ export default function TeacherReportsScreen() {
       rank: topper.rank,
       marksObtained: topper.marksObtained,
       maxMarks: topper.maxMarks,
+      language,
     });
 
     const cleanPhone = (topper.parentPhone || '').replace(/[^0-9]/g, '');
@@ -201,8 +205,8 @@ export default function TeacherReportsScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
       <ScreenHeader
-        title="Tuition Reports & Analytics"
-        subtitle="Attendance trends, at-risk alerts & test rankings"
+        title={t('reports.title')}
+        subtitle={t('reports.subtitle')}
         showBack
       />
 
@@ -227,7 +231,7 @@ export default function TeacherReportsScreen() {
                 selectedBatchId === 'all' && styles.batchFilterChipTextActive,
               ]}
             >
-              All Batches
+              {t('reports.allBatches')}
             </Text>
           </Pressable>
 
@@ -276,7 +280,7 @@ export default function TeacherReportsScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary.main} />
             <Text variant="body" style={styles.loadingText}>
-              Aggregating tuition performance insights...
+              {t('reports.loadingInsights')}
             </Text>
           </View>
         ) : (
@@ -314,10 +318,10 @@ export default function TeacherReportsScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text variant="label" style={styles.directoryBannerTitle}>
-                      Student Directory & Progress Slips
+                      {t('reports.directoryBannerTitle')}
                     </Text>
                     <Text variant="caption" style={styles.directoryBannerSubtitle}>
-                      Search, view records & send WhatsApp report slips
+                      {t('reports.directoryBannerSubtitle')}
                     </Text>
                   </View>
                 </View>

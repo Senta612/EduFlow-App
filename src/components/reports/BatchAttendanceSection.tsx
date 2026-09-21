@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { BatchAnalyticsSummary } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 interface BatchAttendanceSectionProps {
@@ -16,6 +17,8 @@ export function BatchAttendanceSection({
   batchSummaries,
   onOpenBatch,
 }: BatchAttendanceSectionProps) {
+  const { t } = useTranslation();
+
   if (batchSummaries.length === 0) {
     return null;
   }
@@ -28,11 +31,11 @@ export function BatchAttendanceSection({
             <Feather name="bar-chart-2" size={16} color={theme.colors.semantic.success.main} />
           </View>
           <Text variant="heading" style={styles.title}>
-            Batch Attendance & Activity
+            {t('reports.batchAttendanceTitle')}
           </Text>
         </View>
         <Text variant="caption" style={styles.subtitle}>
-          Calculated attendance rates & assignment status per batch
+          {t('reports.batchAttendanceSubtitle')}
         </Text>
       </View>
 
@@ -69,11 +72,11 @@ export function BatchAttendanceSection({
                       {batch.name}
                     </Text>
                     <Text variant="caption" style={styles.batchMeta}>
-                      {batch.grade} • {batch.subject} • {totalStudents} Students
+                      {batch.grade} • {batch.subject} • {totalStudents} {t('common.students')}
                     </Text>
                   </View>
                   <Badge
-                    label={`${attendancePercentage}% Rate`}
+                    label={t('reports.rateLabel').replace('{rate}', String(attendancePercentage))}
                     variant={badgeVariant}
                     size="sm"
                   />
@@ -97,13 +100,13 @@ export function BatchAttendanceSection({
                   <View style={styles.footerItem}>
                     <Feather name="calendar" size={12} color={theme.colors.text.secondary} />
                     <Text variant="caption" style={styles.footerText}>
-                      {totalClasses} {totalClasses === 1 ? 'class' : 'classes'} recorded
+                      {t('reports.classesRecorded').replace('{count}', String(totalClasses))}
                     </Text>
                   </View>
                   <View style={styles.footerItem}>
                     <Feather name="book-open" size={12} color={theme.colors.text.secondary} />
                     <Text variant="caption" style={styles.footerText}>
-                      {hwCompletionPercentage}% HW done
+                      {t('reports.hwDone').replace('{percent}', String(hwCompletionPercentage))}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={14} color={theme.colors.primary.main} />

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Batch, Student } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 export interface EnrolledStudentItem extends Student {
@@ -55,6 +56,7 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
   onCallParent,
   onSelectStudent,
 }) => {
+  const { t } = useTranslation();
   const totalStudents = allStudents.length;
 
   const filteredStudents = useMemo(() => {
@@ -87,10 +89,10 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
           <View style={styles.modalHeader}>
             <View>
               <Text variant="title" style={styles.modalTitle}>
-                Enrolled Students Directory
+                {t('reports.enrolledDirectory')}
               </Text>
               <Text variant="caption" style={styles.modalSubtitle}>
-                {filteredStudents.length} of {totalStudents} students listed
+                {filteredStudents.length} / {totalStudents} {t('common.students')}
               </Text>
             </View>
             <Pressable
@@ -105,7 +107,7 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
           {/* Search Input */}
           <View style={styles.searchWrap}>
             <Input
-              placeholder="Search by name, roll no, batch or subject..."
+              placeholder={t('reports.searchPlaceholder')}
               value={searchQuery}
               onChangeText={onChangeSearchQuery}
               leftContent={<Feather name="search" size={16} color={theme.colors.text.secondary} />}
@@ -140,7 +142,7 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
                     selectedBatchFilter === 'all' && styles.filterChipTextActive,
                   ]}
                 >
-                  All Batches ({totalStudents})
+                  {t('reports.allBatchesWithCount').replace('{count}', String(totalStudents))}
                 </Text>
               </Pressable>
 
@@ -176,13 +178,13 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
             <View style={styles.modalEmptyWrap}>
               <EmptyState
                 icon="users"
-                title="No students matched"
+                title={searchQuery ? t('reports.noStudentsFound').replace('{query}', searchQuery) : t('reports.noStudentsInBatch')}
                 description={
                   searchQuery
-                    ? `No students found matching "${searchQuery}".`
-                    : 'No students enrolled in this batch yet.'
+                    ? t('reports.noStudentsFound').replace('{query}', searchQuery)
+                    : t('reports.noStudentsInBatch')
                 }
-                actionLabel={searchQuery ? 'Clear Search' : undefined}
+                actionLabel={searchQuery ? t('reports.clearSearch') : undefined}
                 onAction={searchQuery ? () => onChangeSearchQuery('') : undefined}
               />
             </View>
@@ -217,7 +219,7 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
                           {student.name}
                         </Text>
                         <Badge
-                          label={`Roll #${student.rollNumber}`}
+                          label={`${t('reports.rollNo')} #${student.rollNumber}`}
                           variant="neutral"
                           size="sm"
                         />

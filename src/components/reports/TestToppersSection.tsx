@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { TestLeaderboardItem, TestRankStudent } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 interface TestToppersSectionProps {
@@ -19,6 +20,8 @@ export function TestToppersSection({
   onTopperWhatsApp,
   onOpenMarksheet,
 }: TestToppersSectionProps) {
+  const { t } = useTranslation();
+
   if (leaderboards.length === 0) {
     return null;
   }
@@ -31,11 +34,11 @@ export function TestToppersSection({
             <Feather name="award" size={16} color={theme.colors.primary.main} />
           </View>
           <Text variant="heading" style={styles.title}>
-            Recent Tests & Topper Ranks
+            {t('reports.testToppersTitle')}
           </Text>
         </View>
         <Text variant="caption" style={styles.subtitle}>
-          Batch rank lists, score averages & 1-tap parent congratulations
+          {t('reports.testToppersSubtitle')}
         </Text>
       </View>
 
@@ -54,17 +57,21 @@ export function TestToppersSection({
                     {test.title}
                   </Text>
                   <Text variant="caption" style={styles.testSubtitle}>
-                    {test.batchName} • Date: {test.date}
+                    {test.batchName} • {t('common.date')}: {test.date}
                   </Text>
                 </View>
-                <Badge label={`Max ${test.maxMarks} Marks`} variant="neutral" size="sm" />
+                <Badge
+                  label={t('reports.maxMarksBadge').replace('{max}', String(test.maxMarks))}
+                  variant="neutral"
+                  size="sm"
+                />
               </View>
 
               {/* Class Score Benchmarks Bar */}
               <View style={styles.benchmarkBar}>
                 <View style={styles.benchmarkItem}>
                   <Text variant="caption" style={styles.benchmarkLabel}>
-                    Highest
+                    {t('reports.highest')}
                   </Text>
                   <Text variant="label" style={[styles.benchmarkValue, { color: '#16A34A' }]}>
                     {highestMarks}/{test.maxMarks}
@@ -73,7 +80,7 @@ export function TestToppersSection({
                 <View style={styles.benchmarkDivider} />
                 <View style={styles.benchmarkItem}>
                   <Text variant="caption" style={styles.benchmarkLabel}>
-                    Class Average
+                    {t('reports.classAverage')}
                   </Text>
                   <Text
                     variant="label"
@@ -85,7 +92,7 @@ export function TestToppersSection({
                 <View style={styles.benchmarkDivider} />
                 <View style={styles.benchmarkItem}>
                   <Text variant="caption" style={styles.benchmarkLabel}>
-                    Lowest
+                    {t('reports.lowest')}
                   </Text>
                   <Text variant="label" style={[styles.benchmarkValue, { color: '#DC2626' }]}>
                     {lowestMarks}/{test.maxMarks}
@@ -96,7 +103,7 @@ export function TestToppersSection({
               {/* Top Performers Row */}
               <View style={styles.toppersContainer}>
                 <Text variant="caption" style={styles.toppersHeading}>
-                  🏆 TOP PERFORMERS (BATCH RANKS)
+                  {t('reports.topPerformersHeading')}
                 </Text>
 
                 <View style={styles.toppersList}>
@@ -127,7 +134,7 @@ export function TestToppersSection({
                               </Text>
                             </View>
                             <Text variant="caption" style={styles.topperScore}>
-                              Scored {topper.marksObtained}/{topper.maxMarks} ({topper.percentage}%)
+                              {t('reports.scored')} {topper.marksObtained}/{topper.maxMarks} ({topper.percentage}%)
                             </Text>
                           </View>
                         </View>
@@ -146,7 +153,7 @@ export function TestToppersSection({
                         >
                           <FontAwesome name="whatsapp" size={13} color="#FFFFFF" />
                           <Text variant="caption" style={styles.topperWhatsAppText}>
-                            Share
+                            {t('common.share')}
                           </Text>
                         </Pressable>
                       </View>
@@ -157,7 +164,7 @@ export function TestToppersSection({
 
               {/* Full Marksheet Link */}
               <Button
-                title="View Full Test Marksheet →"
+                title={t('reports.viewMarksheet')}
                 variant="outline"
                 size="sm"
                 onPress={() => onOpenMarksheet(test.id)}

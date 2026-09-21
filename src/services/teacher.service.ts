@@ -1223,7 +1223,7 @@ class TeacherService {
 
 export const teacherService = new TeacherService();
 
-// WhatsApp Message Formatters for Local Tuition Classes
+// WhatsApp Message Formatters for Local Tuition Classes (Multilingual: en, hi, gu)
 export function formatStudentProgressWhatsAppMessage(params: {
   studentName: string;
   rollNumber: string;
@@ -1234,7 +1234,66 @@ export function formatStudentProgressWhatsAppMessage(params: {
   hwCompletionPercentage: number;
   latestTest?: { title: string; marksObtained: number; maxMarks: number; rank?: number };
   remarks?: string;
+  language?: 'en' | 'hi' | 'gu';
 }): string {
+  const lang = params.language || 'en';
+
+  if (lang === 'gu') {
+    const lines = [
+      `📚 *EduFlow ટ્યુશન પ્રગતિ પત્રક* 📚`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `👤 *વિદ્યાર્થી:* ${params.studentName} (રોલ નં: ${params.rollNumber})`,
+      `🏷️ *બેચ:* ${params.batchName}`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `📅 *હાજરી:* ${params.attendancePercentage}% (${params.totalClassesAttended}/${params.totalClasses} દિવસો)`,
+      `📝 *લેસન:* ${params.hwCompletionPercentage}% પૂર્ણ`,
+    ];
+    if (params.latestTest) {
+      const testPercent =
+        params.latestTest.maxMarks > 0
+          ? Math.round((params.latestTest.marksObtained / params.latestTest.maxMarks) * 100)
+          : 0;
+      const rankStr = params.latestTest.rank ? ` | 🏆 રેન્ક: #${params.latestTest.rank}` : '';
+      lines.push(`🎯 *છેલ્લી ટેસ્ટ:* ${params.latestTest.title}`);
+      lines.push(`   ગુણ: ${params.latestTest.marksObtained}/${params.latestTest.maxMarks} (${testPercent}%)${rankStr}`);
+    }
+    if (params.remarks && params.remarks.trim()) {
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      lines.push(`💬 *શિક્ષકની નોંધ:* ${params.remarks.trim()}`);
+    }
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`_આપના સતત સહકાર અને વિશ્વાસ બદલ આભાર!_`);
+    return lines.join('\n');
+  }
+
+  if (lang === 'hi') {
+    const lines = [
+      `📚 *EduFlow ट्यूशन प्रगति पत्र* 📚`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `👤 *छात्र:* ${params.studentName} (रोल नं: ${params.rollNumber})`,
+      `🏷️ *बैच:* ${params.batchName}`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `📅 *उपस्थिति:* ${params.attendancePercentage}% (${params.totalClassesAttended}/${params.totalClasses} दिन)`,
+      `📝 *गृहकार्य:* ${params.hwCompletionPercentage}% पूर्ण`,
+    ];
+    if (params.latestTest) {
+      const testPercent =
+        params.latestTest.maxMarks > 0
+          ? Math.round((params.latestTest.marksObtained / params.latestTest.maxMarks) * 100)
+          : 0;
+      const rankStr = params.latestTest.rank ? ` | 🏆 रैंक: #${params.latestTest.rank}` : '';
+      lines.push(`🎯 *नवीनतम टेस्ट:* ${params.latestTest.title}`);
+      lines.push(`   अंक: ${params.latestTest.marksObtained}/${params.latestTest.maxMarks} (${testPercent}%)${rankStr}`);
+    }
+    if (params.remarks && params.remarks.trim()) {
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      lines.push(`💬 *शिक्षक टिप्पणी:* ${params.remarks.trim()}`);
+    }
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`_आपके निरंतर सहयोग और विश्वास के लिए धन्यवाद!_`);
+    return lines.join('\n');
+  }
+
   const lines = [
     `📚 *EduFlow Tuition Progress Report* 📚`,
     `━━━━━━━━━━━━━━━━━━━━━━━━`,
@@ -1266,7 +1325,40 @@ export function formatDefaulterWhatsAppMessage(params: {
   studentName: string;
   batchName: string;
   issuesSummary: string;
+  language?: 'en' | 'hi' | 'gu';
 }): string {
+  const lang = params.language || 'en';
+
+  if (lang === 'gu') {
+    return [
+      `⚠️ *ટ્યુશન ક્લાસ તરફથી મહત્વપૂર્ણ સંદેશ*`,
+      `આદરણીય વાલીશ્રી, આ સંદેશ *${params.studentName}* (${params.batchName}) ના અભ્યાસ અંગે છે.`,
+      ``,
+      `અમે નીચે મુજબની બાબતો ધ્યાને લીધી છે જેમાં આપના માર્ગદર્શનની જરૂર છે:`,
+      `• ${params.issuesSummary}`,
+      ``,
+      `કૃપા કરીને નિયમિત હાજરી અને સમયસર લેસન પૂર્ણ કરાવવા વિનંતી છે. કોઈ સહાયની જરૂર હોય તો અમારો સંપર્ક કરી શકો છો.`,
+      ``,
+      `_સાદર પ્રણામ,_`,
+      `*EduFlow Coaching Academy*`,
+    ].join('\n');
+  }
+
+  if (lang === 'hi') {
+    return [
+      `⚠️ *ट्यूशन क्लास से महत्वपूर्ण अपडेट*`,
+      `प्रिय अभिभावक, यह संदेश *${params.studentName}* (${params.batchName}) के संबंध में है।`,
+      ``,
+      `हमने निम्नलिखित बिंदुओं पर ध्यान दिया है जिनमें आपके मार्गदर्शन की आवश्यकता है:`,
+      `• ${params.issuesSummary}`,
+      ``,
+      `कृपया नियमित उपस्थिति और समय पर गृहकार्य पूरा करना सुनिश्चित करें। यदि किसी सहायता की आवश्यकता हो तो हमसे संपर्क करें।`,
+      ``,
+      `_सादर,_`,
+      `*EduFlow Coaching Academy*`,
+    ].join('\n');
+  }
+
   return [
     `⚠️ *Important Update from Tuition Class*`,
     `Dear Parent, this is an update regarding *${params.studentName}* (${params.batchName}).`,
@@ -1288,15 +1380,51 @@ export function formatTopperWhatsAppMessage(params: {
   rank: number;
   marksObtained: number;
   maxMarks: number;
+  language?: 'en' | 'hi' | 'gu';
 }): string {
   const rankEmoji = params.rank === 1 ? '🥇' : params.rank === 2 ? '🥈' : '🥉';
+  const percent = Math.round((params.marksObtained / params.maxMarks) * 100);
+  const lang = params.language || 'en';
+
+  if (lang === 'gu') {
+    return [
+      `🌟 *ટ્યુશન ક્લાસ તરફથી ખૂબ ખૂબ અભિનંદન!* 🌟`,
+      `આદરણીય વાલીશ્રી, જણાવતા ખૂબ આનંદ થાય છે કે *${params.studentName}* એ તાજેતરની ટેસ્ટમાં ${rankEmoji} *રેન્ક #${params.rank}* મેળવ્યો છે!`,
+      ``,
+      `📝 *ટેસ્ટ:* ${params.testTitle}`,
+      `🏷️ *બેચ:* ${params.batchName}`,
+      `🎯 *મેળવેલ ગુણ:* ${params.marksObtained}/${params.maxMarks} (${percent}%)`,
+      ``,
+      `આવી જ મહેનત અને લગન ચાલુ રાખો! 🚀`,
+      ``,
+      `_સાદર પ્રણામ,_`,
+      `*EduFlow Coaching Academy*`,
+    ].join('\n');
+  }
+
+  if (lang === 'hi') {
+    return [
+      `🌟 *ट्यूशन क्लास की ओर से हार्दिक बधाई!* 🌟`,
+      `प्रिय अभिभावक, हमें यह बताते हुए खुशी हो रही है कि *${params.studentName}* ने हालिया टेस्ट में ${rankEmoji} *रैंक #${params.rank}* प्राप्त की है!`,
+      ``,
+      `📝 *टेस्ट:* ${params.testTitle}`,
+      `🏷️ *बैच:* ${params.batchName}`,
+      `🎯 *प्राप्त अंक:* ${params.marksObtained}/${params.maxMarks} (${percent}%)`,
+      ``,
+      `शानदार समर्पण और कड़ी मेहनत जारी रखें! 🚀`,
+      ``,
+      `_सादर,_`,
+      `*EduFlow Coaching Academy*`,
+    ].join('\n');
+  }
+
   return [
     `🌟 *Congratulations from Tuition Class!* 🌟`,
     `Dear Parent, we are delighted to share that *${params.studentName}* has achieved ${rankEmoji} *Rank #${params.rank}* in the recent test!`,
     ``,
     `📝 *Test:* ${params.testTitle}`,
     `🏷️ *Batch:* ${params.batchName}`,
-    `🎯 *Score:* ${params.marksObtained}/${params.maxMarks} (${Math.round((params.marksObtained / params.maxMarks) * 100)}%)`,
+    `🎯 *Score:* ${params.marksObtained}/${params.maxMarks} (${percent}%)`,
     ``,
     `Keep up the fantastic dedication and hard work! 🚀`,
     ``,

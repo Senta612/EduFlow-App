@@ -14,9 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { teacherService, formatStudentProgressWhatsAppMessage } from '@/services/teacher.service';
 import { StudentProfileData } from '@/types/teacher';
+import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 interface TargetStudentReportInfo {
@@ -34,7 +34,7 @@ interface ShareStudentReportModalProps {
   targetStudent: TargetStudentReportInfo | null;
 }
 
-const QUICK_REMARKS = [
+const QUICK_REMARKS_EN = [
   'Regular in attendance and attentive!',
   'Great work! Keep up the effort.',
   'Needs more practice in problem solving.',
@@ -42,18 +42,48 @@ const QUICK_REMARKS = [
   'Excellent test performance! 🌟',
 ];
 
+const QUICK_REMARKS_GU = [
+  'નિયમિત હાજરી અને વર્ગમાં ધ્યાન આપે છે!',
+  'ખૂબ સરસ પ્રગતિ! પ્રયત્ન ચાલુ રાખો.',
+  'દાખલા અને પ્રશ્નોમાં વધુ પ્રેક્ટિસની જરૂર છે.',
+  'કૃપા કરીને સમયસર લેસન જમા કરાવવાની કાળજી રાખો.',
+  'ટેસ્ટમાં ઉત્તમ પ્રદર્શન! 🌟',
+];
+
+const QUICK_REMARKS_HI = [
+  'नियमित उपस्थिति और कक्षा में ध्यान देता है!',
+  'बहुत अच्छा काम! प्रयास जारी रखें।',
+  'प्रश्नों के अभ्यास में थोड़ा और सुधार आवश्यक है।',
+  'कृपया समय पर गृहकार्य जमा करना सुनिश्चित करें।',
+  'परीक्षा में उत्कृष्ट प्रदर्शन! 🌟',
+];
+
 export function ShareStudentReportModal({
   visible,
   onClose,
   targetStudent,
 }: ShareStudentReportModalProps) {
+  const { t, language } = useTranslation();
   const [profileData, setProfileData] = useState<StudentProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [customRemarks, setCustomRemarks] = useState('');
 
+  const quickRemarks =
+    language === 'gu'
+      ? QUICK_REMARKS_GU
+      : language === 'hi'
+      ? QUICK_REMARKS_HI
+      : QUICK_REMARKS_EN;
+
   useEffect(() => {
     if (visible && targetStudent) {
-      setCustomRemarks('Doing well! Keep attending classes regularly.');
+      const defaultNote =
+        language === 'gu'
+          ? 'સારી પ્રગતિ! નિયમિત ક્લાસમાં હાજર રહેવું.'
+          : language === 'hi'
+          ? 'अच्छा प्रदर्शन! नियमित कक्षा में उपस्थित रहें।'
+          : 'Doing well! Keep attending classes regularly.';
+      setCustomRemarks(defaultNote);
       setIsLoading(true);
       teacherService
         .getStudentProfileData(targetStudent.batchId, targetStudent.studentId)
@@ -63,7 +93,7 @@ export function ShareStudentReportModal({
     } else {
       setProfileData(null);
     }
-  }, [visible, targetStudent]);
+  }, [visible, targetStudent, language]);
 
   if (!targetStudent) {
     return null;
@@ -96,6 +126,7 @@ export function ShareStudentReportModal({
           }
         : undefined,
       remarks: customRemarks,
+      language,
     });
   };
 
@@ -142,10 +173,10 @@ export function ShareStudentReportModal({
                 </View>
                 <View>
                   <Text variant="label" style={styles.modalTitle}>
-                    Student Progress Slip
+                    {t('reports.progressSlipTitle')}
                   </Text>
                   <Text variant="caption" style={styles.modalSubtitle}>
-                    1-Tap formatted update for parents
+                    {t('reports.progressSlipSubtitle')}
                   </Text>
                 </View>
               </View>
@@ -167,7 +198,7 @@ export function ShareStudentReportModal({
                 <View style={styles.loadingBox}>
                   <ActivityIndicator size="small" color={theme.colors.primary.main} />
                   <Text variant="caption" style={{ color: theme.colors.text.secondary }}>
-                    Generating student report slip...
+                    {t('reports.generatingSlip')}
                   </Text>
                 </View>
               ) : (
@@ -204,8 +235,8 @@ export function ShareStudentReportModal({
                           {targetStudent.studentName}
                         </Text>
                         <Text variant="caption" style={styles.slipRoll}>
-                          Roll No: #{targetStudent.rollNumber} • Parent:{' '}
-                          {targetStudent.parentPhone || 'Not provided'}
+                          {t('reports.rollNo')}: #{targetStudent.rollNumber} • {t('common.call')}:{' '}
+                          {targetStudent.parentPhone || t('reports.parentNotProvided')}
                         </Text>
                       </View>
                     </View>
@@ -216,13 +247,13 @@ export function ShareStudentReportModal({
                     <View style={styles.metricsBar}>
                       <View style={styles.metricItem}>
                         <Text variant="caption" style={styles.metricLabel}>
-                          Attendance
+                          {t('common.attendance')}
                         </Text>
                         <Text variant="label" style={[styles.metricVal, { color: '#16A34A' }]}>
                           {attendancePct}%
                         </Text>
                         <Text variant="caption" style={styles.metricSub}>
-                          {classesAttended}/{totalClasses} Days
+                          {classesAttended}/{totalClasses} {t('reports.days')}
                         </Text>
                       </View>
 
@@ -230,13 +261,13 @@ export function ShareStudentReportModal({
 
                       <View style={styles.metricItem}>
                         <Text variant="caption" style={styles.metricLabel}>
-                          Homework
+                          {t('common.homework')}
                         </Text>
                         <Text variant="label" style={[styles.metricVal, { color: theme.colors.primary.main }]}>
                           {hwPct}%
                         </Text>
                         <Text variant="caption" style={styles.metricSub}>
-                          Completion
+                          {t('reports.completion')}
                         </Text>
                       </View>
 
@@ -244,7 +275,7 @@ export function ShareStudentReportModal({
 
                       <View style={styles.metricItem}>
                         <Text variant="caption" style={styles.metricLabel}>
-                          Latest Test
+                          {t('reports.latestTest')}
                         </Text>
                         <Text variant="label" style={[styles.metricVal, { color: '#D97706' }]}>
                           {latestTestItem?.marksObtained !== null && latestTestItem?.marksObtained !== undefined
@@ -253,8 +284,8 @@ export function ShareStudentReportModal({
                         </Text>
                         <Text variant="caption" style={styles.metricSub}>
                           {latestTestItem?.percentage !== null && latestTestItem?.percentage !== undefined
-                            ? `${latestTestItem.percentage}% Scored`
-                            : 'Pending'}
+                            ? `${latestTestItem.percentage}% ${t('reports.scored')}`
+                            : t('common.pending')}
                         </Text>
                       </View>
                     </View>
@@ -263,13 +294,13 @@ export function ShareStudentReportModal({
                   {/* Teacher Remarks Editor */}
                   <View style={styles.remarksSection}>
                     <Text variant="label" style={styles.remarksTitle}>
-                      Teacher Remarks / Note for Parent:
+                      {t('reports.teacherRemarksLabel')}
                     </Text>
                     <TextInput
                       style={styles.remarksInput}
                       value={customRemarks}
                       onChangeText={setCustomRemarks}
-                      placeholder="Add personalized remarks for the parent..."
+                      placeholder={t('reports.remarksPlaceholder')}
                       placeholderTextColor={theme.colors.text.disabled}
                       multiline
                       numberOfLines={3}
@@ -281,7 +312,7 @@ export function ShareStudentReportModal({
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={styles.quickChipsRow}
                     >
-                      {QUICK_REMARKS.map((remark, idx) => (
+                      {quickRemarks.map((remark, idx) => (
                         <Pressable
                           key={idx}
                           style={styles.quickChip}
@@ -311,7 +342,7 @@ export function ShareStudentReportModal({
               >
                 <FontAwesome name="whatsapp" size={18} color="#FFFFFF" />
                 <Text variant="label" style={styles.primaryWhatsAppText}>
-                  Send on WhatsApp
+                  {t('reports.sendOnWhatsApp')}
                 </Text>
               </Pressable>
 
