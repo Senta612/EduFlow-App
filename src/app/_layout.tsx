@@ -4,6 +4,7 @@ import { View, ActivityIndicator } from 'react-native';
 
 import { useAuth } from '@/hooks/useAuth';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { LanguageProvider } from '@/i18n';
 import { theme } from '@/theme';
 
 function RootNavigator() {
@@ -68,8 +69,10 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
