@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 import {
   Batch,
   Student,
@@ -294,6 +295,30 @@ class TeacherService {
 
   // Batches
   async getBatches(): Promise<Batch[]> {
+    try {
+      const { data, error } = await supabase
+        .from('batches')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const mappedBatches: Batch[] = data.map((b) => ({
+          id: b.id,
+          name: b.name,
+          grade: b.grade,
+          subject: b.subject,
+          studentCount: b.student_count ?? 0,
+          schedule: b.schedule,
+          timing: b.timing,
+          room: b.room || undefined,
+          attendanceTakenToday: false,
+        }));
+        await this.setStored(STORAGE_KEYS.BATCHES, mappedBatches);
+      }
+    } catch (err) {
+      console.warn('Supabase getBatches notice:', err);
+    }
+
     const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
     const todayStr = new Date().toISOString().split('T')[0];
     const attendance = await this.getAttendanceRecords();
@@ -308,7 +333,6 @@ class TeacherService {
 
   async getTodayClasses(): Promise<Batch[]> {
     const batches = await this.getBatches();
-    // Filter batches scheduled today, or return all if none match for testing
     const todayBatches = batches.filter((b) => isBatchScheduledToday(b.schedule));
     return todayBatches.length > 0 ? todayBatches : batches;
   }
@@ -334,6 +358,31 @@ class TeacherService {
   }
 
   async getBatchById(batchId: string): Promise<Batch | null> {
+    try {
+      const { data, error } = await supabase
+        .from('batches')
+        .select('*')
+        .eq('id', batchId)
+        .single();
+
+      if (!error && data) {
+        const takenToday = await this.isAttendanceTakenToday(batchId);
+        return {
+          id: data.id,
+          name: data.name,
+          grade: data.grade,
+          subject: data.subject,
+          studentCount: data.student_count ?? 0,
+          schedule: data.schedule,
+          timing: data.timing,
+          room: data.room || undefined,
+          attendanceTakenToday: takenToday,
+        };
+      }
+    } catch {
+      // fallback below
+    }
+
     const batches = await this.getBatches();
     const batch = batches.find((b) => b.id === batchId) ?? null;
     if (!batch) return null;
@@ -354,6 +403,30 @@ class TeacherService {
       attendanceTakenToday: false,
     };
 
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { data: inserted, error } = await supabase
+        .from('batches')
+        .insert({
+          name: data.name,
+          grade: data.grade,
+          subject: data.subject,
+          schedule: data.schedule,
+          timing: data.timing,
+          room: data.room || null,
+          student_count: 0,
+          teacher_id: userRes?.user?.id || null,
+        })
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        newBatch.id = inserted.id;
+      }
+    } catch (err) {
+      console.warn('Supabase createBatch notice:', err);
+    }
+
     const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
     const updated = [newBatch, ...batches];
     await this.setStored(STORAGE_KEYS.BATCHES, updated);
@@ -366,9 +439,29 @@ class TeacherService {
 
   subscribeBatches(listener: BatchListener): () => void {
     batchListeners.add(listener);
-    return () => {
-      batchListeners.delete(listener);
-    };
+
+    try {
+      const channel = supabase
+        .channel('public:batches_sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'batches' },
+          async () => {
+            const fresh = await this.getBatches();
+            listener(fresh);
+          },
+        )
+        .subscribe();
+
+      return () => {
+        batchListeners.delete(listener);
+        supabase.removeChannel(channel);
+      };
+    } catch {
+      return () => {
+        batchListeners.delete(listener);
+      };
+    }
   }
 
   // Students
@@ -382,6 +475,31 @@ class TeacherService {
   }
 
   async getBatchStudents(batchId: string): Promise<Student[]> {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('batch_id', batchId)
+        .order('roll_number', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        const mapped: Student[] = data.map((s) => ({
+          id: s.id,
+          name: s.name,
+          rollNumber: s.roll_number,
+          email: s.email || undefined,
+          parentPhone: s.parent_phone || undefined,
+          avatarUrl: s.avatar_url || undefined,
+        }));
+        const allStudents = await this.getAllStudents();
+        allStudents[batchId] = mapped;
+        await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
+        return mapped;
+      }
+    } catch (err) {
+      console.warn('Supabase getBatchStudents notice:', err);
+    }
+
     const allStudents = await this.getAllStudents();
     if (allStudents[batchId] && allStudents[batchId].length >= 0) {
       return allStudents[batchId];
@@ -397,16 +515,37 @@ class TeacherService {
   }
 
   async addStudent(batchId: string, studentData: Omit<Student, 'id'>): Promise<Student> {
+    const newStudent: Student = {
+      ...studentData,
+      id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    };
+
+    try {
+      const { data: inserted, error } = await supabase
+        .from('students')
+        .insert({
+          batch_id: batchId,
+          name: studentData.name,
+          roll_number: studentData.rollNumber,
+          email: studentData.email || null,
+          parent_phone: studentData.parentPhone || null,
+          avatar_url: studentData.avatarUrl || null,
+        })
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        newStudent.id = inserted.id;
+      }
+    } catch (err) {
+      console.warn('Supabase addStudent notice:', err);
+    }
+
     const allStudents = await this.getAllStudents();
     let batchStudents = allStudents[batchId];
     if (!batchStudents) {
       batchStudents = await this.getBatchStudents(batchId);
     }
-
-    const newStudent: Student = {
-      ...studentData,
-      id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-    };
 
     const updatedBatchStudents = [...batchStudents, newStudent];
     allStudents[batchId] = updatedBatchStudents;
@@ -432,6 +571,21 @@ class TeacherService {
     studentId: string,
     studentData: Partial<Omit<Student, 'id'>>,
   ): Promise<Student> {
+    try {
+      await supabase
+        .from('students')
+        .update({
+          name: studentData.name,
+          roll_number: studentData.rollNumber,
+          email: studentData.email || null,
+          parent_phone: studentData.parentPhone || null,
+          avatar_url: studentData.avatarUrl || null,
+        })
+        .eq('id', studentId);
+    } catch (err) {
+      console.warn('Supabase updateStudent notice:', err);
+    }
+
     const allStudents = await this.getAllStudents();
     let batchStudents = allStudents[batchId];
     if (!batchStudents) {
@@ -441,7 +595,6 @@ class TeacherService {
     const index = batchStudents.findIndex((s) => s.id === studentId);
 
     if (index === -1) {
-      // Gracefully add if not existing
       const newStudent: Student = {
         id: studentId || `st-${Date.now()}`,
         name: studentData.name || 'Student',
@@ -467,6 +620,12 @@ class TeacherService {
   }
 
   async deleteStudent(batchId: string, studentId: string): Promise<void> {
+    try {
+      await supabase.from('students').delete().eq('id', studentId);
+    } catch (err) {
+      console.warn('Supabase deleteStudent notice:', err);
+    }
+
     const allStudents = await this.getAllStudents();
     let batchStudents = allStudents[batchId];
     if (!batchStudents) {
@@ -492,6 +651,30 @@ class TeacherService {
 
   // Attendance
   async getAttendanceRecords(): Promise<AttendanceRecord[]> {
+    try {
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        // Fetch items if available
+        const mappedRecords: AttendanceRecord[] = data.map((r) => ({
+          id: r.id,
+          batchId: r.batch_id,
+          date: r.date,
+          records: [],
+          totalStudents: r.total_students,
+          presentCount: r.present_count,
+          absentCount: r.absent_count,
+          submittedAt: r.submitted_at,
+        }));
+        await this.setStored(STORAGE_KEYS.ATTENDANCE, mappedRecords);
+      }
+    } catch (err) {
+      console.warn('Supabase getAttendanceRecords notice:', err);
+    }
+
     const stored = await this.getStored<AttendanceRecord[] | null>(STORAGE_KEYS.ATTENDANCE, null);
     if (!stored) {
       await this.setStored(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
@@ -530,6 +713,33 @@ class TeacherService {
       submittedAt: new Date().toISOString(),
     };
 
+    try {
+      const { data: rec, error: recErr } = await supabase
+        .from('attendance_records')
+        .upsert({
+          batch_id: batchId,
+          date: date,
+          present_count: presentCount,
+          absent_count: absentCount,
+          total_students: records.length,
+          submitted_at: newRecord.submittedAt,
+        })
+        .select()
+        .single();
+
+      if (!recErr && rec) {
+        newRecord.id = rec.id;
+        const items = records.map((r) => ({
+          attendance_record_id: rec.id,
+          student_id: r.studentId,
+          status: r.status,
+        }));
+        await supabase.from('attendance_items').upsert(items);
+      }
+    } catch (err) {
+      console.warn('Supabase submitAttendance notice:', err);
+    }
+
     const all = await this.getAttendanceRecords();
     // Replace if already exists for this batch+date, or prepend
     const filtered = all.filter((r) => !(r.batchId === batchId && r.date === date));
@@ -549,6 +759,35 @@ class TeacherService {
 
   // Homework
   async getHomeworkList(): Promise<Homework[]> {
+    try {
+      const { data, error } = await supabase
+        .from('homework_assignments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const batches = await this.getBatches();
+        const batchMap = new Map(batches.map((b) => [b.id, b]));
+        const mapped: Homework[] = data.map((h) => {
+          const b = batchMap.get(h.batch_id);
+          return {
+            id: h.id,
+            batchId: h.batch_id,
+            batchName: b?.name || 'Class Batch',
+            title: h.title,
+            description: h.description || undefined,
+            dueDate: h.due_date,
+            createdAt: h.created_at,
+            submissionsCount: 0,
+            totalStudents: b?.studentCount || 0,
+          };
+        });
+        await this.setStored(STORAGE_KEYS.HOMEWORK, mapped);
+      }
+    } catch (err) {
+      console.warn('Supabase getHomeworkList notice:', err);
+    }
+
     return this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, INITIAL_HOMEWORK);
   }
 
@@ -574,6 +813,26 @@ class TeacherService {
       halfDoneCount: 0,
       notDoneCount: data.totalStudents || 0,
     };
+
+    try {
+      const { data: inserted, error } = await supabase
+        .from('homework_assignments')
+        .insert({
+          batch_id: data.batchId,
+          title: data.title,
+          description: data.description || null,
+          due_date: data.dueDate,
+        })
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        newHw.id = inserted.id;
+      }
+    } catch (err) {
+      console.warn('Supabase createHomework notice:', err);
+    }
+
     const all = await this.getHomeworkList();
     const updated = [newHw, ...all];
     await this.setStored(STORAGE_KEYS.HOMEWORK, updated);
@@ -648,6 +907,18 @@ class TeacherService {
     const key = `${STORAGE_KEYS.HW_SUBMISSIONS}_${homeworkId}`;
     await this.setStored(key, submissions);
 
+    try {
+      const rows = submissions.map((s) => ({
+        homework_id: homeworkId,
+        student_id: s.studentId,
+        status: s.status,
+        remarks: s.remarks || null,
+      }));
+      await supabase.from('homework_submissions').upsert(rows);
+    } catch (err) {
+      console.warn('Supabase saveHomeworkSubmissions notice:', err);
+    }
+
     const doneCount = submissions.filter((s) => s.status === 'done').length;
     const halfDoneCount = submissions.filter((s) => s.status === 'half_done').length;
     const notDoneCount = submissions.filter((s) => s.status === 'not_done').length;
@@ -674,6 +945,34 @@ class TeacherService {
 
   // Tests & Marks
   async getTestsList(): Promise<Test[]> {
+    try {
+      const { data, error } = await supabase
+        .from('tests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const batches = await this.getBatches();
+        const batchMap = new Map(batches.map((b) => [b.id, b]));
+        const mapped: Test[] = data.map((t) => {
+          const b = batchMap.get(t.batch_id);
+          return {
+            id: t.id,
+            batchId: t.batch_id,
+            batchName: b?.name || 'Class Batch',
+            title: t.title,
+            date: t.date,
+            maxMarks: t.max_marks,
+            submittedCount: 0,
+            totalStudents: b?.studentCount || 0,
+          };
+        });
+        await this.setStored(STORAGE_KEYS.TESTS, mapped);
+      }
+    } catch (err) {
+      console.warn('Supabase getTestsList notice:', err);
+    }
+
     return this.getStored<Test[]>(STORAGE_KEYS.TESTS, INITIAL_TESTS);
   }
 
@@ -693,6 +992,26 @@ class TeacherService {
       id: `test-${Date.now()}`,
       submittedCount: 0,
     };
+
+    try {
+      const { data: inserted, error } = await supabase
+        .from('tests')
+        .insert({
+          batch_id: data.batchId,
+          title: data.title,
+          date: data.date,
+          max_marks: data.maxMarks,
+        })
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        newTest.id = inserted.id;
+      }
+    } catch (err) {
+      console.warn('Supabase createTest notice:', err);
+    }
+
     const all = await this.getTestsList();
     const updated = [newTest, ...all];
     await this.setStored(STORAGE_KEYS.TESTS, updated);
@@ -741,6 +1060,17 @@ class TeacherService {
     const key = `${STORAGE_KEYS.MARKS}_${testId}`;
     await this.setStored(key, marks);
 
+    try {
+      const rows = marks.map((m) => ({
+        test_id: testId,
+        student_id: m.studentId,
+        marks_obtained: m.marksObtained,
+      }));
+      await supabase.from('test_marks').upsert(rows);
+    } catch (err) {
+      console.warn('Supabase saveTestMarks notice:', err);
+    }
+
     // Update submitted count on test
     const enteredCount = marks.filter((m) => m.marksObtained !== null).length;
     const tests = await this.getTestsList();
@@ -750,11 +1080,7 @@ class TeacherService {
     await this.setStored(STORAGE_KEYS.TESTS, updatedTests);
   }
 
-  // Comprehensive Student Profile & Reports Aggregator
-  async getStudentProfileData(
-    batchId: string,
-    studentId: string,
-  ): Promise<StudentProfileData | null> {
+  async getStudentProfileData(batchId: string, studentId: string): Promise<StudentProfileData | null> {
     const [batch, students, attendanceRecords, homeworkList, testsList] = await Promise.all([
       this.getBatchById(batchId),
       this.getBatchStudents(batchId),
