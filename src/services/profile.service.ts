@@ -110,6 +110,10 @@ export const profileService = {
         .update({
           full_name: updatedProfile.full_name,
           phone: updatedProfile.phone,
+          institute_name: updatedProfile.institute_name,
+          specialization: updatedProfile.specialization,
+          qualifications: updatedProfile.qualifications,
+          bio: updatedProfile.bio,
           updated_at: updatedProfile.updated_at,
         })
         .eq('id', userId);
