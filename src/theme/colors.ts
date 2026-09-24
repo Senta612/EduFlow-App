@@ -28,6 +28,13 @@ export const colors = {
     },
   },
 
+  state: {
+    success: '#16A34A',
+    danger: '#DC2626',
+    warning: '#D97706',
+    info: '#0284C7',
+  },
+
   background: {
     screen: '#F8FAFC',
     paper: '#FFFFFF',
@@ -36,6 +43,7 @@ export const colors = {
   text: {
     primary: '#0F172A',
     secondary: '#64748B',
+    tertiary: '#94A3B8',
     disabled: '#94A3B8',
     inverse: '#FFFFFF',
   },

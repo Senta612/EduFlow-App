@@ -225,4 +225,40 @@ export interface TranslationDictionary {
     classReminders: string;
     attendanceAlerts: string;
   };
+  student: {
+    greeting: string;
+    nextClass: string;
+    noUpcomingClasses: string;
+    todaySchedule: string;
+    pendingHomework: string;
+    completedHomework: string;
+    attendanceRate: string;
+    streak: string;
+    streakDesc: string;
+    testAverage: string;
+    rankInBatch: string;
+    announcements: string;
+    noAnnouncements: string;
+    markDone: string;
+    markUndone: string;
+    allAssignments: string;
+    pendingAssignments: string;
+    completedAssignments: string;
+    noHomeworkTitle: string;
+    noHomeworkDesc: string;
+    testResultsTitle: string;
+    testResultsSubtitle: string;
+    scoredOutOf: string;
+    highestInClass: string;
+    classAverageLabel: string;
+    myAttendanceTitle: string;
+    attendedDays: string;
+    missedDays: string;
+    contactTeacher: string;
+    callTeacher: string;
+    emailTeacher: string;
+    studentId: string;
+    enrolledBatchLabel: string;
+  };
 }
+
