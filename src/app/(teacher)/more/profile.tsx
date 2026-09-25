@@ -87,15 +87,13 @@ export default function TeacherProfileScreen() {
     });
   };
 
-  const teacherName = profile?.full_name || 'Prof. Rajesh Sharma';
-  const instituteName = profile?.institute_name || 'EduFlow Coaching Academy';
-  const specialization = profile?.specialization || 'Class 10-12 Mathematics & Physics Expert';
-  const qualifications = profile?.qualifications || 'M.Sc. Mathematics • 8+ Years Experience';
-  const bio =
-    profile?.bio ||
-    'Dedicated educator passionate about building strong problem-solving foundations and concept clarity for board and competitive exams.';
-  const phone = profile?.phone || '+91 98765 43210';
-  const email = user?.email || 'teacher@eduflow.app';
+  const teacherName = profile?.full_name || user?.email?.split('@')[0] || 'Teacher';
+  const instituteName = profile?.institute_name || 'My Tuition Academy';
+  const specialization = profile?.specialization || '';
+  const qualifications = profile?.qualifications || '';
+  const bio = profile?.bio || '';
+  const phone = profile?.phone || '';
+  const email = user?.email || '';
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
