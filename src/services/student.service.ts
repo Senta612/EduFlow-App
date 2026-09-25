@@ -10,246 +10,162 @@ import {
   StudentAnnouncement,
 } from '@/types/student';
 import { HomeworkStatus } from '@/types/teacher';
+import { isBatchScheduledToday } from './teacher.service';
 
 const STUDENT_DATA_STORAGE_KEY = '@eduflow_student_storage_v1';
 
-// Default mock student data linked to Class 10 - Alpha (Aarav Sharma)
-const DEFAULT_ENROLLED_BATCH: EnrolledBatchInfo = {
-  id: 'batch-math-10',
-  name: 'Class 10 - Alpha',
-  grade: 'Class 10',
-  subject: 'Mathematics',
-  schedule: 'Mon • Wed • Fri',
-  timing: '10:00 AM - 11:30 AM',
-  room: 'Room 204',
-  teacherName: 'Prof. Rajesh Sharma',
-  teacherPhone: '+91 98765 00123',
-  teacherEmail: 'rajesh.sharma@eduflow.app',
-  instituteName: 'Zenith Academy',
-};
-
-const DEFAULT_ANNOUNCEMENTS: StudentAnnouncement[] = [
-  {
-    id: 'anc-01',
-    title: 'Upcoming Mock Board Exam',
-    message: 'Chapter 4 & 5 Quadratic equations and Arithmetic Progressions test on this Friday at 10:00 AM sharp.',
-    date: 'Today, 08:30 AM',
-    tag: 'test',
-    author: 'Prof. Rajesh Sharma',
-  },
-  {
-    id: 'anc-02',
-    title: 'Formula Sheet Uploaded',
-    message: 'Please review the Chapter 4 summary formula cheat sheet before the doubt clearing session tomorrow.',
-    date: 'Yesterday',
-    tag: 'info',
-    author: 'Zenith Academy',
-  },
-];
-
-const DEFAULT_HOMEWORK: StudentHomeworkItemView[] = [
-  {
-    id: 'hw-01',
-    batchId: 'batch-math-10',
-    batchName: 'Class 10 - Alpha',
-    subject: 'Mathematics',
-    title: 'Quadratic Equations Exercise 4.2',
-    description: 'Solve Questions 1 to 15 in homework notebook with step-by-step discriminant calculations and roots verification.',
-    dueDate: 'Tomorrow, 05:00 PM',
-    isUrgent: true,
-    isDueToday: false,
-    status: 'pending',
-    totalQuestions: 15,
-  },
-  {
-    id: 'hw-02',
-    batchId: 'batch-math-10',
-    batchName: 'Class 10 - Alpha',
-    subject: 'Mathematics',
-    title: 'Word Problems on Quadratic Roots',
-    description: 'Complete word problems from NCERT exemplar Page 88, questions 7 through 12.',
-    dueDate: 'Friday, 10:00 AM',
-    isUrgent: false,
-    isDueToday: false,
-    status: 'pending',
-    totalQuestions: 6,
-  },
-  {
-    id: 'hw-03',
-    batchId: 'batch-math-10',
-    batchName: 'Class 10 - Alpha',
-    subject: 'Mathematics',
-    title: 'Polynomial Factorization Review',
-    description: 'Splitting the middle term practice sheet 3.',
-    dueDate: 'Last Monday',
-    isUrgent: false,
-    isDueToday: false,
-    status: 'done',
-    remarks: 'Well done! All 10 solutions verified accurate.',
-    submittedAt: '2 days ago',
-    totalQuestions: 10,
-  },
-  {
-    id: 'hw-04',
-    batchId: 'batch-math-10',
-    batchName: 'Class 10 - Alpha',
-    subject: 'Mathematics',
-    title: 'Linear Equations in Two Variables',
-    description: 'Cross multiplication method exercises 3.5.',
-    dueDate: 'Last Week',
-    isUrgent: false,
-    isDueToday: false,
-    status: 'done',
-    remarks: 'Neat work shown.',
-    submittedAt: '5 days ago',
-    totalQuestions: 8,
-  },
-];
-
-const DEFAULT_TESTS: StudentTestResultView[] = [
-  {
-    id: 'test-01',
-    title: 'Unit Test 1: Real Numbers & Polynomials',
-    subject: 'Mathematics',
-    date: '15 Sep 2026',
-    maxMarks: 50,
-    marksObtained: 46,
-    percentage: 92,
-    gradeBadge: 'A+',
-    classAverage: 37.4,
-    highestMarks: 49,
-    rankInBatch: 3,
-    totalStudents: 32,
-  },
-  {
-    id: 'test-02',
-    title: 'Weekly Revision Test: Linear Equations',
-    subject: 'Mathematics',
-    date: '02 Sep 2026',
-    maxMarks: 25,
-    marksObtained: 23,
-    percentage: 92,
-    gradeBadge: 'A+',
-    classAverage: 18.5,
-    highestMarks: 25,
-    rankInBatch: 2,
-    totalStudents: 32,
-  },
-  {
-    id: 'test-03',
-    title: 'Monthly Assessment: Algebra Foundations',
-    subject: 'Mathematics',
-    date: '20 Aug 2026',
-    maxMarks: 50,
-    marksObtained: 42.5,
-    percentage: 85,
-    gradeBadge: 'A',
-    classAverage: 34.0,
-    highestMarks: 48,
-    rankInBatch: 5,
-    totalStudents: 32,
-  },
-  {
-    id: 'test-04',
-    title: 'Diagnostic Benchmark Test',
-    subject: 'Mathematics',
-    date: '05 Aug 2026',
-    maxMarks: 40,
-    marksObtained: 35,
-    percentage: 87.5,
-    gradeBadge: 'A',
-    classAverage: 28.2,
-    highestMarks: 39,
-    rankInBatch: 4,
-    totalStudents: 32,
-  },
-];
-
-const DEFAULT_ATTENDANCE_DAYS = [
-  { date: '2026-09-22', dayName: 'Tue', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-20', dayName: 'Sun', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-18', dayName: 'Fri', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-16', dayName: 'Wed', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-14', dayName: 'Mon', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-11', dayName: 'Fri', status: 'absent' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-09', dayName: 'Wed', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-07', dayName: 'Mon', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-04', dayName: 'Fri', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-  { date: '2026-09-02', dayName: 'Wed', status: 'present' as const, batchName: 'Class 10 - Alpha' },
-];
-
 export class StudentService {
-  private static async getCustomHomeworkMap(): Promise<Record<string, HomeworkStatus>> {
+  private static async getStudentInfo(studentId?: string): Promise<{
+    id: string;
+    name: string;
+    rollNumber: string;
+    batchId?: string;
+    email?: string;
+    parentPhone?: string;
+  } | null> {
     try {
-      const raw = await AsyncStorage.getItem(`${STUDENT_DATA_STORAGE_KEY}_hw_status`);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  private static async saveCustomHomeworkMap(map: Record<string, HomeworkStatus>): Promise<void> {
-    try {
-      await AsyncStorage.setItem(`${STUDENT_DATA_STORAGE_KEY}_hw_status`, JSON.stringify(map));
-    } catch {
-      // ignore
+      let query = supabase.from('students').select('*');
+      if (studentId) {
+        query = query.eq('id', studentId);
+      } else if (user?.email) {
+        query = query.eq('email', user.email);
+      } else if (user?.id) {
+        query = query.eq('id', user.id);
+      }
+
+      const { data, error } = await query.maybeSingle();
+      if (!error && data) {
+        return {
+          id: data.id,
+          name: data.name,
+          rollNumber: data.roll_number,
+          batchId: data.batch_id,
+          email: data.email || undefined,
+          parentPhone: data.parent_phone || undefined,
+        };
+      }
+
+      if (user) {
+        return {
+          id: user.id,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Student',
+          rollNumber: '-',
+          email: user.email,
+        };
+      }
+    } catch (e) {
+      console.warn('getStudentInfo error:', e);
     }
+    return null;
   }
 
   /**
-   * Get main student dashboard aggregated metrics and schedule
+   * Get main student dashboard aggregated metrics and schedule from real database
    */
-  static async getDashboardSummary(studentId: string = 'st-01'): Promise<StudentDashboardSummary> {
-    const hwList = await this.getHomeworkList(studentId);
+  static async getDashboardSummary(studentId?: string): Promise<StudentDashboardSummary> {
+    const student = await this.getStudentInfo(studentId);
+    const sId = student?.id || studentId || '';
+    const studentName = student?.name || 'Student';
+    const rollNumber = student?.rollNumber || '-';
+
+    let enrolledBatch: EnrolledBatchInfo | undefined = undefined;
+    const todayClasses: StudentTodayClass[] = [];
+
+    if (student?.batchId) {
+      try {
+        const { data: batchData } = await supabase
+          .from('batches')
+          .select('*')
+          .eq('id', student.batchId)
+          .maybeSingle();
+
+        if (batchData) {
+          let teacherName = 'Teacher';
+          let teacherPhone = '';
+          let teacherEmail = '';
+          let instituteName = 'EduFlow Academy';
+
+          if (batchData.teacher_id) {
+            const { data: teacherProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', batchData.teacher_id)
+              .maybeSingle();
+
+            if (teacherProfile) {
+              teacherName = teacherProfile.full_name || 'Teacher';
+              teacherPhone = teacherProfile.phone || '';
+              teacherEmail = teacherProfile.email || '';
+              instituteName = teacherProfile.institute_name || instituteName;
+            }
+          }
+
+          enrolledBatch = {
+            id: batchData.id,
+            name: batchData.name,
+            grade: batchData.grade,
+            subject: batchData.subject,
+            schedule: batchData.schedule,
+            timing: batchData.timing,
+            room: batchData.room || undefined,
+            teacherName,
+            teacherPhone,
+            teacherEmail,
+            instituteName,
+          };
+
+          if (isBatchScheduledToday(batchData.schedule)) {
+            todayClasses.push({
+              id: `cls-${batchData.id}`,
+              batchName: batchData.name,
+              subject: batchData.subject,
+              timing: batchData.timing,
+              room: batchData.room || 'Classroom',
+              status: 'upcoming',
+              teacherName,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Dashboard batch fetch warning:', err);
+      }
+    }
+
+    const hwList = await this.getHomeworkList(sId);
     const pendingHw = hwList.filter((h) => h.status !== 'done').length;
     const completedHw = hwList.filter((h) => h.status === 'done').length;
 
-    const tests = await this.getTestResults(studentId);
+    const tests = await this.getTestResults(sId);
     const avgTestPct = tests.length > 0
       ? Math.round(tests.reduce((acc, t) => acc + (t.percentage || 0), 0) / tests.length)
-      : 89;
+      : 0;
 
-    const todayClasses: StudentTodayClass[] = [
-      {
-        id: 'cls-01',
-        batchName: 'Class 10 - Alpha',
-        subject: 'Mathematics',
-        timing: '10:00 AM - 11:30 AM',
-        room: 'Room 204',
-        status: 'upcoming',
-        teacherName: 'Prof. Rajesh Sharma',
-      },
-      {
-        id: 'cls-02',
-        batchName: 'Class 10 - Science Lab',
-        subject: 'Physics & Chemistry',
-        timing: '04:00 PM - 05:30 PM',
-        room: 'Lab 2',
-        status: 'upcoming',
-        teacherName: 'Dr. Meera Iyer',
-      },
-    ];
+    const attendance = await this.getAttendanceOverview(sId);
 
     return {
-      studentId: studentId || 'st-01',
-      studentName: 'Aarav Sharma',
-      rollNumber: '1001',
+      studentId: sId,
+      studentName,
+      rollNumber,
       avatarUrl: undefined,
-      enrolledBatch: DEFAULT_ENROLLED_BATCH,
+      enrolledBatch,
       nextClass: todayClasses[0],
       todayClasses,
       stats: {
-        attendancePercentage: 91,
-        totalClasses: 22,
-        presentClasses: 20,
+        attendancePercentage: attendance.overallPercentage,
+        totalClasses: attendance.totalClasses,
+        presentClasses: attendance.presentCount,
         pendingHomeworkCount: pendingHw,
         completedHomeworkCount: completedHw,
         averageTestPercentage: avgTestPct,
         testsTaken: tests.length,
-        classRank: 3,
-        totalStudentsInBatch: 32,
+        classRank: tests.length > 0 && tests[0].rankInBatch ? tests[0].rankInBatch : undefined,
+        totalStudentsInBatch: enrolledBatch ? 1 : 0,
       },
-      recentAnnouncements: DEFAULT_ANNOUNCEMENTS,
+      recentAnnouncements: [],
     };
   }
 
@@ -257,26 +173,60 @@ export class StudentService {
    * Get all homework items for the student with live status overrides
    */
   static async getHomeworkList(
-    studentId: string = 'st-01',
+    studentId?: string,
     filter?: 'pending' | 'completed' | 'all'
   ): Promise<StudentHomeworkItemView[]> {
-    const overrides = await this.getCustomHomeworkMap();
-
-    const items = DEFAULT_HOMEWORK.map((hw) => {
-      const currentStatus = overrides[hw.id] || hw.status;
-      return {
-        ...hw,
-        status: currentStatus,
-      };
-    });
-
-    if (filter === 'pending') {
-      return items.filter((h) => h.status !== 'done');
+    const student = await this.getStudentInfo(studentId);
+    if (!student?.batchId) {
+      return [];
     }
-    if (filter === 'completed') {
-      return items.filter((h) => h.status === 'done');
+
+    try {
+      const { data: assignments, error } = await supabase
+        .from('homework_assignments')
+        .select('*')
+        .eq('batch_id', student.batchId)
+        .order('created_at', { ascending: false });
+
+      if (!error && assignments) {
+        const { data: submissions } = await supabase
+          .from('homework_submissions')
+          .select('*')
+          .eq('student_id', student.id);
+
+        const subMap = new Map((submissions || []).map((s) => [s.homework_id, s]));
+
+        const items: StudentHomeworkItemView[] = assignments.map((h) => {
+          const sub = subMap.get(h.id);
+          const status = (sub?.status as HomeworkStatus) || 'pending';
+          return {
+            id: h.id,
+            batchId: h.batch_id,
+            batchName: 'My Batch',
+            subject: 'Homework',
+            title: h.title,
+            description: h.description || undefined,
+            dueDate: h.due_date,
+            isUrgent: false,
+            isDueToday: h.due_date === new Date().toISOString().split('T')[0],
+            status,
+            remarks: sub?.remarks || undefined,
+          };
+        });
+
+        if (filter === 'pending') {
+          return items.filter((h) => h.status !== 'done');
+        }
+        if (filter === 'completed') {
+          return items.filter((h) => h.status === 'done');
+        }
+        return items;
+      }
+    } catch (e) {
+      console.warn('Student getHomeworkList error:', e);
     }
-    return items;
+
+    return [];
   }
 
   /**
@@ -284,43 +234,141 @@ export class StudentService {
    */
   static async updateHomeworkStatus(
     homeworkId: string,
-    newStatus: HomeworkStatus
-  ): Promise<StudentHomeworkItemView> {
-    const overrides = await this.getCustomHomeworkMap();
-    overrides[homeworkId] = newStatus;
-    await this.saveCustomHomeworkMap(overrides);
+    newStatus: HomeworkStatus,
+    studentId?: string
+  ): Promise<StudentHomeworkItemView | null> {
+    const student = await this.getStudentInfo(studentId);
+    if (!student) return null;
 
-    const hw = DEFAULT_HOMEWORK.find((h) => h.id === homeworkId) || DEFAULT_HOMEWORK[0];
-    return {
-      ...hw,
-      status: newStatus,
-      submittedAt: newStatus === 'done' ? 'Just now' : undefined,
-    };
+    try {
+      await supabase.from('homework_submissions').upsert({
+        homework_id: homeworkId,
+        student_id: student.id,
+        status: newStatus,
+      }, { onConflict: 'homework_id,student_id' });
+    } catch (e) {
+      console.warn('updateHomeworkStatus error:', e);
+    }
+
+    const list = await this.getHomeworkList(student.id);
+    return list.find((h) => h.id === homeworkId) || null;
   }
 
   /**
    * Get test history and scorecards
    */
-  static async getTestResults(studentId: string = 'st-01'): Promise<StudentTestResultView[]> {
-    return DEFAULT_TESTS;
+  static async getTestResults(studentId?: string): Promise<StudentTestResultView[]> {
+    const student = await this.getStudentInfo(studentId);
+    if (!student?.batchId) {
+      return [];
+    }
+
+    try {
+      const { data: tests, error } = await supabase
+        .from('tests')
+        .select('*')
+        .eq('batch_id', student.batchId)
+        .order('date', { ascending: false });
+
+      if (!error && tests) {
+        const { data: marks } = await supabase
+          .from('test_marks')
+          .select('*')
+          .eq('student_id', student.id);
+
+        const markMap = new Map((marks || []).map((m) => [m.test_id, m.marks_obtained]));
+
+        return tests.map((t) => {
+          const maxMarks = Number(t.max_marks) || 50;
+          const markVal = markMap.get(t.id);
+          const marksObtained = markVal !== undefined && markVal !== null ? Number(markVal) : 0;
+          const percentage = maxMarks > 0 ? Math.round((marksObtained / maxMarks) * 100) : 0;
+          
+          let gradeBadge = 'Average';
+          if (percentage >= 90) gradeBadge = 'A+';
+          else if (percentage >= 80) gradeBadge = 'A';
+          else if (percentage >= 70) gradeBadge = 'B';
+          else if (percentage >= 60) gradeBadge = 'C';
+          else gradeBadge = 'Needs Attention';
+
+          return {
+            id: t.id,
+            title: t.title,
+            subject: 'Test',
+            date: t.date,
+            maxMarks,
+            marksObtained,
+            percentage,
+            gradeBadge,
+            classAverage: maxMarks * 0.7,
+            highestMarks: maxMarks,
+            rankInBatch: 1,
+            totalStudents: 1,
+          };
+        });
+      }
+    } catch (e) {
+      console.warn('Student getTestResults error:', e);
+    }
+
+    return [];
   }
 
   /**
    * Get attendance calendar and percentage summary
    */
-  static async getAttendanceOverview(studentId: string = 'st-01'): Promise<StudentAttendanceOverview> {
-    const total = DEFAULT_ATTENDANCE_DAYS.length;
-    const present = DEFAULT_ATTENDANCE_DAYS.filter((d) => d.status === 'present').length;
-    const absent = total - present;
-    const percentage = Math.round((present / total) * 100);
+  static async getAttendanceOverview(studentId?: string): Promise<StudentAttendanceOverview> {
+    const student = await this.getStudentInfo(studentId);
+    if (!student?.id) {
+      return {
+        overallPercentage: 0,
+        totalClasses: 0,
+        presentCount: 0,
+        absentCount: 0,
+        streakDays: 0,
+        currentMonthDays: [],
+      };
+    }
+
+    try {
+      const { data: items, error } = await supabase
+        .from('attendance_items')
+        .select('*, attendance_records(date, batch_id)')
+        .eq('student_id', student.id);
+
+      if (!error && items && items.length > 0) {
+        const total = items.length;
+        const present = items.filter((i) => i.status === 'present').length;
+        const absent = total - present;
+        const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+        const days = items.map((i: any) => ({
+          date: i.attendance_records?.date || '',
+          dayName: i.attendance_records?.date ? new Date(i.attendance_records.date).toLocaleDateString('en-US', { weekday: 'short' }) : '',
+          status: i.status as 'present' | 'absent',
+          batchName: 'My Batch',
+        }));
+
+        return {
+          overallPercentage: percentage,
+          totalClasses: total,
+          presentCount: present,
+          absentCount: absent,
+          streakDays: present,
+          currentMonthDays: days,
+        };
+      }
+    } catch (e) {
+      console.warn('Student getAttendanceOverview error:', e);
+    }
 
     return {
-      overallPercentage: percentage,
-      totalClasses: total,
-      presentCount: present,
-      absentCount: absent,
-      streakDays: 5,
-      currentMonthDays: DEFAULT_ATTENDANCE_DAYS,
+      overallPercentage: 0,
+      totalClasses: 0,
+      presentCount: 0,
+      absentCount: 0,
+      streakDays: 0,
+      currentMonthDays: [],
     };
   }
 }
