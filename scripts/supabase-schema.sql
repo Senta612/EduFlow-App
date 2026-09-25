@@ -1,5 +1,5 @@
 -- ==============================================================================
--- EduFlow: Tuition Management Database Schema for Supabase
+-- EduFlow: Tuition Management Database Schema for Supabase (Idempotent / Safe Re-run)
 -- ==============================================================================
 
 -- Enable UUID extension
@@ -115,7 +115,7 @@ create table if not exists public.test_marks (
 );
 
 -- ==============================================================================
--- Row-Level Security (RLS) Policies
+-- Row-Level Security (RLS) Policies (Safe Re-run)
 -- ==============================================================================
 alter table public.profiles enable row level security;
 alter table public.batches enable row level security;
@@ -126,6 +126,17 @@ alter table public.homework_assignments enable row level security;
 alter table public.homework_submissions enable row level security;
 alter table public.tests enable row level security;
 alter table public.test_marks enable row level security;
+
+-- Drop existing policies if they already exist so the script never fails on re-runs
+drop policy if exists "Allow all on profiles" on public.profiles;
+drop policy if exists "Allow all on batches" on public.batches;
+drop policy if exists "Allow all on students" on public.students;
+drop policy if exists "Allow all on attendance_records" on public.attendance_records;
+drop policy if exists "Allow all on attendance_items" on public.attendance_items;
+drop policy if exists "Allow all on homework_assignments" on public.homework_assignments;
+drop policy if exists "Allow all on homework_submissions" on public.homework_submissions;
+drop policy if exists "Allow all on tests" on public.tests;
+drop policy if exists "Allow all on test_marks" on public.test_marks;
 
 -- Permissive policies for authenticated users and public demo access
 create policy "Allow all on profiles" on public.profiles for all using (true) with check (true);
@@ -138,9 +149,76 @@ create policy "Allow all on homework_submissions" on public.homework_submissions
 create policy "Allow all on tests" on public.tests for all using (true) with check (true);
 create policy "Allow all on test_marks" on public.test_marks for all using (true) with check (true);
 
--- Enable Realtime on tables
-alter publication supabase_realtime add table public.batches;
-alter publication supabase_realtime add table public.students;
-alter publication supabase_realtime add table public.attendance_records;
-alter publication supabase_realtime add table public.homework_assignments;
-alter publication supabase_realtime add table public.tests;
+-- Enable Realtime safely (ignores error if already added)
+do $$
+begin
+  alter publication supabase_realtime add table public.batches;
+exception when others then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.students;
+exception when others then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.attendance_records;
+exception when others then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.homework_assignments;
+exception when others then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.tests;
+exception when others then null;
+end $$;
+
+-- ==============================================================================
+-- 10. Automatic User Profile Creation Trigger
+-- ==============================================================================
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, full_name, role)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data->>'role', 'teacher')
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    full_name = coalesce(excluded.full_name, public.profiles.full_name),
+    role = coalesce(excluded.role, public.profiles.role),
+    updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Backfill profile records for any existing auth users
+insert into public.profiles (id, email, full_name, role)
+select
+  id,
+  email,
+  coalesce(raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
+  coalesce(raw_user_meta_data->>'role', 'teacher')
+from auth.users
+on conflict (id) do update set
+  email = excluded.email,
+  updated_at = now();
+
