@@ -114,7 +114,7 @@ export default function TeacherMoreScreen() {
               <Badge label="Teacher" variant="primary" size="sm" />
             </View>
             <Text variant="caption" style={styles.profileEmail}>
-              {user?.email ?? 'teacher@eduflow.app'}
+              {user?.email ?? ''}
             </Text>
           </View>
           <Feather
