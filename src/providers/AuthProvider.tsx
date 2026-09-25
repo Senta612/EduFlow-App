@@ -9,14 +9,6 @@ import {
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
-import {
-  createMockProfile,
-  createMockSession,
-  createMockSupabaseUser,
-  getStoredMockUser,
-  removeStoredMockUser,
-  subscribeMockAuth,
-} from '@/services/mockAuth';
 import { profileService } from '@/services/profile.service';
 import type { Profile } from '@/types/profile';
 
@@ -46,38 +38,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
 
-    // Listen to mock auth changes
-    const unsubscribeMock = subscribeMockAuth((mockUser) => {
-      if (!mounted) return;
-      if (mockUser) {
-        activeUserIdRef.current = mockUser.id;
-        setUser(createMockSupabaseUser(mockUser));
-        setSession(createMockSession(mockUser));
-        setProfile(createMockProfile(mockUser));
-        setIsLoading(false);
-      } else {
-        activeUserIdRef.current = null;
-        setUser(null);
-        setSession(null);
-        setProfile(null);
-        setIsLoading(false);
-      }
-    });
-
     const initializeAuth = async () => {
       try {
-        // 1. Check for stored mock user first
-        const storedMockUser = await getStoredMockUser();
-        if (storedMockUser && mounted) {
-          activeUserIdRef.current = storedMockUser.id;
-          setUser(createMockSupabaseUser(storedMockUser));
-          setSession(createMockSession(storedMockUser));
-          setProfile(createMockProfile(storedMockUser));
-          setIsLoading(false);
-          return;
-        }
-
-        // 2. Check Supabase session
         const {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
@@ -125,12 +87,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // If mock user is currently active, don't overwrite with null supabase session
-      const storedMockUser = await getStoredMockUser();
-      if (storedMockUser) {
-        return;
-      }
-
       const newUser = newSession?.user ?? null;
 
       // When signed out or no session exists
@@ -175,13 +131,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false;
-      unsubscribeMock();
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
-    await removeStoredMockUser();
     activeUserIdRef.current = null;
     setUser(null);
     setSession(null);
@@ -195,7 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const updateProfile = async (updates: Partial<Profile>): Promise<Profile> => {
-    const targetId = activeUserIdRef.current || profile?.id || 'teacher-default';
+    const targetId = activeUserIdRef.current || profile?.id || user?.id || '';
     const updated = await profileService.updateProfile(targetId, updates);
     setProfile(updated);
     return updated;
