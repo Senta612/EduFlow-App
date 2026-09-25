@@ -183,6 +183,36 @@ export async function signOut() {
   return { error };
 }
 
+export interface ResendVerificationResult {
+  error: AuthError | null;
+  errorKind: AuthErrorKind | null;
+}
+
+/**
+ * Resends the confirmation/verification email for a user who signed up but has
+ * not yet confirmed their email address.
+ */
+export async function resendVerificationEmail(
+  email: string,
+): Promise<ResendVerificationResult> {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+  });
+
+  if (error) {
+    return {
+      error,
+      errorKind: classifyAuthError(error),
+    };
+  }
+
+  return {
+    error: null,
+    errorKind: null,
+  };
+}
+
 // Deep link base configured for this app via the "eduflow" scheme in app.json.
 // When the user opens the reset link from the email, Supabase redirects them
 // back to the app at this address (the future password-reset screen route).
