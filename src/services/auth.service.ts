@@ -7,14 +7,6 @@ import {
   User,
 } from '@supabase/supabase-js';
 
-import {
-  findMockUser,
-  setStoredMockUser,
-  removeStoredMockUser,
-  createMockSession,
-  createMockSupabaseUser,
-} from './mockAuth';
-
 /**
  * Categorises the typable auth failures so UI layers can respond and display
  * friendly copy without reaching into raw Supabase error objects.
@@ -143,18 +135,6 @@ export interface SignInResult {
 }
 
 export async function signIn(email: string, password: string): Promise<SignInResult> {
-  // Check if test user credentials are used
-  const mockUser = findMockUser(email, password);
-  if (mockUser) {
-    await setStoredMockUser(mockUser);
-    return {
-      session: createMockSession(mockUser),
-      user: createMockSupabaseUser(mockUser),
-      error: null,
-      errorKind: null,
-    };
-  }
-
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -178,7 +158,6 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 }
 
 export async function signOut() {
-  await removeStoredMockUser();
   const { error } = await supabase.auth.signOut();
   return { error };
 }
