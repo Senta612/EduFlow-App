@@ -53,13 +53,21 @@ export default function StudentProfileScreen() {
   }, [loadData]);
 
   const handleCallTeacher = () => {
-    const phone = summary?.enrolledBatch?.teacherPhone || '+919876500123';
-    Linking.openURL(`tel:${phone}`);
+    const phone = summary?.enrolledBatch?.teacherPhone;
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
+    } else {
+      Alert.alert('Contact Unavailable', 'Teacher phone number is not listed.');
+    }
   };
 
   const handleEmailTeacher = () => {
-    const email = summary?.enrolledBatch?.teacherEmail || 'rajesh.sharma@eduflow.app';
-    Linking.openURL(`mailto:${email}?subject=EduFlow Student Query - ${summary?.studentName || 'Student'}`);
+    const email = summary?.enrolledBatch?.teacherEmail;
+    if (email) {
+      Linking.openURL(`mailto:${email}?subject=EduFlow Student Query - ${summary?.studentName || 'Student'}`);
+    } else {
+      Alert.alert('Contact Unavailable', 'Teacher email address is not listed.');
+    }
   };
 
   const handleSignOut = async () => {
@@ -86,16 +94,17 @@ export default function StudentProfileScreen() {
     );
   };
 
-  const studentName = profile?.full_name || summary?.studentName || 'Aarav Sharma';
-  const rollNumber = summary?.rollNumber || '1001';
+  const studentName = profile?.full_name || summary?.studentName || user?.email?.split('@')[0] || 'Student';
+  const rollNumber = summary?.rollNumber || '-';
   const batch = summary?.enrolledBatch;
 
   const initials = studentName
     .split(' ')
     .map((n) => n[0])
+    .filter(Boolean)
     .join('')
     .substring(0, 2)
-    .toUpperCase();
+    .toUpperCase() || 'ST';
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -125,11 +134,11 @@ export default function StudentProfileScreen() {
               <View style={styles.profileInfo}>
                 <View style={styles.nameRow}>
                   <Text style={styles.nameText}>{studentName}</Text>
-                  <Badge label="Enrolled" variant="success" size="sm" />
+                  {batch ? <Badge label="Enrolled" variant="success" size="sm" /> : <Badge label="Student" variant="neutral" size="sm" />}
                 </View>
 
-                <Text style={styles.rollText}>Roll Number: #{rollNumber}</Text>
-                <Text style={styles.emailText}>{profile?.phone || 'aarav.sharma@eduflow.app'}</Text>
+                {rollNumber !== '-' && <Text style={styles.rollText}>Roll Number: #{rollNumber}</Text>}
+                <Text style={styles.emailText}>{profile?.phone || profile?.email || user?.email || 'Student Account'}</Text>
               </View>
             </View>
 
