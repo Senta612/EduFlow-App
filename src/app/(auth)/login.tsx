@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { EmailConfirmationModal } from '@/components/ui/EmailConfirmationModal';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { getFriendlyAuthMessage, signIn } from '@/services/auth.service';
@@ -22,6 +23,8 @@ import { LoginFormData, loginSchema } from '@/types/auth';
 export default function LoginScreen() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('');
 
   const {
     control,
@@ -42,15 +45,13 @@ export default function LoginScreen() {
     const { error, errorKind } = await signIn(data.email, data.password);
 
     if (error || errorKind) {
+      if (errorKind === 'email_not_confirmed') {
+        setUnconfirmedEmail(data.email.trim());
+        setShowConfirmModal(true);
+      }
       setLoginError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
-  };
-
-  const handleQuickLogin = (email: string, role: string) => {
-    setValue('email', email);
-    setValue('password', 'test@123');
-    onSubmit({ email, password: 'test@123' });
   };
 
   return (
@@ -145,38 +146,6 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Quick Test Accounts Box */}
-        <View style={styles.testAccountsContainer}>
-          <Text variant="caption" style={styles.testAccountsHeader}>
-            🧪 Quick Test Accounts
-          </Text>
-          <View style={styles.testButtonsRow}>
-            <Pressable
-              style={styles.testAccountButton}
-              onPress={() => handleQuickLogin('test@gmail.com', 'teacher')}
-            >
-              <Text variant="caption" style={styles.testAccountTitle}>
-                👨‍🏫 Teacher
-              </Text>
-              <Text variant="caption" style={styles.testAccountEmail}>
-                test@gmail.com
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.testAccountButton}
-              onPress={() => handleQuickLogin('test1@gmail.com', 'student')}
-            >
-              <Text variant="caption" style={styles.testAccountTitle}>
-                🎓 Student
-              </Text>
-              <Text variant="caption" style={styles.testAccountEmail}>
-                test1@gmail.com
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
         <View style={styles.switchContainer}>
           <Text variant="body" style={styles.switchText}>
             Don't have an account?
@@ -188,6 +157,13 @@ export default function LoginScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <EmailConfirmationModal
+        visible={showConfirmModal}
+        email={unconfirmedEmail}
+        onClose={() => setShowConfirmModal(false)}
+        onGoToLogin={() => setShowConfirmModal(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -248,49 +224,5 @@ const styles = StyleSheet.create({
 
   switchLink: {
     color: theme.colors.primary.main,
-  },
-
-  testAccountsContainer: {
-    padding: theme.spacing.md,
-    borderRadius: theme.radii.lg,
-    backgroundColor: theme.colors.background.paper,
-    borderWidth: 1,
-    borderColor: theme.colors.border.main,
-    gap: theme.spacing.sm,
-  },
-
-  testAccountsHeader: {
-    color: theme.colors.text.secondary,
-    fontWeight: '600',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
-  testButtonsRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-
-  testAccountButton: {
-    flex: 1,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.xs,
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.background.screen,
-    borderWidth: 1,
-    borderColor: theme.colors.border.main,
-    alignItems: 'center',
-    gap: 2,
-  },
-
-  testAccountTitle: {
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-  },
-
-  testAccountEmail: {
-    fontSize: 11,
-    color: theme.colors.text.secondary,
   },
 });
