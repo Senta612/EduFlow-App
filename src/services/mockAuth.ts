@@ -10,22 +10,7 @@ export interface MockUser {
   role: UserRole;
 }
 
-export const MOCK_USERS: MockUser[] = [
-  {
-    id: 'mock-teacher-001',
-    email: 'test@gmail.com',
-    password: 'test@123',
-    full_name: 'Test Teacher',
-    role: 'teacher',
-  },
-  {
-    id: 'mock-student-001',
-    email: 'test1@gmail.com',
-    password: 'test@123',
-    full_name: 'Test Student',
-    role: 'student',
-  },
-];
+export const MOCK_USERS: MockUser[] = [];
 
 const MOCK_AUTH_STORAGE_KEY = '@eduflow_mock_auth_user';
 
