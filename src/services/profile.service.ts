@@ -11,49 +11,75 @@ export const profileService = {
       error: userError,
     } = await supabase.auth.getUser();
 
+    if (userError || !user) {
+      return null;
+    }
+
     let baseProfile: Profile | null = null;
 
-    if (!userError && user) {
+    try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         baseProfile = data as Profile;
       } else {
-        const metaRole = user.user_metadata?.role;
-        if (metaRole === 'teacher' || metaRole === 'student') {
-          baseProfile = {
+        const metaRole = (user.user_metadata?.role as UserRole) || 'teacher';
+        const fullName = user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : 'User');
+        
+        // Create initial profile record if none exists yet
+        const newProfile: Profile = {
+          id: user.id,
+          email: user.email,
+          full_name: fullName,
+          role: metaRole,
+          phone: null,
+          institute_name: null,
+          specialization: null,
+          qualifications: null,
+          bio: null,
+          created_at: user.created_at,
+          updated_at: user.created_at,
+        };
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
             id: user.id,
-            full_name: user.user_metadata?.full_name ?? 'User',
-            role: metaRole as UserRole,
-            phone: null,
-            created_at: user.created_at,
-            updated_at: user.created_at,
-          };
-        }
+            email: user.email,
+            full_name: fullName,
+            role: metaRole,
+          })
+          .select()
+          .maybeSingle();
+
+        baseProfile = (!insertError && inserted) ? (inserted as Profile) : newProfile;
       }
+    } catch (e) {
+      console.warn('Profile fetch warning:', e);
     }
 
-    // Default fallback profile if offline/mock
     if (!baseProfile) {
+      const metaRole = (user.user_metadata?.role as UserRole) || 'teacher';
       baseProfile = {
-        id: 'teacher-default',
-        full_name: 'Prof. Rajesh Sharma',
-        role: 'teacher',
-        phone: '+91 98765 43210',
-        institute_name: 'EduFlow Coaching Academy',
-        specialization: 'Class 10-12 Mathematics & Physics Expert',
-        qualifications: 'M.Sc. Mathematics • 8+ Years Teaching Experience',
-        bio: 'Passionate educator dedicated to building strong problem-solving foundations and concept clarity for board and competitive exams.',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : 'User'),
+        role: metaRole,
+        phone: null,
+        institute_name: null,
+        specialization: null,
+        qualifications: null,
+        bio: null,
+        created_at: user.created_at || new Date().toISOString(),
+        updated_at: user.created_at || new Date().toISOString(),
       };
     }
 
-    // Check for locally saved profile customizations
+    // Check for locally saved profile customizations as offline fallback
     try {
       const stored = await AsyncStorage.getItem(`${PROFILE_STORAGE_PREFIX}${baseProfile.id}`);
       if (stored) {
@@ -67,22 +93,19 @@ export const profileService = {
       // ignore storage read error
     }
 
-    // Ensure default values for tuition fields if missing
-    if (baseProfile) {
-      if (!baseProfile.institute_name) baseProfile.institute_name = 'EduFlow Coaching Academy';
-      if (!baseProfile.specialization) baseProfile.specialization = 'Mathematics & Science Faculty';
-      if (!baseProfile.qualifications) baseProfile.qualifications = 'Senior Faculty • 5+ Years Experience';
-    }
-
     return baseProfile;
   },
 
   async updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile> {
     const current = (await this.getCurrentProfile()) || {
       id: userId,
-      full_name: 'Teacher',
-      role: 'teacher',
+      full_name: 'User',
+      role: 'teacher' as UserRole,
       phone: null,
+      institute_name: null,
+      specialization: null,
+      qualifications: null,
+      bio: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -103,11 +126,12 @@ export const profileService = {
       console.warn('Failed to save profile to AsyncStorage:', e);
     }
 
-    // Attempt remote save to Supabase if connected
+    // Remote save to Supabase
     try {
       await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: userId,
           full_name: updatedProfile.full_name,
           phone: updatedProfile.phone,
           institute_name: updatedProfile.institute_name,
@@ -115,10 +139,9 @@ export const profileService = {
           qualifications: updatedProfile.qualifications,
           bio: updatedProfile.bio,
           updated_at: updatedProfile.updated_at,
-        })
-        .eq('id', userId);
-    } catch {
-      // ignore network errors if running in mock/offline mode
+        });
+    } catch (e) {
+      console.warn('Failed to sync profile update to Supabase:', e);
     }
 
     return updatedProfile;
