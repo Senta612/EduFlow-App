@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { EmailConfirmationModal } from '@/components/ui/EmailConfirmationModal';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { getFriendlyAuthMessage, signUp } from '@/services/auth.service';
@@ -27,21 +28,12 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'student', label: 'Student' },
 ];
 
-function showEmailConfirmationAlert() {
-  Alert.alert(
-    'Confirm your email',
-    "We've sent a confirmation link to your email. Please confirm your email before logging in.",
-    [
-      { text: 'Cancel', style: 'cancel', onPress: () => { } },
-      { text: 'Go to Login', onPress: () => router.replace('/login') },
-    ],
-  );
-}
-
 export default function SignupScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const {
     control,
@@ -68,7 +60,8 @@ export default function SignupScreen() {
       return;
     }
     if (requiresEmailConfirmation) {
-      showEmailConfirmationAlert();
+      setRegisteredEmail(data.email.trim());
+      setConfirmationModalVisible(true);
       return;
     }
   };
@@ -254,6 +247,16 @@ export default function SignupScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <EmailConfirmationModal
+        visible={confirmationModalVisible}
+        email={registeredEmail}
+        onClose={() => setConfirmationModalVisible(false)}
+        onGoToLogin={() => {
+          setConfirmationModalVisible(false);
+          router.replace('/login');
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
