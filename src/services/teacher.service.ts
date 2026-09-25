@@ -24,229 +24,6 @@ import {
   TuitionAnalyticsSummary,
 } from '@/types/teacher';
 
-// Initial baseline teaching data
-const INITIAL_BATCHES: Batch[] = [
-  {
-    id: 'batch-math-10',
-    name: 'Class 10 - Alpha',
-    grade: 'Class 10',
-    subject: 'Mathematics',
-    studentCount: 32,
-    schedule: 'Mon • Wed • Fri',
-    timing: '10:00 AM - 11:30 AM',
-    room: 'Room 204',
-    attendanceTakenToday: false,
-  },
-  {
-    id: 'batch-phy-12',
-    name: 'Class 12 - Advanced',
-    grade: 'Class 12',
-    subject: 'Physics',
-    studentCount: 25,
-    schedule: 'Tue • Thu • Sat',
-    timing: '12:30 PM - 02:00 PM',
-    room: 'Lab 2',
-    attendanceTakenToday: false,
-  },
-  {
-    id: 'batch-chem-11',
-    name: 'Class 11 - Prime',
-    grade: 'Class 11',
-    subject: 'Chemistry',
-    studentCount: 28,
-    schedule: 'Mon • Wed • Fri',
-    timing: '03:00 PM - 04:30 PM',
-    room: 'Room 105',
-    attendanceTakenToday: true,
-  },
-];
-
-const INITIAL_STUDENTS: Record<string, Student[]> = {
-  'batch-math-10': [
-    { id: 'st-01', name: 'Aarav Sharma', rollNumber: '1001', email: 'aarav.s@eduflow.app', parentPhone: '+91 98765 43210' },
-    { id: 'st-02', name: 'Ananya Verma', rollNumber: '1002', email: 'ananya.v@eduflow.app', parentPhone: '+91 98765 43211' },
-    { id: 'st-03', name: 'Dhruv Patel', rollNumber: '1003', email: 'dhruv.p@eduflow.app', parentPhone: '+91 98765 43212' },
-    { id: 'st-04', name: 'Diya Joshi', rollNumber: '1004', email: 'diya.j@eduflow.app', parentPhone: '+91 98765 43213' },
-    { id: 'st-05', name: 'Ishaan Kumar', rollNumber: '1005', email: 'ishaan.k@eduflow.app', parentPhone: '+91 98765 43214' },
-    { id: 'st-06', name: 'Kavya Nair', rollNumber: '1006', email: 'kavya.n@eduflow.app', parentPhone: '+91 98765 43215' },
-    { id: 'st-07', name: 'Manav Gupta', rollNumber: '1007', email: 'manav.g@eduflow.app', parentPhone: '+91 98765 43216' },
-    { id: 'st-08', name: 'Neha Reddy', rollNumber: '1008', email: 'neha.r@eduflow.app', parentPhone: '+91 98765 43217' },
-    { id: 'st-09', name: 'Pranav Shah', rollNumber: '1009', email: 'pranav.s@eduflow.app', parentPhone: '+91 98765 43218' },
-    { id: 'st-10', name: 'Rhea Mehta', rollNumber: '1010', email: 'rhea.m@eduflow.app', parentPhone: '+91 98765 43219' },
-    { id: 'st-11', name: 'Rohan Deshmukh', rollNumber: '1011', email: 'rohan.d@eduflow.app', parentPhone: '+91 98765 43220' },
-    { id: 'st-12', name: 'Sanya Malhotra', rollNumber: '1012', email: 'sanya.m@eduflow.app', parentPhone: '+91 98765 43221' },
-  ],
-  'batch-phy-12': [
-    { id: 'st-21', name: 'Aditya Sen', rollNumber: '1201', email: 'aditya.s@eduflow.app', parentPhone: '+91 98765 43230' },
-    { id: 'st-22', name: 'Bhavna Kulkarni', rollNumber: '1202', email: 'bhavna.k@eduflow.app', parentPhone: '+91 98765 43231' },
-    { id: 'st-23', name: 'Chirag Sethi', rollNumber: '1203', email: 'chirag.s@eduflow.app', parentPhone: '+91 98765 43232' },
-    { id: 'st-24', name: 'Deepika Rao', rollNumber: '1204', email: 'deepika.r@eduflow.app', parentPhone: '+91 98765 43233' },
-    { id: 'st-25', name: 'Eklavya Singh', rollNumber: '1205', email: 'eklavya.s@eduflow.app', parentPhone: '+91 98765 43234' },
-  ],
-  'batch-chem-11': [
-    { id: 'st-31', name: 'Farhan Akhtar', rollNumber: '1101', email: 'farhan.a@eduflow.app', parentPhone: '+91 98765 43240' },
-    { id: 'st-32', name: 'Gauri Shinde', rollNumber: '1102', email: 'gauri.s@eduflow.app', parentPhone: '+91 98765 43241' },
-    { id: 'st-33', name: 'Harsh Vardhan', rollNumber: '1103', email: 'harsh.v@eduflow.app', parentPhone: '+91 98765 43242' },
-  ],
-};
-
-const INITIAL_HOMEWORK: Homework[] = [
-  {
-    id: 'hw-01',
-    batchId: 'batch-math-10',
-    batchName: 'Class 10 - Alpha',
-    title: 'Quadratic Equations Exercise 4.2',
-    description: 'Solve Questions 1 to 15 in homework notebook with step-by-step solutions.',
-    dueDate: 'Tomorrow, 05:00 PM',
-    createdAt: 'Yesterday',
-    submissionsCount: 26,
-    totalStudents: 32,
-  },
-  {
-    id: 'hw-02',
-    batchId: 'batch-phy-12',
-    batchName: 'Class 12 - Advanced',
-    title: "Electrostatics & Gauss's Law Problems",
-    description: 'Complete numerical practice sheet 3. Derive electric field due to infinite sheet.',
-    dueDate: 'Monday, 10:00 AM',
-    createdAt: '2 days ago',
-    submissionsCount: 18,
-    totalStudents: 25,
-  },
-];
-
-const INITIAL_TESTS: Test[] = [
-  {
-    id: 'test-01',
-    batchId: 'batch-math-10',
-    batchName: 'Class 10 - Alpha',
-    title: 'Unit Test 2: Polynomials & Quadratics',
-    date: '10 Sep 2026',
-    maxMarks: 50,
-    submittedCount: 32,
-    totalStudents: 32,
-  },
-  {
-    id: 'test-02',
-    batchId: 'batch-phy-12',
-    batchName: 'Class 12 - Advanced',
-    title: 'Monthly Assessment: Electrostatics',
-    date: '08 Sep 2026',
-    maxMarks: 40,
-    submittedCount: 15,
-    totalStudents: 25,
-  },
-];
-
-const INITIAL_ATTENDANCE: AttendanceRecord[] = [
-  {
-    id: 'att-math-1',
-    batchId: 'batch-math-10',
-    date: '2026-09-18',
-    records: [
-      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
-      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
-      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'present' },
-      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'absent' },
-      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'present' },
-      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
-      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'present' },
-      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
-      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'absent' },
-      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
-      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
-      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
-    ],
-    totalStudents: 12,
-    presentCount: 10,
-    absentCount: 2,
-    submittedAt: '2026-09-18T10:35:00Z',
-  },
-  {
-    id: 'att-math-2',
-    batchId: 'batch-math-10',
-    date: '2026-09-16',
-    records: [
-      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
-      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
-      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'absent' },
-      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'present' },
-      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'present' },
-      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
-      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'present' },
-      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
-      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'present' },
-      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
-      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
-      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
-    ],
-    totalStudents: 12,
-    presentCount: 11,
-    absentCount: 1,
-    submittedAt: '2026-09-16T10:30:00Z',
-  },
-  {
-    id: 'att-math-3',
-    batchId: 'batch-math-10',
-    date: '2026-09-14',
-    records: [
-      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
-      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
-      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'present' },
-      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'present' },
-      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'present' },
-      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
-      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'absent' },
-      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
-      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'present' },
-      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
-      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
-      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
-    ],
-    totalStudents: 12,
-    presentCount: 11,
-    absentCount: 1,
-    submittedAt: '2026-09-14T10:25:00Z',
-  },
-  {
-    id: 'att-math-4',
-    batchId: 'batch-math-10',
-    date: '2026-09-11',
-    records: [
-      { studentId: 'st-01', studentName: 'Aarav Sharma', rollNumber: '1001', status: 'present' },
-      { studentId: 'st-02', studentName: 'Ananya Verma', rollNumber: '1002', status: 'present' },
-      { studentId: 'st-03', studentName: 'Dhruv Patel', rollNumber: '1003', status: 'present' },
-      { studentId: 'st-04', studentName: 'Diya Joshi', rollNumber: '1004', status: 'present' },
-      { studentId: 'st-05', studentName: 'Ishaan Kumar', rollNumber: '1005', status: 'absent' },
-      { studentId: 'st-06', studentName: 'Kavya Nair', rollNumber: '1006', status: 'present' },
-      { studentId: 'st-07', studentName: 'Manav Gupta', rollNumber: '1007', status: 'present' },
-      { studentId: 'st-08', studentName: 'Neha Reddy', rollNumber: '1008', status: 'present' },
-      { studentId: 'st-09', studentName: 'Pranav Shah', rollNumber: '1009', status: 'present' },
-      { studentId: 'st-10', studentName: 'Rhea Mehta', rollNumber: '1010', status: 'present' },
-      { studentId: 'st-11', studentName: 'Rohan Deshmukh', rollNumber: '1011', status: 'present' },
-      { studentId: 'st-12', studentName: 'Sanya Malhotra', rollNumber: '1012', status: 'present' },
-    ],
-    totalStudents: 12,
-    presentCount: 11,
-    absentCount: 1,
-    submittedAt: '2026-09-11T10:32:00Z',
-  },
-  {
-    id: 'att-chem-today',
-    batchId: 'batch-chem-11',
-    date: new Date().toISOString().split('T')[0],
-    records: [
-      { studentId: 'st-31', studentName: 'Farhan Akhtar', rollNumber: '1101', status: 'present' },
-      { studentId: 'st-32', studentName: 'Gauri Shinde', rollNumber: '1102', status: 'present' },
-      { studentId: 'st-33', studentName: 'Harsh Vardhan', rollNumber: '1103', status: 'absent' },
-    ],
-    totalStudents: 3,
-    presentCount: 2,
-    absentCount: 1,
-    submittedAt: new Date().toISOString(),
-  },
-];
-
 const STORAGE_KEYS = {
   BATCHES: '@eduflow_teacher_batches',
   ATTENDANCE: '@eduflow_teacher_attendance',
@@ -301,7 +78,7 @@ class TeacherService {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         const mappedBatches: Batch[] = data.map((b) => ({
           id: b.id,
           name: b.name,
@@ -314,12 +91,22 @@ class TeacherService {
           attendanceTakenToday: false,
         }));
         await this.setStored(STORAGE_KEYS.BATCHES, mappedBatches);
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        const attendance = await this.getAttendanceRecords();
+        const attendanceMap = new Set(
+          attendance.filter((r) => r.date === todayStr).map((r) => r.batchId),
+        );
+        return mappedBatches.map((b) => ({
+          ...b,
+          attendanceTakenToday: attendanceMap.has(b.id) || Boolean(b.attendanceTakenToday),
+        }));
       }
     } catch (err) {
       console.warn('Supabase getBatches notice:', err);
     }
 
-    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
+    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
     const todayStr = new Date().toISOString().split('T')[0];
     const attendance = await this.getAttendanceRecords();
     const attendanceMap = new Set(
@@ -363,7 +150,7 @@ class TeacherService {
         .from('batches')
         .select('*')
         .eq('id', batchId)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         const takenToday = await this.isAttendanceTakenToday(batchId);
@@ -427,14 +214,27 @@ class TeacherService {
       console.warn('Supabase createBatch notice:', err);
     }
 
-    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
-    const updated = [newBatch, ...batches];
+    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
+    const updated = [newBatch, ...batches.filter((b) => b.id !== newBatch.id)];
     await this.setStored(STORAGE_KEYS.BATCHES, updated);
 
     // Notify listeners
     batchListeners.forEach((listener) => listener(updated));
 
     return newBatch;
+  }
+
+  async deleteBatch(batchId: string): Promise<void> {
+    try {
+      await supabase.from('batches').delete().eq('id', batchId);
+    } catch (err) {
+      console.warn('Supabase deleteBatch notice:', err);
+    }
+
+    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
+    const filtered = batches.filter((b) => b.id !== batchId);
+    await this.setStored(STORAGE_KEYS.BATCHES, filtered);
+    batchListeners.forEach((listener) => listener(filtered));
   }
 
   subscribeBatches(listener: BatchListener): () => void {
@@ -467,11 +267,7 @@ class TeacherService {
   // Students
   async getAllStudents(): Promise<Record<string, Student[]>> {
     const stored = await this.getStored<Record<string, Student[]> | null>(STORAGE_KEYS.STUDENTS, null);
-    if (!stored) {
-      await this.setStored(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
-      return { ...INITIAL_STUDENTS };
-    }
-    return stored;
+    return stored || {};
   }
 
   async getBatchStudents(batchId: string): Promise<Student[]> {
@@ -482,7 +278,7 @@ class TeacherService {
         .eq('batch_id', batchId)
         .order('roll_number', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         const mapped: Student[] = data.map((s) => ({
           id: s.id,
           name: s.name,
@@ -501,17 +297,7 @@ class TeacherService {
     }
 
     const allStudents = await this.getAllStudents();
-    if (allStudents[batchId] && allStudents[batchId].length >= 0) {
-      return allStudents[batchId];
-    }
-    const defaults = INITIAL_STUDENTS[batchId] ?? [
-      { id: `st-${batchId}-1`, name: 'Aarav Kumar', rollNumber: '01', parentPhone: '+91 98765 43210' },
-      { id: `st-${batchId}-2`, name: 'Bhavna Sharma', rollNumber: '02', parentPhone: '+91 98765 43211' },
-      { id: `st-${batchId}-3`, name: 'Chetan Patel', rollNumber: '03', parentPhone: '+91 98765 43212' },
-    ];
-    allStudents[batchId] = defaults;
-    await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
-    return defaults;
+    return allStudents[batchId] || [];
   }
 
   async addStudent(batchId: string, studentData: Omit<Student, 'id'>): Promise<Student> {
@@ -542,10 +328,7 @@ class TeacherService {
     }
 
     const allStudents = await this.getAllStudents();
-    let batchStudents = allStudents[batchId];
-    if (!batchStudents) {
-      batchStudents = await this.getBatchStudents(batchId);
-    }
+    let batchStudents = allStudents[batchId] || [];
 
     const updatedBatchStudents = [...batchStudents, newStudent];
     allStudents[batchId] = updatedBatchStudents;
@@ -561,6 +344,16 @@ class TeacherService {
       };
       await this.setStored(STORAGE_KEYS.BATCHES, batches);
       batchListeners.forEach((listener) => listener(batches));
+    }
+
+    // Sync student_count to Supabase batch
+    try {
+      await supabase
+        .from('batches')
+        .update({ student_count: updatedBatchStudents.length })
+        .eq('id', batchId);
+    } catch (e) {
+      console.warn('Sync student count notice:', e);
     }
 
     return newStudent;
@@ -587,10 +380,7 @@ class TeacherService {
     }
 
     const allStudents = await this.getAllStudents();
-    let batchStudents = allStudents[batchId];
-    if (!batchStudents) {
-      batchStudents = await this.getBatchStudents(batchId);
-    }
+    let batchStudents = allStudents[batchId] || [];
 
     const index = batchStudents.findIndex((s) => s.id === studentId);
 
@@ -627,10 +417,7 @@ class TeacherService {
     }
 
     const allStudents = await this.getAllStudents();
-    let batchStudents = allStudents[batchId];
-    if (!batchStudents) {
-      batchStudents = await this.getBatchStudents(batchId);
-    }
+    let batchStudents = allStudents[batchId] || [];
 
     const filtered = batchStudents.filter((s) => s.id !== studentId);
     allStudents[batchId] = filtered;
@@ -647,40 +434,62 @@ class TeacherService {
       await this.setStored(STORAGE_KEYS.BATCHES, batches);
       batchListeners.forEach((listener) => listener(batches));
     }
+
+    try {
+      await supabase
+        .from('batches')
+        .update({ student_count: filtered.length })
+        .eq('id', batchId);
+    } catch (e) {
+      console.warn('Sync student count notice:', e);
+    }
   }
 
   // Attendance
   async getAttendanceRecords(): Promise<AttendanceRecord[]> {
     try {
-      const { data, error } = await supabase
+      const { data: recs, error } = await supabase
         .from('attendance_records')
         .select('*')
         .order('date', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        // Fetch items if available
-        const mappedRecords: AttendanceRecord[] = data.map((r) => ({
+      if (!error && recs) {
+        const { data: items } = await supabase
+          .from('attendance_items')
+          .select('*, students(name, roll_number)');
+
+        const itemsByRecordId = new Map<string, StudentAttendanceItem[]>();
+        if (items) {
+          items.forEach((item: any) => {
+            const list = itemsByRecordId.get(item.attendance_record_id) || [];
+            list.push({
+              studentId: item.student_id,
+              studentName: item.students?.name || 'Student',
+              rollNumber: item.students?.roll_number || '',
+              status: item.status as AttendanceStatus,
+            });
+            itemsByRecordId.set(item.attendance_record_id, list);
+          });
+        }
+
+        const mappedRecords: AttendanceRecord[] = recs.map((r) => ({
           id: r.id,
           batchId: r.batch_id,
           date: r.date,
-          records: [],
+          records: itemsByRecordId.get(r.id) || [],
           totalStudents: r.total_students,
           presentCount: r.present_count,
           absentCount: r.absent_count,
           submittedAt: r.submitted_at,
         }));
         await this.setStored(STORAGE_KEYS.ATTENDANCE, mappedRecords);
+        return mappedRecords;
       }
     } catch (err) {
       console.warn('Supabase getAttendanceRecords notice:', err);
     }
 
-    const stored = await this.getStored<AttendanceRecord[] | null>(STORAGE_KEYS.ATTENDANCE, null);
-    if (!stored) {
-      await this.setStored(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
-      return [...INITIAL_ATTENDANCE];
-    }
-    return stored;
+    return this.getStored<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
   }
 
   async getBatchAttendanceHistory(batchId: string): Promise<AttendanceRecord[]> {
@@ -723,7 +532,7 @@ class TeacherService {
           absent_count: absentCount,
           total_students: records.length,
           submitted_at: newRecord.submittedAt,
-        })
+        }, { onConflict: 'batch_id,date' })
         .select()
         .single();
 
@@ -734,7 +543,7 @@ class TeacherService {
           student_id: r.studentId,
           status: r.status,
         }));
-        await supabase.from('attendance_items').upsert(items);
+        await supabase.from('attendance_items').upsert(items, { onConflict: 'attendance_record_id,student_id' });
       }
     } catch (err) {
       console.warn('Supabase submitAttendance notice:', err);
@@ -765,11 +574,29 @@ class TeacherService {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         const batches = await this.getBatches();
         const batchMap = new Map(batches.map((b) => [b.id, b]));
+
+        const { data: subs } = await supabase.from('homework_submissions').select('homework_id, status');
+        const subCounts = new Map<string, { done: number; half: number; notDone: number; total: number }>();
+        if (subs) {
+          subs.forEach((s) => {
+            const c = subCounts.get(s.homework_id) || { done: 0, half: 0, notDone: 0, total: 0 };
+            if (s.status === 'done') c.done++;
+            else if (s.status === 'half_done') c.half++;
+            else if (s.status === 'not_done') c.notDone++;
+            c.total++;
+            subCounts.set(s.homework_id, c);
+          });
+        }
+
         const mapped: Homework[] = data.map((h) => {
           const b = batchMap.get(h.batch_id);
+          const c = subCounts.get(h.id);
+          const done = c?.done || 0;
+          const half = c?.half || 0;
+          const notDone = c?.notDone || 0;
           return {
             id: h.id,
             batchId: h.batch_id,
@@ -778,17 +605,21 @@ class TeacherService {
             description: h.description || undefined,
             dueDate: h.due_date,
             createdAt: h.created_at,
-            submissionsCount: 0,
-            totalStudents: b?.studentCount || 0,
+            submissionsCount: done + half,
+            totalStudents: b?.studentCount || (c ? c.total : 0),
+            doneCount: done,
+            halfDoneCount: half,
+            notDoneCount: notDone,
           };
         });
         await this.setStored(STORAGE_KEYS.HOMEWORK, mapped);
+        return mapped;
       }
     } catch (err) {
       console.warn('Supabase getHomeworkList notice:', err);
     }
 
-    return this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, INITIAL_HOMEWORK);
+    return this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
   }
 
   async getBatchHomework(batchId: string): Promise<Homework[]> {
@@ -833,39 +664,57 @@ class TeacherService {
       console.warn('Supabase createHomework notice:', err);
     }
 
-    const all = await this.getHomeworkList();
-    const updated = [newHw, ...all];
+    const all = await this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
+    const updated = [newHw, ...all.filter((h) => h.id !== newHw.id)];
     await this.setStored(STORAGE_KEYS.HOMEWORK, updated);
     return newHw;
+  }
+
+  async deleteHomework(homeworkId: string): Promise<void> {
+    try {
+      await supabase.from('homework_assignments').delete().eq('id', homeworkId);
+    } catch (err) {
+      console.warn('Supabase deleteHomework notice:', err);
+    }
+
+    const list = await this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
+    const filtered = list.filter((h) => h.id !== homeworkId);
+    await this.setStored(STORAGE_KEYS.HOMEWORK, filtered);
   }
 
   async getHomeworkSubmissions(
     homeworkId: string,
     batchId: string,
   ): Promise<StudentHomeworkItem[]> {
-    const key = `${STORAGE_KEYS.HW_SUBMISSIONS}_${homeworkId}`;
-    const stored = await this.getStored<StudentHomeworkItem[] | null>(key, null);
     const students = await this.getBatchStudents(batchId);
 
-    const initialHwMap: Record<string, Record<string, { status: HomeworkStatus; remarks?: string }>> = {
-      'hw-01': {
-        'st-01': { status: 'done', remarks: 'Excellent step-by-step solutions!' },
-        'st-02': { status: 'done', remarks: 'Neat notebook work.' },
-        'st-03': { status: 'half_done', remarks: 'Completed 8 out of 15 questions.' },
-        'st-04': { status: 'done', remarks: 'Good work.' },
-        'st-05': { status: 'done', remarks: 'All formulas verified.' },
-        'st-06': { status: 'done', remarks: 'Complete.' },
-        'st-07': { status: 'not_done', remarks: 'Needs to submit tomorrow.' },
-        'st-08': { status: 'done', remarks: 'Very neat.' },
-        'st-09': { status: 'done', remarks: 'Good attempt.' },
-        'st-10': { status: 'done', remarks: 'Complete.' },
-        'st-11': { status: 'half_done', remarks: 'Need to finish Q12-15.' },
-        'st-12': { status: 'done', remarks: 'Good.' },
-      },
-    };
+    try {
+      const { data: subs, error } = await supabase
+        .from('homework_submissions')
+        .select('*')
+        .eq('homework_id', homeworkId);
+
+      if (!error && subs && subs.length > 0) {
+        const subMap = new Map(subs.map((s) => [s.student_id, s]));
+        return students.map((s) => {
+          const sub = subMap.get(s.id);
+          return {
+            studentId: s.id,
+            studentName: s.name,
+            rollNumber: s.rollNumber,
+            status: (sub?.status as HomeworkStatus) || 'done',
+            remarks: sub?.remarks || undefined,
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase getHomeworkSubmissions notice:', err);
+    }
+
+    const key = `${STORAGE_KEYS.HW_SUBMISSIONS}_${homeworkId}`;
+    const stored = await this.getStored<StudentHomeworkItem[] | null>(key, null);
 
     if (stored && stored.length > 0) {
-      // Merge with any new students added to the batch
       const storedMap = new Map(stored.map((s) => [s.studentId, s]));
       return students.map((s) => {
         const existing = storedMap.get(s.id);
@@ -885,18 +734,12 @@ class TeacherService {
       });
     }
 
-    // Default with initial map if available
-    const hwPreset = initialHwMap[homeworkId];
-    return students.map((s) => {
-      const preset = hwPreset ? hwPreset[s.id] : undefined;
-      return {
-        studentId: s.id,
-        studentName: s.name,
-        rollNumber: s.rollNumber,
-        status: preset?.status ?? 'done',
-        remarks: preset?.remarks,
-      };
-    });
+    return students.map((s) => ({
+      studentId: s.id,
+      studentName: s.name,
+      rollNumber: s.rollNumber,
+      status: 'done' as const,
+    }));
   }
 
   async saveHomeworkSubmissions(
@@ -914,7 +757,7 @@ class TeacherService {
         status: s.status,
         remarks: s.remarks || null,
       }));
-      await supabase.from('homework_submissions').upsert(rows);
+      await supabase.from('homework_submissions').upsert(rows, { onConflict: 'homework_id,student_id' });
     } catch (err) {
       console.warn('Supabase saveHomeworkSubmissions notice:', err);
     }
@@ -951,9 +794,20 @@ class TeacherService {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         const batches = await this.getBatches();
         const batchMap = new Map(batches.map((b) => [b.id, b]));
+
+        const { data: marks } = await supabase.from('test_marks').select('test_id, marks_obtained');
+        const marksCount = new Map<string, number>();
+        if (marks) {
+          marks.forEach((m) => {
+            if (m.marks_obtained !== null) {
+              marksCount.set(m.test_id, (marksCount.get(m.test_id) || 0) + 1);
+            }
+          });
+        }
+
         const mapped: Test[] = data.map((t) => {
           const b = batchMap.get(t.batch_id);
           return {
@@ -962,18 +816,19 @@ class TeacherService {
             batchName: b?.name || 'Class Batch',
             title: t.title,
             date: t.date,
-            maxMarks: t.max_marks,
-            submittedCount: 0,
+            maxMarks: Number(t.max_marks),
+            submittedCount: marksCount.get(t.id) || 0,
             totalStudents: b?.studentCount || 0,
           };
         });
         await this.setStored(STORAGE_KEYS.TESTS, mapped);
+        return mapped;
       }
     } catch (err) {
       console.warn('Supabase getTestsList notice:', err);
     }
 
-    return this.getStored<Test[]>(STORAGE_KEYS.TESTS, INITIAL_TESTS);
+    return this.getStored<Test[]>(STORAGE_KEYS.TESTS, []);
   }
 
   async getBatchTests(batchId: string): Promise<Test[]> {
@@ -1012,47 +867,66 @@ class TeacherService {
       console.warn('Supabase createTest notice:', err);
     }
 
-    const all = await this.getTestsList();
-    const updated = [newTest, ...all];
+    const all = await this.getStored<Test[]>(STORAGE_KEYS.TESTS, []);
+    const updated = [newTest, ...all.filter((t) => t.id !== newTest.id)];
     await this.setStored(STORAGE_KEYS.TESTS, updated);
     return newTest;
   }
 
+  async deleteTest(testId: string): Promise<void> {
+    try {
+      await supabase.from('tests').delete().eq('id', testId);
+    } catch (err) {
+      console.warn('Supabase deleteTest notice:', err);
+    }
+
+    const list = await this.getStored<Test[]>(STORAGE_KEYS.TESTS, []);
+    const filtered = list.filter((t) => t.id !== testId);
+    await this.setStored(STORAGE_KEYS.TESTS, filtered);
+  }
+
   async getTestMarks(testId: string, batchId: string): Promise<StudentMark[]> {
+    const students = await this.getBatchStudents(batchId);
+
+    try {
+      const { data: marks, error } = await supabase
+        .from('test_marks')
+        .select('*')
+        .eq('test_id', testId);
+
+      if (!error && marks && marks.length > 0) {
+        const markMap = new Map(marks.map((m) => [m.student_id, m.marks_obtained]));
+        return students.map((s) => ({
+          studentId: s.id,
+          studentName: s.name,
+          rollNumber: s.rollNumber,
+          marksObtained: markMap.has(s.id) ? (markMap.get(s.id) !== null ? Number(markMap.get(s.id)) : null) : null,
+        }));
+      }
+    } catch (err) {
+      console.warn('Supabase getTestMarks notice:', err);
+    }
+
     const key = `${STORAGE_KEYS.MARKS}_${testId}`;
     const stored = await this.getStored<StudentMark[] | null>(key, null);
-    if (stored) return stored;
+    if (stored && stored.length > 0) {
+      const storedMap = new Map(stored.map((m) => [m.studentId, m]));
+      return students.map((s) => {
+        const existing = storedMap.get(s.id);
+        return {
+          studentId: s.id,
+          studentName: s.name,
+          rollNumber: s.rollNumber,
+          marksObtained: existing?.marksObtained ?? null,
+        };
+      });
+    }
 
-    const initialMarksMap: Record<string, Record<string, number>> = {
-      'test-01': {
-        'st-01': 46,
-        'st-02': 49,
-        'st-03': 41,
-        'st-04': 38,
-        'st-05': 44,
-        'st-06': 48,
-        'st-07': 42,
-        'st-08': 45,
-        'st-09': 39,
-        'st-10': 47,
-        'st-11': 43,
-        'st-12': 40,
-      },
-      'test-02': {
-        'st-21': 36,
-        'st-22': 38,
-        'st-23': 32,
-      },
-    };
-
-    // Generate initial mark template from students
-    const students = await this.getBatchStudents(batchId);
-    const testPreset = initialMarksMap[testId];
     return students.map((s) => ({
       studentId: s.id,
       studentName: s.name,
       rollNumber: s.rollNumber,
-      marksObtained: testPreset && testPreset[s.id] !== undefined ? testPreset[s.id] : null,
+      marksObtained: null,
     }));
   }
 
@@ -1066,7 +940,7 @@ class TeacherService {
         student_id: m.studentId,
         marks_obtained: m.marksObtained,
       }));
-      await supabase.from('test_marks').upsert(rows);
+      await supabase.from('test_marks').upsert(rows, { onConflict: 'test_id,student_id' });
     } catch (err) {
       console.warn('Supabase saveTestMarks notice:', err);
     }
@@ -1120,7 +994,7 @@ class TeacherService {
 
     const totalClasses = presentCount + absentCount;
     const attendancePercentage =
-      totalClasses > 0 ? Math.round((presentCount / totalClasses) * 100) : 100;
+      totalClasses > 0 ? Math.round((presentCount / totalClasses) * 100) : 0;
 
     // 2. Homework aggregation
     const hwReportItems: StudentHomeworkReportItem[] = [];
@@ -1149,7 +1023,7 @@ class TeacherService {
     const totalAssigned = homeworkList.length;
     const hwScoreSum = hwDoneCount + 0.5 * hwHalfDoneCount;
     const completionPercentage =
-      totalAssigned > 0 ? Math.round((hwScoreSum / totalAssigned) * 100) : 100;
+      totalAssigned > 0 ? Math.round((hwScoreSum / totalAssigned) * 100) : 0;
 
     // 3. Tests & Marks aggregation
     const testReportItems: StudentTestReportItem[] = [];
@@ -1238,7 +1112,7 @@ class TeacherService {
 
     // 1. Pending attendance tasks
     for (const batch of batches) {
-      if (!batch.attendanceTakenToday) {
+      if (!batch.attendanceTakenToday && (batch.studentCount ?? 0) > 0) {
         tasks.push({
           id: `task-att-${batch.id}`,
           title: 'Mark Today Attendance',
@@ -1278,7 +1152,7 @@ class TeacherService {
     // 3. Test Marks entry tasks
     const tests = await this.getTestsList();
     for (const test of tests) {
-      if (test.submittedCount < test.totalStudents) {
+      if (test.submittedCount < test.totalStudents && test.totalStudents > 0) {
         tasks.push({
           id: `task-test-${test.id}`,
           title: `Enter Marks: ${test.title}`,
@@ -1339,11 +1213,11 @@ class TeacherService {
       totalAttendanceEntriesOverall += batchTotalEntries;
 
       const batchAttPercent =
-        batchTotalEntries > 0 ? Math.round((batchPresent / batchTotalEntries) * 100) : 100;
+        batchTotalEntries > 0 ? Math.round((batchPresent / batchTotalEntries) * 100) : 0;
 
       let attStatus: 'excellent' | 'good' | 'needs_attention' = 'good';
       if (batchAttPercent >= 90) attStatus = 'excellent';
-      else if (batchAttPercent < 75) attStatus = 'needs_attention';
+      else if (batchAttPercent < 75 && batchTotalEntries > 0) attStatus = 'needs_attention';
 
       // 2. Batch Homework calculation
       let batchHwDone = 0;
@@ -1356,7 +1230,7 @@ class TeacherService {
       totalHwAssignedOverall += batchHwTotal;
 
       const batchHwPercent =
-        batchHwTotal > 0 ? Math.round((batchHwDone / batchHwTotal) * 100) : 100;
+        batchHwTotal > 0 ? Math.round((batchHwDone / batchHwTotal) * 100) : 0;
 
       batchSummaries.push({
         batch,
@@ -1369,7 +1243,6 @@ class TeacherService {
       });
 
       // 3. Defaulter Identification per student
-      // Sort attendance newest first to check consecutive absences
       const sortedAttendance = [...attendanceRecords].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
@@ -1397,7 +1270,7 @@ class TeacherService {
         }
 
         const studentAttPercent =
-          studentTotal > 0 ? Math.round((studentPresent / studentTotal) * 100) : 100;
+          studentTotal > 0 ? Math.round((studentPresent / studentTotal) * 100) : 0;
 
         if (consecutiveAbsences >= 2) {
           issues.push({
@@ -1489,7 +1362,6 @@ class TeacherService {
             (a, b) => (b.marksObtained ?? 0) - (a.marksObtained ?? 0),
           );
 
-          // Assign ranks
           let currentRank = 1;
           const topStudents: TestRankStudent[] = [];
 
@@ -1528,12 +1400,12 @@ class TeacherService {
     const overallAttPercent =
       totalAttendanceEntriesOverall > 0
         ? Math.round((totalPresentOverall / totalAttendanceEntriesOverall) * 100)
-        : 95;
+        : 0;
 
     const overallHwPercent =
       totalHwAssignedOverall > 0
         ? Math.round((totalHwSubmissionsOverall / totalHwAssignedOverall) * 100)
-        : 88;
+        : 0;
 
     return {
       totalStudentsCount: totalStudentsAcc,
@@ -1680,7 +1552,7 @@ export function formatDefaulterWhatsAppMessage(params: {
       ``,
       `कृपया नियमित उपस्थिति और समय पर गृहकार्य पूरा करना सुनिश्चित करें। यदि किसी सहायता की आवश्यकता हो तो हमसे संपर्क करें।`,
       ``,
-      `_सादर,_`,
+      `_ सादर,_`,
       `*EduFlow Coaching Academy*`,
     ].join('\n');
   }
