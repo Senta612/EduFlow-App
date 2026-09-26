@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,7 +13,6 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
-import { EmailConfirmationModal } from '@/components/ui/EmailConfirmationModal';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { getFriendlyAuthMessage, signUp } from '@/services/auth.service';
@@ -23,17 +21,25 @@ import { SignupFormData, signupSchema } from '@/types/auth';
 
 type Role = 'teacher' | 'student';
 
-const ROLE_OPTIONS: { value: Role; label: string }[] = [
-  { value: 'teacher', label: 'Teacher' },
-  { value: 'student', label: 'Student' },
+const ROLE_OPTIONS: { value: Role; label: string; icon: keyof typeof Feather.glyphMap; description: string }[] = [
+  {
+    value: 'teacher',
+    label: 'Teacher',
+    icon: 'book-open',
+    description: 'Manage batches & students',
+  },
+  {
+    value: 'student',
+    label: 'Student',
+    icon: 'user',
+    description: 'Track tests & homework',
+  },
 ];
 
 export default function SignupScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const {
     control,
@@ -46,30 +52,27 @@ export default function SignupScreen() {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'student',
+      role: 'teacher',
     },
   });
 
   const onSubmit = async (data: SignupFormData) => {
     setSubmitError(null);
 
-    const { error, errorKind, requiresEmailConfirmation } = await signUp(data);
+    const { error, errorKind } = await signUp(data);
 
     if (error || errorKind) {
       setSubmitError(getFriendlyAuthMessage(errorKind ?? 'unknown'));
       return;
     }
-    if (requiresEmailConfirmation) {
-      setRegisteredEmail(data.email.trim());
-      setConfirmationModalVisible(true);
-      return;
-    }
+    // AuthProvider will detect the session change and RootNavigator will route
+    // the user directly to their respective role dashboard.
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         style={styles.screen}
@@ -78,20 +81,89 @@ export default function SignupScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text variant="title">Create Account</Text>
+          <Text variant="title" style={styles.title}>
+            Create Account
+          </Text>
           <Text variant="body" style={styles.subtitle}>
-            Join EduFlow to start learning and teaching
+            Join EduFlow to organize and manage your tuition
           </Text>
         </View>
 
         <View style={styles.form}>
           <Controller
             control={control}
+            name="role"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.roleSection}>
+                <Text variant="label" style={styles.roleLabel}>
+                  I am registering as:
+                </Text>
+                <View style={styles.roleRow}>
+                  {ROLE_OPTIONS.map((option) => {
+                    const isSelected = value === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => onChange(option.value)}
+                        style={[
+                          styles.roleCard,
+                          isSelected && styles.roleCardSelected,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.roleIconContainer,
+                            isSelected && styles.roleIconContainerSelected,
+                          ]}
+                        >
+                          <Feather
+                            name={option.icon}
+                            size={20}
+                            color={
+                              isSelected
+                                ? theme.colors.primary.main
+                                : theme.colors.text.secondary
+                            }
+                          />
+                        </View>
+                        <View style={styles.roleTextWrapper}>
+                          <Text
+                            variant="label"
+                            style={[
+                              styles.roleOptionText,
+                              isSelected && styles.roleOptionTextSelected,
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                          <Text
+                            variant="caption"
+                            style={styles.roleOptionSubtext}
+                            numberOfLines={1}
+                          >
+                            {option.description}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {errors.role?.message && (
+                  <Text variant="caption" style={styles.fieldError}>
+                    {errors.role.message}
+                  </Text>
+                )}
+              </View>
+            )}
+          />
+
+          <Controller
+            control={control}
             name="fullName"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Full Name"
-                placeholder="Enter your full name"
+                placeholder="e.g. John Doe"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
@@ -107,8 +179,8 @@ export default function SignupScreen() {
             name="email"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
-                label="Email"
-                placeholder="Enter your email"
+                label="Email Address"
+                placeholder="name@example.com"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
@@ -180,59 +252,25 @@ export default function SignupScreen() {
             )}
           />
 
-          <Controller
-            control={control}
-            name="role"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.roleSection}>
-                <Text variant="label" style={styles.roleLabel}>
-                  I am a
-                </Text>
-                <View style={styles.roleRow}>
-                  {ROLE_OPTIONS.map((option) => {
-                    const isSelected = value === option.value;
-                    return (
-                      <Pressable
-                        key={option.value}
-                        onPress={() => onChange(option.value)}
-                        style={[
-                          styles.roleOption,
-                          isSelected && styles.roleOptionSelected,
-                        ]}
-                      >
-                        <Text
-                          variant="label"
-                          style={[
-                            styles.roleOptionText,
-                            isSelected && styles.roleOptionTextSelected,
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                {errors.role?.message && (
-                  <Text variant="caption" style={styles.roleError}>
-                    {errors.role.message}
-                  </Text>
-                )}
-              </View>
-            )}
-          />
-
           {submitError && (
-            <Text variant="caption" style={styles.submitError}>
-              {submitError}
-            </Text>
+            <View style={styles.errorBanner}>
+              <Feather
+                name="alert-circle"
+                size={18}
+                color={theme.colors.semantic.danger.main}
+              />
+              <Text variant="caption" style={styles.errorBannerText}>
+                {submitError}
+              </Text>
+            </View>
           )}
 
           <Button
-            title="Create Account"
+            title={isSubmitting ? 'Creating Account...' : 'Create Account'}
             fullWidth
             loading={isSubmitting}
             onPress={handleSubmit(onSubmit)}
+            style={styles.submitButton}
           />
         </View>
 
@@ -247,16 +285,6 @@ export default function SignupScreen() {
           </Pressable>
         </View>
       </ScrollView>
-
-      <EmailConfirmationModal
-        visible={confirmationModalVisible}
-        email={registeredEmail}
-        onClose={() => setConfirmationModalVisible(false)}
-        onGoToLogin={() => {
-          setConfirmationModalVisible(false);
-          router.replace('/login');
-        }}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -271,11 +299,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: theme.spacing.lg,
-    gap: theme.spacing.xl,
+    gap: theme.spacing.lg,
   },
 
   header: {
     gap: theme.spacing.xs,
+    marginTop: theme.spacing.md,
+  },
+
+  title: {
+    color: theme.colors.text.primary,
   },
 
   subtitle: {
@@ -292,6 +325,7 @@ const styles = StyleSheet.create({
 
   roleLabel: {
     color: theme.colors.text.primary,
+    marginBottom: 2,
   },
 
   roleRow: {
@@ -299,37 +333,80 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
 
-  roleOption: {
+  roleCard: {
     flex: 1,
-    minHeight: theme.spacing.xxl,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: theme.spacing.sm + 2,
+    paddingHorizontal: theme.spacing.sm,
     backgroundColor: theme.colors.background.paper,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.border.main,
-    borderRadius: theme.radii.md,
+    borderRadius: theme.radii.lg,
+    gap: theme.spacing.xs + 2,
   },
 
-  roleOptionSelected: {
+  roleCardSelected: {
     borderColor: theme.colors.primary.main,
     backgroundColor: theme.colors.primary.bg,
   },
 
+  roleIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  roleIconContainerSelected: {
+    backgroundColor: '#E0E7FF',
+  },
+
+  roleTextWrapper: {
+    flex: 1,
+  },
+
   roleOptionText: {
     color: theme.colors.text.secondary,
+    fontWeight: theme.typography.weights.semibold,
   },
 
   roleOptionTextSelected: {
     color: theme.colors.primary.main,
   },
 
-  roleError: {
+  roleOptionSubtext: {
+    color: theme.colors.text.tertiary ?? theme.colors.text.secondary,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+
+  fieldError: {
     color: theme.colors.semantic.danger.main,
   },
 
-  submitError: {
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.semantic.danger.bg,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.2)',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.md,
+    gap: theme.spacing.xs + 2,
+  },
+
+  errorBannerText: {
+    flex: 1,
     color: theme.colors.semantic.danger.main,
-    textAlign: 'center',
+    fontWeight: theme.typography.weights.medium,
+  },
+
+  submitButton: {
+    marginTop: theme.spacing.xs,
   },
 
   eyeButton: {
@@ -341,6 +418,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: theme.spacing.xs,
+    paddingBottom: theme.spacing.md,
   },
 
   switchText: {
@@ -349,5 +427,6 @@ const styles = StyleSheet.create({
 
   switchLink: {
     color: theme.colors.primary.main,
+    fontWeight: theme.typography.weights.bold,
   },
 });
