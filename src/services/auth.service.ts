@@ -113,10 +113,9 @@ export async function signUp(data: SignupFormData): Promise<SignUpResult> {
   const user = authData?.user ?? null;
   const session = authData?.session ?? null;
 
-  // With email confirmation enabled Supabase returns no session here, so the
-  // account is not yet usable. When a session is returned the user is already
-  // confirmed (auto-confirm) and the AuthProvider will route them normally.
-  const requiresEmailConfirmation = !isEmailConfirmed(user);
+  // With email confirmation disabled, Supabase issues a session immediately.
+  // When a session is present or the user is marked confirmed, no confirmation is required.
+  const requiresEmailConfirmation = !session && !isEmailConfirmed(user);
 
   return {
     user,
