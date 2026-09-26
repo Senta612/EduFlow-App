@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuccessModal } from '@/components/ui/SuccessModal';
+import { TimeRangePicker } from '@/components/ui/TimeRangePicker';
 import { teacherService } from '@/services/teacher.service';
 import { Batch } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -46,14 +47,6 @@ const DAYS_OF_WEEK = [
   { id: 'Sun', label: 'S', name: 'Sun' },
 ];
 
-const TIME_PRESETS = [
-  '08:00 AM - 09:30 AM',
-  '10:00 AM - 11:30 AM',
-  '12:30 PM - 02:00 PM',
-  '03:00 PM - 04:30 PM',
-  '05:00 PM - 06:30 PM',
-  '07:00 PM - 08:30 PM',
-];
 
 const createBatchSchema = z.object({
   name: z
@@ -105,7 +98,6 @@ export default function CreateBatchScreen() {
   });
 
   const selectedClass = watch('grade');
-  const selectedTiming = watch('timing');
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -334,56 +326,19 @@ export default function CreateBatchScreen() {
             )}
           </View>
 
-          {/* Class Time Presets & Input */}
-          <View style={styles.formGroup}>
-            <Text variant="label" style={styles.fieldLabel}>
-              Class Timing
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.timingPresetsRow}
-            >
-              {TIME_PRESETS.map((preset) => {
-                const isSelected = selectedTiming === preset;
-                return (
-                  <Pressable
-                    key={preset}
-                    style={[
-                      styles.timingPresetPill,
-                      isSelected && styles.timingPresetPillSelected,
-                    ]}
-                    onPress={() => setValue('timing', preset)}
-                  >
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.timingPresetText,
-                        isSelected && styles.timingPresetTextSelected,
-                      ]}
-                    >
-                      {preset}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            <Controller
-              control={control}
-              name="timing"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  placeholder="Custom time (e.g. 10:00 AM - 11:30 AM)"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  onFocus={scrollToBottom}
-                  error={errors.timing?.message}
-                />
-              )}
-            />
-          </View>
+          {/* Class Time Range Picker */}
+          <Controller
+            control={control}
+            name="timing"
+            render={({ field: { onChange, value } }) => (
+              <TimeRangePicker
+                label="Class Timing"
+                value={value}
+                onChange={onChange}
+                error={errors.timing?.message}
+              />
+            )}
+          />
 
           {/* Room / Location (Optional) */}
           <Controller
@@ -573,30 +528,6 @@ const styles = StyleSheet.create({
   },
   dayTextSelected: {
     color: '#FFFFFF',
-    fontWeight: theme.typography.weights.bold,
-  },
-  timingPresetsRow: {
-    gap: theme.spacing.xs,
-    paddingBottom: 4,
-  },
-  timingPresetPill: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 6,
-    borderRadius: theme.radii.sm,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: theme.colors.border.main,
-  },
-  timingPresetPillSelected: {
-    backgroundColor: theme.colors.primary.bg,
-    borderColor: theme.colors.primary.main,
-  },
-  timingPresetText: {
-    fontSize: 11,
-    color: theme.colors.text.secondary,
-  },
-  timingPresetTextSelected: {
-    color: theme.colors.primary.main,
     fontWeight: theme.typography.weights.bold,
   },
   errorText: {
