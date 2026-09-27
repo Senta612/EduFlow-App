@@ -21,6 +21,7 @@ interface StudentHeroCardProps {
   onCallParent: (phone?: string) => void;
   onMessageParent: (phone?: string) => void;
   onEmailStudent: (email?: string) => void;
+  onSharePortalAccess?: () => void;
 }
 
 export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
@@ -29,6 +30,7 @@ export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
   onCallParent,
   onMessageParent,
   onEmailStudent,
+  onSharePortalAccess,
 }) => {
   return (
     <Card variant="elevated" padding="md" style={styles.heroCard}>
@@ -49,6 +51,29 @@ export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
           </View>
         </View>
       </View>
+
+      {/* Share Student Portal Access Button */}
+      {onSharePortalAccess && (
+        <Pressable
+          style={styles.portalShareBanner}
+          onPress={onSharePortalAccess}
+        >
+          <View style={styles.portalShareLeft}>
+            <View style={styles.portalShareIcon}>
+              <Feather name="send" size={14} color="#059669" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text variant="label" style={styles.portalShareTitle}>
+                Student Portal Direct Access
+              </Text>
+              <Text variant="caption" style={styles.portalShareSubtitle}>
+                Invite code: {student.inviteCode || `STU-${student.id.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase()}`} • No login needed
+              </Text>
+            </View>
+          </View>
+          <Feather name="chevron-right" size={16} color="#059669" />
+        </Pressable>
+      )}
 
       {/* Quick Communication Strip */}
       <View style={styles.contactActionStrip}>
@@ -149,6 +174,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     flexWrap: 'wrap',
+  },
+  portalShareBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: theme.radii.lg,
+    padding: 10,
+    gap: 10,
+  },
+  portalShareLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  portalShareIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  portalShareTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  portalShareSubtitle: {
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 1,
   },
   contactActionStrip: {
     flexDirection: 'row',
