@@ -8,7 +8,7 @@ import { LanguageProvider } from '@/i18n';
 import { theme } from '@/theme';
 
 function RootNavigator() {
-  const { user, profile, isLoading } = useAuth();
+  const { user, studentSession, profile, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -21,8 +21,8 @@ function RootNavigator() {
     const inTeacherGroup = segments[0] === '(teacher)';
     const inStudentGroup = segments[0] === '(student)';
 
-    const isAuthenticated = Boolean(user);
-    const role = profile?.role;
+    const isAuthenticated = Boolean(user) || Boolean(studentSession);
+    const role = profile?.role || (studentSession ? 'student' : undefined);
 
     if (!isAuthenticated) {
       if (!inAuthGroup) {
@@ -39,7 +39,7 @@ function RootNavigator() {
         }
       }
     }
-  }, [user, profile, isLoading, segments, router]);
+  }, [user, studentSession, profile, isLoading, segments, router]);
 
   // Show a splash/loading state while we check for an existing session.
   // This prevents flashing the auth screen for logged-in users.
