@@ -5,3 +5,4 @@ export { StudentAttendanceTab } from './StudentAttendanceTab';
 export { StudentHomeworkTab } from './StudentHomeworkTab';
 export { StudentTestsTab } from './StudentTestsTab';
 export { EditStudentModal } from './EditStudentModal';
+export { ShareInviteModal } from './ShareInviteModal';
