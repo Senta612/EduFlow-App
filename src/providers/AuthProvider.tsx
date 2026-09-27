@@ -10,13 +10,17 @@ import {
 
 import { supabase } from '@/lib/supabase';
 import { profileService } from '@/services/profile.service';
+import { StudentService } from '@/services/student.service';
 import type { Profile } from '@/types/profile';
+import type { StudentSession } from '@/types/student';
 
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
+  studentSession: StudentSession | null;
   profile: Profile | null;
   isLoading: boolean;
+  loginWithStudentCode: (code: string) => Promise<{ success: boolean; session?: StudentSession; error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<Profile>;
 }
@@ -30,6 +34,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [studentSession, setStudentSession] = useState<StudentSession | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -66,8 +71,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         } else {
-          activeUserIdRef.current = null;
-          setProfile(null);
+          // Check for active local passwordless student session
+          const activeStudent = await StudentService.getActiveSession();
+          if (activeStudent && mounted) {
+            setStudentSession(activeStudent);
+            activeUserIdRef.current = activeStudent.studentId;
+            setProfile({
+              id: activeStudent.studentId,
+              role: 'student',
+              full_name: activeStudent.name,
+              email: activeStudent.email,
+              phone: activeStudent.parentPhone,
+              institute_name: activeStudent.batchName,
+              created_at: activeStudent.joinedAt,
+              updated_at: activeStudent.joinedAt,
+            });
+          } else if (mounted) {
+            activeUserIdRef.current = null;
+            setProfile(null);
+            setStudentSession(null);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
@@ -91,9 +114,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // When signed out or no session exists
       if (event === 'SIGNED_OUT' || !newSession || !newUser) {
+        const activeStudent = await StudentService.getActiveSession();
+        if (activeStudent && mounted) {
+          setStudentSession(activeStudent);
+          activeUserIdRef.current = activeStudent.studentId;
+          setProfile({
+            id: activeStudent.studentId,
+            role: 'student',
+            full_name: activeStudent.name,
+            email: activeStudent.email,
+            phone: activeStudent.parentPhone,
+            institute_name: activeStudent.batchName,
+            created_at: activeStudent.joinedAt,
+            updated_at: activeStudent.joinedAt,
+          });
+          setIsLoading(false);
+          return;
+        }
+
         activeUserIdRef.current = null;
         setSession(null);
         setUser(null);
+        setStudentSession(null);
         setProfile(null);
         setIsLoading(false);
         return;
@@ -101,6 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       setSession(newSession);
       setUser(newUser);
+      setStudentSession(null);
 
       // On TOKEN_REFRESHED, if active user ID has not changed, avoid re-fetching profile
       if (event === 'TOKEN_REFRESHED' && activeUserIdRef.current === newUser.id) {
@@ -135,11 +178,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
+  const loginWithStudentCode = async (code: string) => {
+    const res = await StudentService.verifyAndLoginWithInvite(code);
+    if (res.success && res.session) {
+      setStudentSession(res.session);
+      activeUserIdRef.current = res.session.studentId;
+      setProfile({
+        id: res.session.studentId,
+        role: 'student',
+        full_name: res.session.name,
+        email: res.session.email,
+        phone: res.session.parentPhone,
+        institute_name: res.session.batchName,
+        created_at: res.session.joinedAt,
+        updated_at: res.session.joinedAt,
+      });
+    }
+    return res;
+  };
+
   const signOut = async () => {
     activeUserIdRef.current = null;
     setUser(null);
     setSession(null);
+    setStudentSession(null);
     setProfile(null);
+
+    await StudentService.clearActiveSession();
 
     try {
       await supabase.auth.signOut();
@@ -160,8 +225,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       value={{
         user,
         session,
+        studentSession,
         profile,
         isLoading,
+        loginWithStudentCode,
         signOut,
         updateProfile,
       }}
