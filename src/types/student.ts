@@ -101,3 +101,15 @@ export interface StudentAttendanceOverview {
   streakDays: number;
   currentMonthDays: StudentAttendanceDayRecord[];
 }
+
+export interface StudentSession {
+  studentId: string;
+  name: string;
+  rollNumber: string;
+  batchId: string;
+  batchName?: string;
+  inviteCode?: string;
+  email?: string;
+  parentPhone?: string;
+  joinedAt: string;
+}
