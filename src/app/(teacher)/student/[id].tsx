@@ -24,6 +24,7 @@ import {
   StudentHomeworkTab,
   StudentTestsTab,
   EditStudentModal,
+  ShareInviteModal,
 } from '@/components/student';
 import { teacherService } from '@/services/teacher.service';
 import { StudentProfileData } from '@/types/teacher';
@@ -39,6 +40,9 @@ export default function StudentProfileScreen() {
   const [data, setData] = useState<StudentProfileData | null>(null);
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Share Invite Modal State
+  const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
 
   // Filters
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'present' | 'absent'>('all');
@@ -227,6 +231,9 @@ export default function StudentProfileScreen() {
         showBack
         rightAction={
           <View style={styles.headerRightActions}>
+            <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={() => setIsInviteModalVisible(true)}>
+              <Feather name="send" size={17} color="#059669" />
+            </Pressable>
             <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={handleOpenEdit}>
               <Feather name="edit-2" size={18} color={theme.colors.primary.main} />
             </Pressable>
@@ -248,6 +255,7 @@ export default function StudentProfileScreen() {
           onCallParent={handleCallParent}
           onMessageParent={handleMessageParent}
           onEmailStudent={handleEmailStudent}
+          onSharePortalAccess={() => setIsInviteModalVisible(true)}
         />
 
         {/* 2. 4 Quick Stat Metric Badges */}
@@ -373,6 +381,14 @@ export default function StudentProfileScreen() {
         errors={editErrors}
         isSubmitting={isSubmittingEdit}
         onSave={handleSaveEdit}
+      />
+
+      {/* 6. Share Student Portal Invite Modal */}
+      <ShareInviteModal
+        visible={isInviteModalVisible}
+        onClose={() => setIsInviteModalVisible(false)}
+        student={student}
+        batch={batch}
       />
     </SafeAreaView>
   );

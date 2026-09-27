@@ -23,6 +23,7 @@ import {
   BatchTestsSection,
   AttendanceDetailModal,
   StudentFormModal,
+  ShareInviteModal,
 } from '@/components/batch';
 import { teacherService } from '@/services/teacher.service';
 import {
@@ -71,6 +72,15 @@ export default function BatchDetailScreen() {
   const [formEmail, setFormEmail] = useState('');
   const [formErrors, setFormErrors] = useState<{ name?: string; roll?: string }>({});
   const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
+
+  // Share Invite Modal State
+  const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
+  const [inviteStudent, setInviteStudent] = useState<Student | null>(null);
+
+  const handleOpenShareInvite = (student: Student) => {
+    setInviteStudent(student);
+    setIsInviteModalVisible(true);
+  };
 
   // Attendance Record Detail Modal State
   const [selectedAttRecord, setSelectedAttRecord] = useState<AttendanceRecord | null>(null);
@@ -179,6 +189,10 @@ export default function BatchDetailScreen() {
 
         setStudents((prev) => [...prev, newStudent]);
         setBatch((prev) => (prev ? { ...prev, studentCount: prev.studentCount + 1 } : null));
+
+        // Prompt invite modal for new student
+        setInviteStudent(newStudent);
+        setIsInviteModalVisible(true);
       }
 
       setIsStudentFormModalVisible(false);
@@ -298,6 +312,7 @@ export default function BatchDetailScreen() {
             onOpenAddStudent={handleOpenAddStudent}
             onOpenProfile={handleOpenProfile}
             onOpenEditStudent={handleOpenEditStudent}
+            onOpenShareInvite={handleOpenShareInvite}
           />
         )}
 
@@ -368,6 +383,14 @@ export default function BatchDetailScreen() {
         onChangeSearchQuery={setAttSearchQuery}
         onCallParent={handleCallParent}
         onSelectStudent={handleOpenProfile}
+      />
+
+      {/* Share Student Portal Invite Modal */}
+      <ShareInviteModal
+        visible={isInviteModalVisible}
+        onClose={() => setIsInviteModalVisible(false)}
+        student={inviteStudent}
+        batch={batch}
       />
     </View>
   );
