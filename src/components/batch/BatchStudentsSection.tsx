@@ -22,6 +22,7 @@ interface BatchStudentsSectionProps {
   onOpenAddStudent: () => void;
   onOpenProfile: (student: Student) => void;
   onOpenEditStudent: (student: Student) => void;
+  onOpenShareInvite?: (student: Student) => void;
 }
 
 export const BatchStudentsSection: React.FC<BatchStudentsSectionProps> = ({
@@ -29,6 +30,7 @@ export const BatchStudentsSection: React.FC<BatchStudentsSectionProps> = ({
   onOpenAddStudent,
   onOpenProfile,
   onOpenEditStudent,
+  onOpenShareInvite,
 }) => {
   return (
     <View style={styles.sectionStack}>
@@ -132,6 +134,22 @@ export const BatchStudentsSection: React.FC<BatchStudentsSectionProps> = ({
                 </View>
 
                 <View style={styles.studentActionIcons}>
+                  {onOpenShareInvite && (
+                    <Pressable
+                      hitSlop={8}
+                      style={styles.studentRowShareBtn}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        onOpenShareInvite(student);
+                      }}
+                    >
+                      <Feather
+                        name="send"
+                        size={14}
+                        color="#059669"
+                      />
+                    </Pressable>
+                  )}
                   <Pressable
                     hitSlop={8}
                     style={styles.studentRowEditBtn}
@@ -261,6 +279,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  studentRowShareBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   studentRowEditBtn: {
     width: 28,
