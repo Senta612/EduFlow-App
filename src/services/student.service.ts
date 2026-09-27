@@ -8,13 +8,151 @@ import {
   EnrolledBatchInfo,
   StudentTodayClass,
   StudentAnnouncement,
+  StudentSession,
 } from '@/types/student';
 import { HomeworkStatus } from '@/types/teacher';
 import { isBatchScheduledToday } from './teacher.service';
 
 const STUDENT_DATA_STORAGE_KEY = '@eduflow_student_storage_v1';
+const STUDENT_SESSION_KEY = '@eduflow_active_student_session';
 
 export class StudentService {
+  /**
+   * Get active local student session (from invite link / token)
+   */
+  static async getActiveSession(): Promise<StudentSession | null> {
+    try {
+      const raw = await AsyncStorage.getItem(STUDENT_SESSION_KEY);
+      if (raw) {
+        return JSON.parse(raw) as StudentSession;
+      }
+    } catch (e) {
+      console.warn('Failed to read active student session:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Set active local student session
+   */
+  static async setActiveSession(session: StudentSession): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STUDENT_SESSION_KEY, JSON.stringify(session));
+    } catch (e) {
+      console.warn('Failed to save active student session:', e);
+    }
+  }
+
+  /**
+   * Clear active student session
+   */
+  static async clearActiveSession(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STUDENT_SESSION_KEY);
+    } catch (e) {
+      console.warn('Failed to clear active student session:', e);
+    }
+  }
+
+  /**
+   * Extract and sanitize invite code from raw input or URL
+   */
+  static parseInviteCode(rawInput: string): string {
+    if (!rawInput) return '';
+    let text = rawInput.trim();
+    if (text.includes('code=')) {
+      const parts = text.split('code=');
+      text = parts[1].split('&')[0];
+    } else if (text.includes('token=')) {
+      const parts = text.split('token=');
+      text = parts[1].split('&')[0];
+    }
+    text = text.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase();
+    return text;
+  }
+
+  /**
+   * Verify an invite code and log student in directly without password
+   */
+  static async verifyAndLoginWithInvite(rawCode: string): Promise<{
+    success: boolean;
+    session?: StudentSession;
+    error?: string;
+  }> {
+    const cleanCode = this.parseInviteCode(rawCode);
+    if (!cleanCode || cleanCode.length < 3) {
+      return { success: false, error: 'Please enter a valid student invite code.' };
+    }
+
+    try {
+      // 1. Check Supabase by invite_code or ID
+      const { data, error } = await supabase
+        .from('students')
+        .select('*, batches(id, name, subject, grade)')
+        .or(`invite_code.ilike.${cleanCode},id.eq.${cleanCode}`)
+        .maybeSingle();
+
+      if (!error && data) {
+        const batchInfo = (data as any).batches;
+        const session: StudentSession = {
+          studentId: data.id,
+          name: data.name,
+          rollNumber: data.roll_number,
+          batchId: data.batch_id,
+          batchName: batchInfo?.name || 'Class Batch',
+          inviteCode: data.invite_code || cleanCode,
+          email: data.email || undefined,
+          parentPhone: data.parent_phone || undefined,
+          joinedAt: new Date().toISOString(),
+        };
+
+        await this.setActiveSession(session);
+        return { success: true, session };
+      }
+    } catch (err) {
+      console.warn('Supabase invite verification notice:', err);
+    }
+
+    // 2. Fallback: Search local storage students for offline / demo support
+    try {
+      const allStudentsRaw = await AsyncStorage.getItem('@eduflow_teacher_students_v1');
+      if (allStudentsRaw) {
+        const allStudents: Record<string, any[]> = JSON.parse(allStudentsRaw);
+        for (const [batchId, students] of Object.entries(allStudents)) {
+          const match = students.find(
+            (s) =>
+              s.inviteCode?.toUpperCase() === cleanCode ||
+              s.id?.toUpperCase() === cleanCode ||
+              `STU-${s.id.slice(-6).toUpperCase()}` === cleanCode ||
+              s.rollNumber === cleanCode
+          );
+          if (match) {
+            const session: StudentSession = {
+              studentId: match.id,
+              name: match.name,
+              rollNumber: match.rollNumber,
+              batchId,
+              batchName: 'Class Batch',
+              inviteCode: match.inviteCode || cleanCode,
+              email: match.email,
+              parentPhone: match.parentPhone,
+              joinedAt: new Date().toISOString(),
+            };
+            await this.setActiveSession(session);
+            return { success: true, session };
+          }
+        }
+      }
+    } catch (localErr) {
+      console.warn('Local storage invite lookup error:', localErr);
+    }
+
+    return {
+      success: false,
+      error: 'Invalid or expired student invite code. Please ask your teacher for a fresh link.',
+    };
+  }
+
   private static async getStudentInfo(studentId?: string): Promise<{
     id: string;
     name: string;
@@ -24,6 +162,21 @@ export class StudentService {
     parentPhone?: string;
   } | null> {
     try {
+      // Check active local student session first if no studentId explicitly given
+      if (!studentId) {
+        const active = await this.getActiveSession();
+        if (active) {
+          return {
+            id: active.studentId,
+            name: active.name,
+            rollNumber: active.rollNumber,
+            batchId: active.batchId,
+            email: active.email,
+            parentPhone: active.parentPhone,
+          };
+        }
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -46,6 +199,19 @@ export class StudentService {
           batchId: data.batch_id,
           email: data.email || undefined,
           parentPhone: data.parent_phone || undefined,
+        };
+      }
+
+      // If active session exists, fallback to it
+      const activeFallback = await this.getActiveSession();
+      if (activeFallback) {
+        return {
+          id: activeFallback.studentId,
+          name: activeFallback.name,
+          rollNumber: activeFallback.rollNumber,
+          batchId: activeFallback.batchId,
+          email: activeFallback.email,
+          parentPhone: activeFallback.parentPhone,
         };
       }
 

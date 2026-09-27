@@ -286,6 +286,7 @@ class TeacherService {
           email: s.email || undefined,
           parentPhone: s.parent_phone || undefined,
           avatarUrl: s.avatar_url || undefined,
+          inviteCode: s.invite_code || `STU-${s.id.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || 'PORTAL'}`,
         }));
         const allStudents = await this.getAllStudents();
         allStudents[batchId] = mapped;
@@ -301,9 +302,11 @@ class TeacherService {
   }
 
   async addStudent(batchId: string, studentData: Omit<Student, 'id'>): Promise<Student> {
+    const generatedCode = `STU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const newStudent: Student = {
       ...studentData,
       id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      inviteCode: studentData.inviteCode || generatedCode,
     };
 
     try {
@@ -316,12 +319,16 @@ class TeacherService {
           email: studentData.email || null,
           parent_phone: studentData.parentPhone || null,
           avatar_url: studentData.avatarUrl || null,
+          invite_code: newStudent.inviteCode,
         })
         .select()
         .single();
 
       if (!error && inserted) {
         newStudent.id = inserted.id;
+        if (inserted.invite_code) {
+          newStudent.inviteCode = inserted.invite_code;
+        }
       }
     } catch (err) {
       console.warn('Supabase addStudent notice:', err);
