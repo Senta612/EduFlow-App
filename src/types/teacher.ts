@@ -17,6 +17,7 @@ export interface Student {
   email?: string;
   parentPhone?: string;
   avatarUrl?: string;
+  inviteCode?: string;
 }
 
 export type AttendanceStatus = 'present' | 'absent';
