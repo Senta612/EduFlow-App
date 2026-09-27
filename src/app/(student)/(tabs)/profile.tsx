@@ -24,7 +24,7 @@ import { theme } from '@/theme';
 
 export default function StudentProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { profile, signOut } = useAuth();
+  const { user, studentSession, profile, signOut } = useAuth();
   const { t, language } = useTranslation();
 
   const [summary, setSummary] = useState<StudentDashboardSummary | null>(null);
@@ -72,12 +72,12 @@ export default function StudentProfileScreen() {
 
   const handleSignOut = async () => {
     Alert.alert(
-      t('auth.signOut'),
-      t('auth.signOutConfirm'),
+      'Exit Student Portal',
+      'Are you sure you want to exit? You can return anytime with your invite code or link.',
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('auth.signOut'),
+          text: 'Exit Portal',
           style: 'destructive',
           onPress: async () => {
             setIsSigningOut(true);
@@ -223,8 +223,12 @@ export default function StudentProfileScreen() {
               <View style={styles.settingLeft}>
                 <Feather name="shield" size={18} color={theme.colors.state.info} />
                 <View>
-                  <Text style={styles.settingTitle}>Role Session</Text>
-                  <Text style={styles.settingDesc}>Student Portal (Read & Submit Access)</Text>
+                  <Text style={styles.settingTitle}>Access Mode</Text>
+                  <Text style={styles.settingDesc}>
+                    {studentSession?.inviteCode
+                      ? `Zero-Login Access Code (${studentSession.inviteCode})`
+                      : 'Student Portal (Direct Access)'}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -233,7 +237,7 @@ export default function StudentProfileScreen() {
           {/* Sign Out Button */}
           <View style={styles.signOutSection}>
             <Button
-              title={isSigningOut ? 'Signing out...' : t('auth.signOut')}
+              title={isSigningOut ? 'Exiting...' : 'Exit Student Portal'}
               variant="danger"
               fullWidth
               onPress={handleSignOut}
