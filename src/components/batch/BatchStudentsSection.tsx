@@ -187,10 +187,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 14,
   },
   headerTitleGroup: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
   titleWithBadge: {
     flexDirection: 'row',
@@ -203,11 +204,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: theme.colors.text.secondary,
+    lineHeight: 16,
   },
   studentsListContainer: {
-    gap: 8,
+    gap: 10,
   },
   studentCard: {
     backgroundColor: theme.colors.background.paper,
