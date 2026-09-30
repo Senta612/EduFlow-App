@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
@@ -49,9 +49,13 @@ export default function TeacherBatchesScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadBatches();
+  useFocusEffect(
+    useCallback(() => {
+      loadBatches();
+    }, [loadBatches])
+  );
 
+  useEffect(() => {
     // Subscribe to real-time batch creations/updates
     const unsubscribe = teacherService.subscribeBatches((updatedBatches) => {
       setBatches(updatedBatches);
@@ -60,7 +64,7 @@ export default function TeacherBatchesScreen() {
     return () => {
       unsubscribe();
     };
-  }, [loadBatches]);
+  }, []);
 
   const onRefresh = () => {
     setIsRefreshing(true);

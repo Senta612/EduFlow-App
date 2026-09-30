@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
@@ -101,9 +101,11 @@ export default function TeacherReportsScreen() {
     }
   }, [selectedBatchId]);
 
-  useEffect(() => {
-    loadData(selectedBatchId);
-  }, [selectedBatchId, loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData(selectedBatchId);
+    }, [selectedBatchId, loadData])
+  );
 
   const handleRefresh = () => {
     setIsRefreshing(true);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
@@ -31,30 +32,38 @@ export default function TeacherProfileScreen() {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  useEffect(() => {
-    async function loadTeacherStats() {
-      try {
-        const [batches, tests] = await Promise.all([
-          teacherService.getBatches(),
-          teacherService.getTestsList(),
-        ]);
-        setBatchesCount(batches.length);
-        setTestsCount(tests.length);
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      async function loadTeacherStats() {
+        try {
+          const [batches, tests] = await Promise.all([
+            teacherService.getBatches(),
+            teacherService.getTestsList(),
+          ]);
+          if (!isMounted) return;
+          setBatchesCount(batches.length);
+          setTestsCount(tests.length);
 
-        let totalSt = 0;
-        for (const b of batches) {
-          const stList = await teacherService.getBatchStudents(b.id);
-          totalSt += stList.length;
+          let totalSt = 0;
+          for (const b of batches) {
+            const stList = await teacherService.getBatchStudents(b.id);
+            totalSt += stList.length;
+          }
+          if (!isMounted) return;
+          setStudentsCount(totalSt);
+        } catch (error) {
+          console.warn('Failed to load teaching stats:', error);
+        } finally {
+          if (isMounted) setIsLoadingStats(false);
         }
-        setStudentsCount(totalSt);
-      } catch (error) {
-        console.warn('Failed to load teaching stats:', error);
-      } finally {
-        setIsLoadingStats(false);
       }
-    }
-    loadTeacherStats();
-  }, []);
+      loadTeacherStats();
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [

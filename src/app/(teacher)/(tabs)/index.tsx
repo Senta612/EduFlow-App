@@ -7,7 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
@@ -89,8 +89,13 @@ export default function TeacherHomeScreen() {
     }
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboardData();
+    }, [loadDashboardData])
+  );
+
   useEffect(() => {
-    loadDashboardData();
     const unsubscribe = teacherService.subscribeBatches(() => {
       loadDashboardData();
     });

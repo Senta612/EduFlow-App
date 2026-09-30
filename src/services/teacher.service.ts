@@ -72,6 +72,8 @@ class TeacherService {
 
   // Batches
   async getBatches(): Promise<Batch[]> {
+    const localBatches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
+
     try {
       const { data, error } = await supabase
         .from('batches')
@@ -90,14 +92,19 @@ class TeacherService {
           room: b.room || undefined,
           attendanceTakenToday: false,
         }));
-        await this.setStored(STORAGE_KEYS.BATCHES, mappedBatches);
+
+        const supabaseIds = new Set(mappedBatches.map((b) => b.id));
+        const unsyncedLocal = localBatches.filter((loc) => !supabaseIds.has(loc.id));
+        const combined = [...mappedBatches, ...unsyncedLocal];
+
+        await this.setStored(STORAGE_KEYS.BATCHES, combined);
         
         const todayStr = new Date().toISOString().split('T')[0];
         const attendance = await this.getAttendanceRecords();
         const attendanceMap = new Set(
           attendance.filter((r) => r.date === todayStr).map((r) => r.batchId),
         );
-        return mappedBatches.map((b) => ({
+        return combined.map((b) => ({
           ...b,
           attendanceTakenToday: attendanceMap.has(b.id) || Boolean(b.attendanceTakenToday),
         }));
@@ -106,13 +113,12 @@ class TeacherService {
       console.warn('Supabase getBatches notice:', err);
     }
 
-    const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
     const todayStr = new Date().toISOString().split('T')[0];
     const attendance = await this.getAttendanceRecords();
     const attendanceMap = new Set(
       attendance.filter((r) => r.date === todayStr).map((r) => r.batchId),
     );
-    return batches.map((b) => ({
+    return localBatches.map((b) => ({
       ...b,
       attendanceTakenToday: attendanceMap.has(b.id) || Boolean(b.attendanceTakenToday),
     }));
@@ -271,6 +277,9 @@ class TeacherService {
   }
 
   async getBatchStudents(batchId: string): Promise<Student[]> {
+    const allStudents = await this.getAllStudents();
+    const existingBatchStudents = allStudents[batchId] || [];
+
     try {
       const { data, error } = await supabase
         .from('students')
@@ -288,17 +297,20 @@ class TeacherService {
           avatarUrl: s.avatar_url || undefined,
           inviteCode: s.invite_code || `STU-${s.id.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || 'PORTAL'}`,
         }));
-        const allStudents = await this.getAllStudents();
-        allStudents[batchId] = mapped;
+        
+        const supabaseIds = new Set(mapped.map((s) => s.id));
+        const unsynced = existingBatchStudents.filter((s) => !supabaseIds.has(s.id));
+        const combined = [...mapped, ...unsynced];
+
+        allStudents[batchId] = combined;
         await this.setStored(STORAGE_KEYS.STUDENTS, allStudents);
-        return mapped;
+        return combined;
       }
     } catch (err) {
       console.warn('Supabase getBatchStudents notice:', err);
     }
 
-    const allStudents = await this.getAllStudents();
-    return allStudents[batchId] || [];
+    return existingBatchStudents;
   }
 
   async addStudent(batchId: string, studentData: Omit<Student, 'id'>): Promise<Student> {
@@ -454,6 +466,8 @@ class TeacherService {
 
   // Attendance
   async getAttendanceRecords(): Promise<AttendanceRecord[]> {
+    const localRecords = await this.getStored<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
+
     try {
       const { data: recs, error } = await supabase
         .from('attendance_records')
@@ -489,14 +503,19 @@ class TeacherService {
           absentCount: r.absent_count,
           submittedAt: r.submitted_at,
         }));
-        await this.setStored(STORAGE_KEYS.ATTENDANCE, mappedRecords);
-        return mappedRecords;
+
+        const supabaseIds = new Set(mappedRecords.map((m) => m.id));
+        const unsynced = localRecords.filter((l) => !supabaseIds.has(l.id));
+        const combined = [...mappedRecords, ...unsynced];
+
+        await this.setStored(STORAGE_KEYS.ATTENDANCE, combined);
+        return combined;
       }
     } catch (err) {
       console.warn('Supabase getAttendanceRecords notice:', err);
     }
 
-    return this.getStored<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
+    return localRecords;
   }
 
   async getBatchAttendanceHistory(batchId: string): Promise<AttendanceRecord[]> {
