@@ -33,9 +33,25 @@ function formatTodayDate(): string {
 }
 
 export default function TakeAttendanceScreen() {
-  const { batchId } = useLocalSearchParams<{ batchId: string }>();
+  const { batchId, date: initialDateStr } = useLocalSearchParams<{ batchId: string; date?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const attendanceDateIso = initialDateStr || new Date().toISOString().split('T')[0];
+
+  const formattedAttendanceDate = React.useMemo(() => {
+    try {
+      const [y, m, d] = attendanceDateIso.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return attendanceDateIso;
+    }
+  }, [attendanceDateIso]);
 
   const [batch, setBatch] = useState<Batch | null>(null);
   const [items, setItems] = useState<StudentAttendanceItem[]>([]);
@@ -46,18 +62,21 @@ export default function TakeAttendanceScreen() {
   const loadData = useCallback(async () => {
     if (!batchId) return;
     try {
-      const [batchData, studentsData] = await Promise.all([
+      const [batchData, studentsData, allRecords] = await Promise.all([
         teacherService.getBatchById(batchId),
         teacherService.getBatchStudents(batchId),
+        teacherService.getAttendanceRecords(),
       ]);
       setBatch(batchData);
 
-      // Default all students to 'present' for ultra-fast attendance completion
+      const existingRecord = allRecords.find((r) => r.batchId === batchId && r.date === attendanceDateIso);
+      const existingMap = new Map((existingRecord?.records || []).map((r) => [r.studentId, r.status]));
+
       const initialItems: StudentAttendanceItem[] = studentsData.map((st) => ({
         studentId: st.id,
         studentName: st.name,
         rollNumber: st.rollNumber,
-        status: 'present',
+        status: existingMap.get(st.id) || 'present',
       }));
       setItems(initialItems);
     } catch (error) {
@@ -65,7 +84,7 @@ export default function TakeAttendanceScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [batchId]);
+  }, [batchId, attendanceDateIso]);
 
   useEffect(() => {
     loadData();
@@ -99,8 +118,7 @@ export default function TakeAttendanceScreen() {
 
     setIsSubmitting(true);
     try {
-      const todayIso = new Date().toISOString().split('T')[0];
-      await teacherService.submitAttendance(batchId, todayIso, items);
+      await teacherService.submitAttendance(batchId, attendanceDateIso, items);
       setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Error submitting attendance:', error);
@@ -172,7 +190,7 @@ export default function TakeAttendanceScreen() {
         <View style={styles.dateRow}>
           <View style={styles.dateTextGroup}>
             <Text variant="label" style={styles.dateLabel}>
-              {formatTodayDate()}
+              {formattedAttendanceDate}
             </Text>
             <Text variant="caption" style={styles.batchTime}>
               {batch.timing} • {items.length} Students Enrolled

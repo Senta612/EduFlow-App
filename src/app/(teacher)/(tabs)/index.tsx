@@ -125,11 +125,12 @@ export default function TeacherHomeScreen() {
 
   const selectedDateLabel = useMemo(() => {
     try {
-      const d = new Date(selectedDateStr);
+      const [y, m, d] = selectedDateStr.split('-').map(Number);
+      const targetDate = new Date(y, m - 1, d);
       if (isSelectedDateToday) {
-        return `Today • ${d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`;
+        return `Today • ${targetDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`;
       }
-      return d.toLocaleDateString('en-US', {
+      return targetDate.toLocaleDateString('en-US', {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
@@ -138,6 +139,42 @@ export default function TeacherHomeScreen() {
       return selectedDateStr;
     }
   }, [selectedDateStr, isSelectedDateToday]);
+
+  const scheduleSectionTitle = useMemo(() => {
+    const today = new Date();
+    const todayStr = toDateString(today);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = toDateString(yesterday);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = toDateString(tomorrow);
+
+    if (selectedDateStr === todayStr) {
+      return t('dashboard.todaySchedule');
+    }
+    if (selectedDateStr === yesterdayStr) {
+      return "Yesterday's Schedule";
+    }
+    if (selectedDateStr === tomorrowStr) {
+      return "Tomorrow's Schedule";
+    }
+
+    try {
+      const [y, m, d] = selectedDateStr.split('-').map(Number);
+      const targetDate = new Date(y, m - 1, d);
+      const formattedDate = targetDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
+      return `${formattedDate} Schedule`;
+    } catch {
+      return `${selectedDateStr} Schedule`;
+    }
+  }, [selectedDateStr, t]);
 
   const pendingAttendanceCount = selectedDateBatches.filter(
     (c) => !c.attendanceTakenForDate,
@@ -220,7 +257,7 @@ export default function TeacherHomeScreen() {
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
                   <Text variant="heading" style={styles.sectionTitle}>
-                    {isSelectedDateToday ? t('dashboard.todaySchedule') : `${t('dashboard.todaySchedule')} (${selectedDateLabel})`}
+                    {scheduleSectionTitle}
                   </Text>
                   <Badge
                     label={t('dashboard.classesCount').replace('{count}', String(selectedDateBatches.length))}
@@ -248,7 +285,9 @@ export default function TeacherHomeScreen() {
                       key={cls.id}
                       cls={cls}
                       onTakeAttendance={(batchId) =>
-                        router.push(`/(teacher)/attendance/${batchId}`)
+                        router.push(
+                          `/(teacher)/attendance/${batchId}${selectedDateStr ? `?date=${selectedDateStr}` : ''}` as unknown as import('expo-router').Href
+                        )
                       }
                       onOpenBatchWorkspace={(batchId) =>
                         router.push(`/(teacher)/batch/${batchId}`)
