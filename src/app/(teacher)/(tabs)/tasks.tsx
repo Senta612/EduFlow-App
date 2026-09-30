@@ -18,8 +18,9 @@ import { Card } from '@/components/ui/Card';
 import { Badge, BadgeVariant } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { TaskTypeModal, SelectBatchModal } from '@/components/tasks';
 import { teacherService } from '@/services/teacher.service';
-import { TeacherTask, TaskType } from '@/types/teacher';
+import { TeacherTask, TaskType, Batch } from '@/types/teacher';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
@@ -42,9 +43,15 @@ export default function TeacherTasksScreen() {
   const { t } = useTranslation();
 
   const [tasks, setTasks] = useState<TeacherTask[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Modals state for creating / starting tasks
+  const [isTaskTypeModalVisible, setIsTaskTypeModalVisible] = useState(false);
+  const [isSelectBatchModalVisible, setIsSelectBatchModalVisible] = useState(false);
+  const [selectedTaskType, setSelectedTaskType] = useState<TaskType | null>(null);
 
   const filterTabs: { key: FilterCategory; label: string }[] = [
     { key: 'all', label: t('tasks.allTasks') },
@@ -66,12 +73,16 @@ export default function TeacherTasksScreen() {
     }
   };
 
-  const loadTasks = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const data = await teacherService.getPendingTasks();
-      setTasks(data);
+      const [tasksData, batchesData] = await Promise.all([
+        teacherService.getPendingTasks(),
+        teacherService.getBatches(),
+      ]);
+      setTasks(tasksData);
+      setBatches(batchesData);
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      console.error('Failed to load tasks and batches:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -79,12 +90,12 @@ export default function TeacherTasksScreen() {
   }, []);
 
   useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+    loadData();
+  }, [loadData]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    loadTasks();
+    loadData();
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -94,6 +105,46 @@ export default function TeacherTasksScreen() {
 
   const activeTabLabel =
     filterTabs.find((f) => f.key === activeFilter)?.label || t('tasks.allTasks');
+
+  // Handle FAB Press
+  const handleFABPress = () => {
+    if (activeFilter === 'all') {
+      // If user is on "All Tasks", show option to select task type first
+      setIsTaskTypeModalVisible(true);
+    } else {
+      // If user is already on Attendance / Homework / Marks filter, open Select Batch directly
+      setSelectedTaskType(activeFilter);
+      setIsSelectBatchModalVisible(true);
+    }
+  };
+
+  // Handle Task Type selected from TaskTypeModal
+  const handleSelectTaskType = (type: TaskType) => {
+    setSelectedTaskType(type);
+    setIsSelectBatchModalVisible(true);
+  };
+
+  // Handle Batch selected for a Task
+  const handleSelectBatch = (batch: Batch, type: TaskType) => {
+    setIsSelectBatchModalVisible(false);
+    switch (type) {
+      case 'attendance':
+        router.push(`/(teacher)/attendance/${batch.id}` as unknown as Href);
+        break;
+      case 'homework':
+        router.push(`/(teacher)/homework/create?batchId=${batch.id}` as unknown as Href);
+        break;
+      case 'marks':
+        router.push(`/(teacher)/tests/create?batchId=${batch.id}` as unknown as Href);
+        break;
+    }
+  };
+
+  // Handle Create New Batch redirect
+  const handleCreateNewBatch = () => {
+    setIsSelectBatchModalVisible(false);
+    router.push('/(teacher)/batch/create' as unknown as Href);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -139,7 +190,7 @@ export default function TeacherTasksScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 24 },
+          { paddingBottom: insets.bottom + 90 }, // Extra space for FAB and bottom navigation
         ]}
         refreshControl={
           <RefreshControl
@@ -166,6 +217,16 @@ export default function TeacherTasksScreen() {
                 ? t('tasks.allCaughtUpDesc')
                 : t('tasks.noTasksForCategory').replace('{category}', activeTabLabel)
             }
+            actionLabel={
+              activeFilter === 'all'
+                ? '+ Start New Task'
+                : activeFilter === 'attendance'
+                ? '+ Take Attendance'
+                : activeFilter === 'homework'
+                ? '+ Assign Homework'
+                : '+ Create Test'
+            }
+            onAction={handleFABPress}
           />
         ) : (
           <View style={styles.taskList}>
@@ -235,6 +296,36 @@ export default function TeacherTasksScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Add Button (FAB) in Bottom Right */}
+      <Pressable
+        style={[
+          styles.fab,
+          { bottom: insets.bottom + 16 },
+        ]}
+        onPress={handleFABPress}
+        accessibilityRole="button"
+        accessibilityLabel="Create or start task"
+      >
+        <Feather name="plus" size={26} color="#FFFFFF" />
+      </Pressable>
+
+      {/* Modal 1: Choose Task Type (When on "All Tasks") */}
+      <TaskTypeModal
+        visible={isTaskTypeModalVisible}
+        onClose={() => setIsTaskTypeModalVisible(false)}
+        onSelectType={handleSelectTaskType}
+      />
+
+      {/* Modal 2: Select Batch for the Chosen Task */}
+      <SelectBatchModal
+        visible={isSelectBatchModalVisible}
+        onClose={() => setIsSelectBatchModalVisible(false)}
+        taskType={selectedTaskType}
+        batches={batches}
+        onSelectBatch={handleSelectBatch}
+        onCreateNewBatch={handleCreateNewBatch}
+      />
     </View>
   );
 }
@@ -335,5 +426,21 @@ const styles = StyleSheet.create({
   },
   taskActionRow: {
     marginTop: theme.spacing.xs,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: theme.colors.primary.main,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    zIndex: 99,
   },
 });
