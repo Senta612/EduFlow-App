@@ -575,6 +575,8 @@ class TeacherService {
 
   // Homework
   async getHomeworkList(): Promise<Homework[]> {
+    const localStored = await this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
+
     try {
       const { data, error } = await supabase
         .from('homework_assignments')
@@ -598,7 +600,7 @@ class TeacherService {
           });
         }
 
-        const mapped: Homework[] = data.map((h) => {
+        const supabaseMapped: Homework[] = data.map((h) => {
           const b = batchMap.get(h.batch_id);
           const c = subCounts.get(h.id);
           const done = c?.done || 0;
@@ -619,14 +621,20 @@ class TeacherService {
             notDoneCount: notDone,
           };
         });
-        await this.setStored(STORAGE_KEYS.HOMEWORK, mapped);
-        return mapped;
+
+        // Merge Supabase items with any local offline items that have not yet been synced
+        const supabaseIds = new Set(supabaseMapped.map((s) => s.id));
+        const unsyncedLocal = localStored.filter((loc) => !supabaseIds.has(loc.id));
+        const combined = [...supabaseMapped, ...unsyncedLocal];
+
+        await this.setStored(STORAGE_KEYS.HOMEWORK, combined);
+        return combined;
       }
     } catch (err) {
       console.warn('Supabase getHomeworkList notice:', err);
     }
 
-    return this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
+    return localStored;
   }
 
   async getBatchHomework(batchId: string): Promise<Homework[]> {
@@ -669,6 +677,23 @@ class TeacherService {
       }
     } catch (err) {
       console.warn('Supabase createHomework notice:', err);
+    }
+
+    // Initialize student submission list for this homework
+    try {
+      const students = await this.getBatchStudents(data.batchId);
+      if (students.length > 0) {
+        const initialSubmissions: StudentHomeworkItem[] = students.map((st) => ({
+          studentId: st.id,
+          studentName: st.name,
+          rollNumber: st.rollNumber,
+          status: 'not_done' as const,
+        }));
+        const subKey = `${STORAGE_KEYS.HW_SUBMISSIONS}_${newHw.id}`;
+        await this.setStored(subKey, initialSubmissions);
+      }
+    } catch (err) {
+      console.warn('Initialize submissions notice:', err);
     }
 
     const all = await this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
@@ -795,6 +820,8 @@ class TeacherService {
 
   // Tests & Marks
   async getTestsList(): Promise<Test[]> {
+    const localStored = await this.getStored<Test[]>(STORAGE_KEYS.TESTS, []);
+
     try {
       const { data, error } = await supabase
         .from('tests')
@@ -815,7 +842,7 @@ class TeacherService {
           });
         }
 
-        const mapped: Test[] = data.map((t) => {
+        const supabaseMapped: Test[] = data.map((t) => {
           const b = batchMap.get(t.batch_id);
           return {
             id: t.id,
@@ -828,14 +855,19 @@ class TeacherService {
             totalStudents: b?.studentCount || 0,
           };
         });
-        await this.setStored(STORAGE_KEYS.TESTS, mapped);
-        return mapped;
+
+        const supabaseIds = new Set(supabaseMapped.map((s) => s.id));
+        const unsyncedLocal = localStored.filter((loc) => !supabaseIds.has(loc.id));
+        const combined = [...supabaseMapped, ...unsyncedLocal];
+
+        await this.setStored(STORAGE_KEYS.TESTS, combined);
+        return combined;
       }
     } catch (err) {
       console.warn('Supabase getTestsList notice:', err);
     }
 
-    return this.getStored<Test[]>(STORAGE_KEYS.TESTS, []);
+    return localStored;
   }
 
   async getBatchTests(batchId: string): Promise<Test[]> {
@@ -872,6 +904,23 @@ class TeacherService {
       }
     } catch (err) {
       console.warn('Supabase createTest notice:', err);
+    }
+
+    // Initialize student test marks
+    try {
+      const students = await this.getBatchStudents(data.batchId);
+      if (students.length > 0) {
+        const initialMarks: StudentMark[] = students.map((st) => ({
+          studentId: st.id,
+          studentName: st.name,
+          rollNumber: st.rollNumber,
+          marksObtained: null,
+        }));
+        const key = `${STORAGE_KEYS.MARKS}_${newTest.id}`;
+        await this.setStored(key, initialMarks);
+      }
+    } catch (err) {
+      console.warn('Initialize test marks notice:', err);
     }
 
     const all = await this.getStored<Test[]>(STORAGE_KEYS.TESTS, []);
@@ -1139,21 +1188,20 @@ class TeacherService {
     // 2. Homework Review tasks
     const homework = await this.getHomeworkList();
     for (const hw of homework) {
-      if (hw.submissionsCount > 0) {
-        tasks.push({
-          id: `task-hw-${hw.id}`,
-          title: `Review Homework: ${hw.title}`,
-          subtitle: `${hw.batchName} • Due: ${hw.dueDate}`,
-          type: 'homework',
-          batchId: hw.batchId,
-          batchName: hw.batchName,
-          dueDate: hw.dueDate,
-          status: 'in_progress',
-          studentCount: hw.totalStudents,
-          progressText: `${hw.submissionsCount}/${hw.totalStudents} submitted`,
-          route: `/(teacher)/batch/${hw.batchId}`,
-        });
-      }
+      const isCompleted = (hw.submissionsCount ?? 0) >= (hw.totalStudents ?? 0) && (hw.totalStudents ?? 0) > 0;
+      tasks.push({
+        id: `task-hw-${hw.id}`,
+        title: `Review Homework: ${hw.title}`,
+        subtitle: `${hw.batchName} • Due: ${hw.dueDate}`,
+        type: 'homework',
+        batchId: hw.batchId,
+        batchName: hw.batchName,
+        dueDate: hw.dueDate,
+        status: isCompleted ? 'completed' : (hw.submissionsCount ?? 0) > 0 ? 'in_progress' : 'pending',
+        studentCount: hw.totalStudents,
+        progressText: `${hw.submissionsCount || 0}/${hw.totalStudents || 0} submitted`,
+        route: `/(teacher)/homework/${hw.id}/submissions`,
+      });
     }
 
     // 3. Test Marks entry tasks
