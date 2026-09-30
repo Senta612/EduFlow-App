@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -37,6 +38,17 @@ export default function JoinPortalScreen() {
   }, [params.code, params.token]);
 
   const handlePaste = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (text) {
+        setInviteCode(text.trim());
+        setErrorMessage(null);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
         const text = await navigator.clipboard.readText();

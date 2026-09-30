@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -90,6 +91,17 @@ export default function LoginScreen() {
   };
 
   const handlePasteStudentCode = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (text) {
+        setStudentCode(text.trim());
+        setStudentError(null);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
         const text = await navigator.clipboard.readText();

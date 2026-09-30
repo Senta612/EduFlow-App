@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -51,13 +52,18 @@ export const ShareInviteModal: React.FC<ShareInviteModalProps> = ({
 
   const safeCopy = async (text: string, type: 'code' | 'link' | 'message') => {
     try {
-      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
-      }
+      await Clipboard.setStringAsync(text);
+      setCopiedType(type);
     } catch {
-      // ignore
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+          await navigator.clipboard.writeText(text);
+        }
+      } catch {
+        // ignore
+      }
+      setCopiedType(type);
     }
-    setCopiedType(type);
     setTimeout(() => setCopiedType(null), 2500);
   };
 
