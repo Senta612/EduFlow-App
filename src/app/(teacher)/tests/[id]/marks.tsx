@@ -30,6 +30,7 @@ export default function EnterTestMarksScreen() {
 
   const [test, setTest] = useState<Test | null>(null);
   const [marks, setMarks] = useState<StudentMark[]>([]);
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [inputErrors, setInputErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,6 +43,14 @@ export default function EnterTestMarksScreen() {
         setTest(testData);
         const marksData = await teacherService.getTestMarks(id, testData.batchId);
         setMarks(marksData);
+
+        const initialValues: Record<string, string> = {};
+        marksData.forEach((m) => {
+          if (m.marksObtained !== null) {
+            initialValues[m.studentId] = String(m.marksObtained);
+          }
+        });
+        setInputValues(initialValues);
       }
     } catch (error) {
       console.error('Failed to load test marks:', error);
@@ -55,15 +64,21 @@ export default function EnterTestMarksScreen() {
   }, [loadTestData]);
 
   const handleMarkChange = (studentId: string, text: string) => {
-    const trimmed = text.trim();
+    // Strip non-numeric/non-decimal characters to prevent wheel or text jitter
+    const sanitized = text.replace(/[^0-9.]/g, '');
+    setInputValues((prev) => ({
+      ...prev,
+      [studentId]: sanitized,
+    }));
 
-    // Clear error
+    // Clear previous error
     setInputErrors((prev) => {
       const next = { ...prev };
       delete next[studentId];
       return next;
     });
 
+    const trimmed = sanitized.trim();
     if (trimmed === '') {
       setMarks((prev) =>
         prev.map((m) =>
@@ -281,16 +296,23 @@ export default function EnterTestMarksScreen() {
                       ]}
                       placeholder="-"
                       placeholderTextColor={theme.colors.text.disabled}
-                      keyboardType="numeric"
-                      defaultValue={
-                        item.marksObtained !== null
+                      keyboardType="number-pad"
+                      inputMode="decimal"
+                      value={
+                        inputValues[item.studentId] !== undefined
+                          ? inputValues[item.studentId]
+                          : item.marksObtained !== null
                           ? String(item.marksObtained)
                           : ''
                       }
                       onChangeText={(text) =>
                         handleMarkChange(item.studentId, text)
                       }
-                      maxLength={4}
+                      maxLength={5}
+                      multiline={false}
+                      numberOfLines={1}
+                      scrollEnabled={false}
+                      textAlignVertical="center"
                       accessibilityLabel={`Marks for ${item.studentName}`}
                     />
                     <Text variant="caption" style={styles.maxMarksSuffix}>
@@ -440,16 +462,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   marksInput: {
-    width: 60,
-    height: 40,
+    width: 68,
+    height: 42,
     borderRadius: theme.radii.md,
     borderWidth: 1.5,
     borderColor: theme.colors.border.main,
     backgroundColor: theme.colors.background.paper,
     textAlign: 'center',
+    textAlignVertical: 'center',
     fontSize: theme.typography.sizes.base,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text.primary,
+    paddingVertical: 0,
+    paddingHorizontal: 4,
+    includeFontPadding: false,
   },
   marksInputFilled: {
     borderColor: theme.colors.primary.main,
