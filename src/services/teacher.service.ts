@@ -288,7 +288,7 @@ class TeacherService {
         .order('roll_number', { ascending: true });
 
       if (!error && data) {
-        const mapped: Student[] = data.map((s) => ({
+        const mapped: Student[] = data.map((s: any) => ({
           id: s.id,
           name: s.name,
           rollNumber: s.roll_number,
@@ -322,8 +322,8 @@ class TeacherService {
     };
 
     try {
-      const { data: inserted, error } = await supabase
-        .from('students')
+      const { data: inserted, error } = await (supabase
+        .from('students') as any)
         .insert({
           batch_id: batchId,
           name: studentData.name,
