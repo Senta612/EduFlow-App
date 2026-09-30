@@ -33,7 +33,13 @@ export function LanguageSelectorModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <SafeAreaView style={styles.safeArea}>
+        <Pressable
+          style={styles.backdropTouch}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close Language Selector"
+        />
+        <SafeAreaView style={styles.safeArea} pointerEvents="box-none">
           <View style={styles.modalCard}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
@@ -129,6 +135,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'flex-end',
+  },
+  backdropTouch: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   safeArea: {
     flex: 1,

@@ -6,6 +6,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
@@ -58,6 +59,12 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalOverlay}
       >
+        <Pressable
+          style={styles.modalBackdropTouch}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close student form modal"
+        />
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text variant="heading" style={styles.modalTitle}>
@@ -142,6 +149,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  modalBackdropTouch: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   modalContent: {
     backgroundColor: theme.colors.background.paper,
