@@ -164,6 +164,7 @@ export function SuccessModal({
       case 'success':
         return {
           container: styles.statBoxSuccess,
+          iconBadge: styles.statIconBadgeSuccess,
           number: styles.statNumberSuccess,
           label: styles.statLabelSuccess,
           iconColor: theme.colors.semantic.success.main,
@@ -171,6 +172,7 @@ export function SuccessModal({
       case 'warning':
         return {
           container: styles.statBoxWarning,
+          iconBadge: styles.statIconBadgeWarning,
           number: styles.statNumberWarning,
           label: styles.statLabelWarning,
           iconColor: theme.colors.semantic.warning.main,
@@ -178,6 +180,7 @@ export function SuccessModal({
       case 'danger':
         return {
           container: styles.statBoxDanger,
+          iconBadge: styles.statIconBadgeDanger,
           number: styles.statNumberDanger,
           label: styles.statLabelDanger,
           iconColor: theme.colors.semantic.danger.main,
@@ -185,6 +188,7 @@ export function SuccessModal({
       case 'primary':
         return {
           container: styles.statBoxPrimary,
+          iconBadge: styles.statIconBadgePrimary,
           number: styles.statNumberPrimary,
           label: styles.statLabelPrimary,
           iconColor: theme.colors.primary.main,
@@ -193,6 +197,7 @@ export function SuccessModal({
       default:
         return {
           container: styles.statBoxNeutral,
+          iconBadge: styles.statIconBadgeNeutral,
           number: styles.statNumberNeutral,
           label: styles.statLabelNeutral,
           iconColor: theme.colors.text.secondary,
@@ -270,14 +275,15 @@ export function SuccessModal({
               {contextBadge && (
                 <View style={styles.contextPill}>
                   {contextBadge.icon && (
-                    <Feather
-                      name={contextBadge.icon}
-                      size={13}
-                      color={theme.colors.primary.main}
-                      style={styles.contextPillIcon}
-                    />
+                    <View style={styles.contextPillIconWrapper}>
+                      <Feather
+                        name={contextBadge.icon}
+                        size={13}
+                        color={theme.colors.primary.main}
+                      />
+                    </View>
                   )}
-                  <Text variant="caption" style={styles.contextPillText} numberOfLines={1}>
+                  <Text variant="caption" style={styles.contextPillText} numberOfLines={2}>
                     {contextBadge.label}
                   </Text>
                 </View>
@@ -290,33 +296,46 @@ export function SuccessModal({
                     const stStyles = getStatStyles(st.variant);
                     const isZeroDisabled =
                       st.variant === 'danger' && (st.value === 0 || st.value === '0');
+                    const isLongText = String(st.value).length > 3;
 
                     return (
                       <View
                         key={`stat-${index}`}
                         style={[styles.statBox, stStyles.container]}
                       >
-                        <View style={styles.statHeaderRow}>
-                          {st.icon && (
-                            <Feather
-                              name={st.icon}
-                              size={12}
-                              color={isZeroDisabled ? theme.colors.text.disabled : stStyles.iconColor}
-                            />
-                          )}
-                          <Text
-                            variant="heading"
+                        {st.icon && (
+                          <View
                             style={[
-                              stStyles.number,
-                              isZeroDisabled && styles.statTextDisabled,
+                              styles.statIconBadge,
+                              stStyles.iconBadge,
+                              isZeroDisabled && styles.statIconBadgeDisabled,
                             ]}
                           >
-                            {st.value}
-                          </Text>
-                        </View>
+                            <Feather
+                              name={st.icon}
+                              size={13}
+                              color={isZeroDisabled ? theme.colors.text.disabled : stStyles.iconColor}
+                            />
+                          </View>
+                        )}
+                        <Text
+                          variant={isLongText ? 'body' : 'heading'}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                          style={[
+                            styles.statValueBase,
+                            isLongText ? styles.statTextLong : styles.statNumber,
+                            stStyles.number,
+                            isZeroDisabled && styles.statTextDisabled,
+                          ]}
+                        >
+                          {st.value}
+                        </Text>
                         <Text
                           variant="caption"
+                          numberOfLines={1}
                           style={[
+                            styles.statLabelBase,
                             stStyles.label,
                             isZeroDisabled && styles.statTextDisabled,
                           ]}
@@ -393,7 +412,7 @@ export function SuccessModal({
 }
 
 const { width } = Dimensions.get('window');
-const cardWidth = Math.min(width - 40, 360);
+const cardMaxWidth = Math.min(width - 32, 380);
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -407,10 +426,11 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
   },
   cardContainer: {
-    width: cardWidth,
+    width: '100%',
+    maxWidth: cardMaxWidth,
     backgroundColor: theme.colors.background.paper,
     borderRadius: 24,
     overflow: 'hidden',
@@ -423,9 +443,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   cardInner: {
-    paddingHorizontal: 22,
-    paddingTop: 26,
-    paddingBottom: 22,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
     alignItems: 'center',
     position: 'relative',
   },
@@ -478,122 +498,148 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
     textAlign: 'center',
     lineHeight: 18,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     marginBottom: 16,
   },
   contextPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: theme.colors.primary.bg,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 18,
-    maxWidth: '100%',
+    paddingVertical: 7,
+    borderRadius: 12,
+    marginBottom: 16,
+    width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(96, 165, 250, 0.25)',
   },
-  contextPillIcon: {
+  contextPillIconWrapper: {
     marginRight: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   contextPillText: {
     color: theme.colors.primary.dark,
     fontWeight: theme.typography.weights.semibold,
     fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   statsGrid: {
     flexDirection: 'row',
     gap: 8,
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 18,
   },
   statBox: {
     flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    minHeight: 74,
   },
-  statHeaderRow: {
-    flexDirection: 'row',
+  statIconBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  statIconBadgeNeutral: {
+    backgroundColor: '#EEF2F6',
+  },
+  statIconBadgePrimary: {
+    backgroundColor: '#DBEAFE',
+  },
+  statIconBadgeSuccess: {
+    backgroundColor: '#DCFCE7',
+  },
+  statIconBadgeWarning: {
+    backgroundColor: '#FEF9C3',
+  },
+  statIconBadgeDanger: {
+    backgroundColor: '#FEE2E2',
+  },
+  statIconBadgeDisabled: {
+    backgroundColor: '#F1F5F9',
+  },
+  statValueBase: {
+    textAlign: 'center',
+    width: '100%',
+  },
+  statNumber: {
+    fontSize: 17,
+    fontWeight: theme.typography.weights.bold,
+    lineHeight: 20,
+  },
+  statTextLong: {
+    fontSize: 12.5,
+    fontWeight: theme.typography.weights.bold,
+    lineHeight: 16,
+  },
+  statLabelBase: {
+    fontSize: 10,
+    fontWeight: theme.typography.weights.semibold,
+    textAlign: 'center',
+    marginTop: 2,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   statBoxNeutral: {
     backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
   },
   statNumberNeutral: {
-    fontSize: 18,
-    fontWeight: theme.typography.weights.bold,
     color: theme.colors.text.primary,
   },
   statLabelNeutral: {
-    fontSize: 11,
     color: theme.colors.text.secondary,
-    marginTop: 2,
   },
   statBoxSuccess: {
     backgroundColor: '#F0FDF4',
     borderColor: '#BBF7D0',
   },
   statNumberSuccess: {
-    fontSize: 18,
-    fontWeight: theme.typography.weights.bold,
     color: theme.colors.semantic.success.main,
   },
   statLabelSuccess: {
-    fontSize: 11,
     color: theme.colors.semantic.success.main,
-    fontWeight: theme.typography.weights.medium,
-    marginTop: 2,
   },
   statBoxWarning: {
     backgroundColor: '#FEFCE8',
     borderColor: '#FEF08A',
   },
   statNumberWarning: {
-    fontSize: 18,
-    fontWeight: theme.typography.weights.bold,
     color: theme.colors.semantic.warning.main,
   },
   statLabelWarning: {
-    fontSize: 11,
     color: theme.colors.semantic.warning.main,
-    fontWeight: theme.typography.weights.medium,
-    marginTop: 2,
   },
   statBoxDanger: {
     backgroundColor: '#FEF2F2',
     borderColor: '#FECACA',
   },
   statNumberDanger: {
-    fontSize: 18,
-    fontWeight: theme.typography.weights.bold,
     color: theme.colors.semantic.danger.main,
   },
   statLabelDanger: {
-    fontSize: 11,
     color: theme.colors.semantic.danger.main,
-    fontWeight: theme.typography.weights.medium,
-    marginTop: 2,
   },
   statBoxPrimary: {
     backgroundColor: theme.colors.primary.bg,
     borderColor: 'rgba(96, 165, 250, 0.4)',
   },
   statNumberPrimary: {
-    fontSize: 18,
-    fontWeight: theme.typography.weights.bold,
     color: theme.colors.primary.dark,
   },
   statLabelPrimary: {
-    fontSize: 11,
     color: theme.colors.primary.main,
-    fontWeight: theme.typography.weights.medium,
-    marginTop: 2,
   },
   statTextDisabled: {
     color: theme.colors.text.disabled,
