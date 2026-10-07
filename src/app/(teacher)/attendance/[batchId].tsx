@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,6 +6,9 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +25,8 @@ import { Batch, StudentAttendanceItem, AttendanceStatus } from '@/types/teacher'
 import { theme } from '@/theme';
 
 import { SuccessModal } from '@/components/ui/SuccessModal';
+
+type AttendanceFilter = 'all' | 'present' | 'absent';
 
 function formatTodayDate(): string {
   return new Date().toLocaleDateString('en-US', {
@@ -55,6 +60,8 @@ export default function TakeAttendanceScreen() {
 
   const [batch, setBatch] = useState<Batch | null>(null);
   const [items, setItems] = useState<StudentAttendanceItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<AttendanceFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
@@ -112,6 +119,21 @@ export default function TakeAttendanceScreen() {
 
   const presentCount = items.filter((i) => i.status === 'present').length;
   const absentCount = items.filter((i) => i.status === 'absent').length;
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (activeFilter !== 'all' && item.status !== activeFilter) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = item.studentName.toLowerCase().includes(q);
+        const matchRoll = item.rollNumber.toLowerCase().includes(q);
+        return matchName || matchRoll;
+      }
+      return true;
+    });
+  }, [items, activeFilter, searchQuery]);
 
   const handleSubmit = async () => {
     if (!batchId || items.length === 0 || !batch) return;
@@ -197,16 +219,26 @@ export default function TakeAttendanceScreen() {
             </Text>
           </View>
           <View style={styles.summaryBadges}>
-            <Badge
-              label={`${presentCount} Present`}
-              variant="success"
-              size="sm"
-            />
-            <Badge
-              label={`${absentCount} Absent`}
-              variant={absentCount > 0 ? 'danger' : 'neutral'}
-              size="sm"
-            />
+            <Pressable
+              onPress={() => setActiveFilter(activeFilter === 'present' ? 'all' : 'present')}
+              style={({ pressed }) => [pressed && { opacity: 0.8 }]}
+            >
+              <Badge
+                label={`${presentCount} Present`}
+                variant="success"
+                size="sm"
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => setActiveFilter(activeFilter === 'absent' ? 'all' : 'absent')}
+              style={({ pressed }) => [pressed && { opacity: 0.8 }]}
+            >
+              <Badge
+                label={`${absentCount} Absent`}
+                variant={absentCount > 0 ? 'danger' : 'neutral'}
+                size="sm"
+              />
+            </Pressable>
           </View>
         </View>
 
@@ -240,124 +272,195 @@ export default function TakeAttendanceScreen() {
             </Text>
           </Pressable>
         </View>
+
+        {/* Search Bar & Filter Chips for Quick Student Lookup */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <Feather
+              name="search"
+              size={15}
+              color={theme.colors.text.disabled}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              placeholder="Search student or roll number..."
+              placeholderTextColor={theme.colors.text.disabled}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable hitSlop={8} onPress={() => setSearchQuery('')}>
+                <Feather name="x" size={14} color={theme.colors.text.secondary} />
+              </Pressable>
+            )}
+          </View>
+
+          {/* Filter Chips */}
+          <View style={styles.filterChipsRow}>
+            {(
+              [
+                { key: 'all', label: `All (${items.length})` },
+                { key: 'present', label: `Present (${presentCount})` },
+                { key: 'absent', label: `Absent (${absentCount})` },
+              ] as { key: AttendanceFilter; label: string }[]
+            ).map((tab) => {
+              const isActive = activeFilter === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
+                  style={[styles.chip, isActive && styles.chipActive]}
+                  onPress={() => setActiveFilter(tab.key)}
+                >
+                  <Text
+                    variant="caption"
+                    style={[styles.chipText, isActive && styles.chipTextActive]}
+                  >
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
       </View>
 
       {/* Student List */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 100 },
-        ]}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {items.length === 0 ? (
-          <EmptyState
-            icon="users"
-            title="No students enrolled yet"
-            description="Students will appear here once assigned to this batch by the institute owner."
-            actionLabel="Back to Batch"
-            onAction={() => router.back()}
-          />
-        ) : (
-          <Card variant="outlined" padding="none" style={styles.rosterCard}>
-            {items.map((student, index) => {
-              const isLast = index === items.length - 1;
-              const isPresent = student.status === 'present';
-              const isAbsent = student.status === 'absent';
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 100 },
+          ]}
+        >
+          {items.length === 0 ? (
+            <EmptyState
+              icon="users"
+              title="No students enrolled yet"
+              description="Students will appear here once assigned to this batch by the institute owner."
+              actionLabel="Back to Batch"
+              onAction={() => router.back()}
+            />
+          ) : filteredItems.length === 0 ? (
+            <EmptyState
+              icon="search"
+              title="No students match filter"
+              description="Try adjusting your search query or filter selection."
+              actionLabel="Show All Students"
+              onAction={() => {
+                setActiveFilter('all');
+                setSearchQuery('');
+              }}
+            />
+          ) : (
+            <Card variant="outlined" padding="none" style={styles.rosterCard}>
+              {filteredItems.map((student, index) => {
+                const isLast = index === filteredItems.length - 1;
+                const isPresent = student.status === 'present';
+                const isAbsent = student.status === 'absent';
 
-            return (
-              <View
-                key={student.studentId}
-                style={[
-                  styles.studentRow,
-                  !isLast && styles.studentRowBorder,
-                  isAbsent && styles.studentRowAbsent,
-                ]}
-              >
-                {/* Roll & Name */}
-                <View style={styles.studentInfoGroup}>
+                return (
                   <View
+                    key={student.studentId}
                     style={[
-                      styles.rollBadge,
-                      isAbsent && styles.rollBadgeAbsent,
+                      styles.studentRow,
+                      !isLast && styles.studentRowBorder,
+                      isAbsent && styles.studentRowAbsent,
                     ]}
                   >
-                    <Text variant="caption" style={styles.rollNumber}>
-                      {student.rollNumber}
-                    </Text>
-                  </View>
-                  <View style={styles.nameBlock}>
-                    <Text variant="label" style={styles.studentName}>
-                      {student.studentName}
-                    </Text>
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.statusIndicatorText,
-                        isPresent
-                          ? styles.statusTextPresent
-                          : styles.statusTextAbsent,
-                      ]}
-                    >
-                      {isPresent ? 'Marked Present' : 'Marked Absent'}
-                    </Text>
-                  </View>
-                </View>
+                    {/* Roll & Name */}
+                    <View style={styles.studentInfoGroup}>
+                      <View
+                        style={[
+                          styles.rollBadge,
+                          isAbsent && styles.rollBadgeAbsent,
+                        ]}
+                      >
+                        <Text variant="caption" style={styles.rollNumber}>
+                          {student.rollNumber}
+                        </Text>
+                      </View>
+                      <View style={styles.nameBlock}>
+                        <Text variant="label" style={styles.studentName}>
+                          {student.studentName}
+                        </Text>
+                        <Text
+                          variant="caption"
+                          style={[
+                            styles.statusIndicatorText,
+                            isPresent
+                              ? styles.statusTextPresent
+                              : styles.statusTextAbsent,
+                          ]}
+                        >
+                          {isPresent ? 'Marked Present' : 'Marked Absent'}
+                        </Text>
+                      </View>
+                    </View>
 
-                {/* Present / Absent Toggle Buttons */}
-                <View style={styles.toggleButtonGroup}>
-                  <Pressable
-                    style={[
-                      styles.togglePill,
-                      styles.presentPill,
-                      isPresent && styles.presentPillActive,
-                    ]}
-                    onPress={() =>
-                      handleToggleStatus(student.studentId, 'present')
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel={`Mark ${student.studentName} Present`}
-                  >
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.toggleText,
-                        isPresent && styles.toggleTextActive,
-                      ]}
-                    >
-                      Present
-                    </Text>
-                  </Pressable>
+                    {/* Present / Absent Toggle Buttons */}
+                    <View style={styles.toggleButtonGroup}>
+                      <Pressable
+                        style={[
+                          styles.togglePill,
+                          styles.presentPill,
+                          isPresent && styles.presentPillActive,
+                        ]}
+                        onPress={() =>
+                          handleToggleStatus(student.studentId, 'present')
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Mark ${student.studentName} Present`}
+                      >
+                        <Text
+                          variant="caption"
+                          style={[
+                            styles.toggleText,
+                            isPresent && styles.toggleTextActive,
+                          ]}
+                        >
+                          Present
+                        </Text>
+                      </Pressable>
 
-                  <Pressable
-                    style={[
-                      styles.togglePill,
-                      styles.absentPill,
-                      isAbsent && styles.absentPillActive,
-                    ]}
-                    onPress={() =>
-                      handleToggleStatus(student.studentId, 'absent')
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel={`Mark ${student.studentName} Absent`}
-                  >
-                    <Text
-                      variant="caption"
-                      style={[
-                        styles.toggleText,
-                        isAbsent && styles.toggleTextActive,
-                      ]}
-                    >
-                      Absent
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })}
-        </Card>
-        )}
-      </ScrollView>
+                      <Pressable
+                        style={[
+                          styles.togglePill,
+                          styles.absentPill,
+                          isAbsent && styles.absentPillActive,
+                        ]}
+                        onPress={() =>
+                          handleToggleStatus(student.studentId, 'absent')
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Mark ${student.studentName} Absent`}
+                      >
+                        <Text
+                          variant="caption"
+                          style={[
+                            styles.toggleText,
+                            isAbsent && styles.toggleTextActive,
+                          ]}
+                        >
+                          Absent
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+            </Card>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Floating Bottom Submission Bar */}
       <View
@@ -498,6 +601,58 @@ const styles = StyleSheet.create({
   fastActionTextDanger: {
     color: theme.colors.semantic.danger.main,
     fontWeight: theme.typography.weights.semibold,
+  },
+  flex: {
+    flex: 1,
+  },
+  searchSection: {
+    gap: 8,
+    marginTop: 2,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: theme.radii.md,
+    paddingHorizontal: 12,
+    height: 40,
+    borderWidth: 1,
+    borderColor: theme.colors.border.main,
+    gap: 8,
+  },
+  searchIcon: {
+    marginRight: 2,
+  },
+  searchInput: {
+    flex: 1,
+    color: theme.colors.text.primary,
+    fontSize: 13,
+    paddingVertical: 0,
+  },
+  filterChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: theme.radii.full,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary.bg,
+    borderColor: theme.colors.primary.main,
+  },
+  chipText: {
+    color: theme.colors.text.secondary,
+    fontWeight: theme.typography.weights.medium,
+    fontSize: 11,
+  },
+  chipTextActive: {
+    color: theme.colors.primary.main,
+    fontWeight: theme.typography.weights.bold,
   },
   scrollContent: {
     padding: theme.spacing.lg,
