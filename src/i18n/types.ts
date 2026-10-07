@@ -59,6 +59,13 @@ export interface TranslationDictionary {
     roleStudent: string;
     signOut: string;
     signOutConfirm: string;
+    signOutDialogSubtitle: string;
+    staySignedIn: string;
+    signingOut: string;
+    sessionSafeNote: string;
+    studentSignOutTitle: string;
+    studentSignOutSubtitle: string;
+    exitPortal: string;
   };
   dashboard: {
     greetingMorning: string;

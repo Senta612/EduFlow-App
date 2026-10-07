@@ -10,3 +10,4 @@ export * from './ScreenHeader';
 export * from './SuccessModal';
 export * from './EmailConfirmationModal';
 export * from './TimeRangePicker';
+export * from './SignOutModal';

@@ -52,6 +52,13 @@ export const en: TranslationDictionary = {
     roleStudent: 'Student',
     signOut: 'Sign Out',
     signOutConfirm: 'Are you sure you want to sign out?',
+    signOutDialogSubtitle: 'You will need to sign in again to access your batches, attendance, and tasks.',
+    staySignedIn: 'Stay Signed In',
+    signingOut: 'Signing out...',
+    sessionSafeNote: 'All your offline changes & batch records are securely synced',
+    studentSignOutTitle: 'Exit Student Portal',
+    studentSignOutSubtitle: 'Are you sure you want to exit? You can return anytime using your student invite code or link.',
+    exitPortal: 'Exit Portal',
   },
   dashboard: {
     greetingMorning: 'Good Morning',

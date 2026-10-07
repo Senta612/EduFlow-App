@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SignOutModal } from '@/components/ui/SignOutModal';
 import { EditTeacherProfileModal } from '@/components/profile';
 import { useAuth } from '@/hooks/useAuth';
 import { teacherService } from '@/services/teacher.service';
@@ -31,6 +32,7 @@ export default function TeacherProfileScreen() {
   const [testsCount, setTestsCount] = useState(0);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,16 +68,7 @@ export default function TeacherProfileScreen() {
   );
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-        },
-      },
-    ]);
+    setIsSignOutModalVisible(true);
   };
 
   const handleCall = (phone?: string | null) => {
@@ -330,6 +323,12 @@ export default function TeacherProfileScreen() {
         onSave={async (updates) => {
           await updateProfile(updates);
         }}
+      />
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutModal
+        visible={isSignOutModalVisible}
+        onClose={() => setIsSignOutModalVisible(false)}
       />
     </SafeAreaView>
   );

@@ -52,6 +52,13 @@ export const gu: TranslationDictionary = {
     roleStudent: 'વિદ્યાર્થી (Student)',
     signOut: 'સાઇન આઉટ',
     signOutConfirm: 'શું તમે ખરેખર સાઇન આઉટ કરવા માંગો છો?',
+    signOutDialogSubtitle: 'તમારી બેચ, હાજરી અને કાર્યોને ઍક્સેસ કરવા માટે તમારે ફરીથી સાઇન ઇન કરવું પડશે.',
+    staySignedIn: 'સાઇન ઇન રહો',
+    signingOut: 'સાઇન આઉટ થઈ રહ્યું છે...',
+    sessionSafeNote: 'તમારો બધો ડેટા સુરક્ષિત રીતે સિંક થયેલ છે',
+    studentSignOutTitle: 'વિદ્યાર્થી પોર્ટલમાંથી બહાર નીકળો',
+    studentSignOutSubtitle: 'શું તમે ખરેખર બહાર નીકળવા માંગો છો? તમે તમારા ઇન્વાઇટ કોડ સાથે ગમે ત્યારે પાછા આવી શકો છો.',
+    exitPortal: 'પોર્ટલમાંથી બહાર નીકળો',
   },
   dashboard: {
     greetingMorning: 'શુભ સવાર',

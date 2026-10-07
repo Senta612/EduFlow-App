@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Pressable,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
@@ -15,6 +14,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SignOutModal } from '@/components/ui/SignOutModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
@@ -32,6 +32,7 @@ export default function TeacherMoreScreen() {
   const router = useRouter();
   const { profile, user, signOut } = useAuth();
   const { t } = useTranslation();
+  const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
 
   const menuSections: { title: string; items: MenuItem[] }[] = [
     {
@@ -71,16 +72,7 @@ export default function TeacherMoreScreen() {
   ];
 
   const handleSignOut = () => {
-    Alert.alert(t('auth.signOut'), t('auth.signOutConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('auth.signOut'),
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-        },
-      },
-    ]);
+    setIsSignOutModalVisible(true);
   };
 
   return (
@@ -212,6 +204,12 @@ export default function TeacherMoreScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutModal
+        visible={isSignOutModalVisible}
+        onClose={() => setIsSignOutModalVisible(false)}
+      />
     </View>
   );
 }

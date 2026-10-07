@@ -4,7 +4,6 @@ import {
   View,
   ScrollView,
   Switch,
-  Alert,
   Pressable,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +13,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SignOutModal } from '@/components/ui/SignOutModal';
 import { LanguageSelectorModal } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
@@ -28,18 +28,10 @@ export default function TeacherSettingsScreen() {
   const [attendanceAlerts, setAttendanceAlerts] = useState(true);
   const [homeworkNotifs, setHomeworkNotifs] = useState(true);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
+  const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
 
   const handleSignOut = () => {
-    Alert.alert(t('auth.signOut'), t('auth.signOutConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('auth.signOut'),
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-        },
-      },
-    ]);
+    setIsSignOutModalVisible(true);
   };
 
   return (
@@ -219,6 +211,12 @@ export default function TeacherSettingsScreen() {
       <LanguageSelectorModal
         visible={isLanguageModalVisible}
         onClose={() => setIsLanguageModalVisible(false)}
+      />
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutModal
+        visible={isSignOutModalVisible}
+        onClose={() => setIsSignOutModalVisible(false)}
       />
     </SafeAreaView>
   );

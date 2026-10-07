@@ -52,6 +52,13 @@ export const hi: TranslationDictionary = {
     roleStudent: 'विद्यार्थी (Student)',
     signOut: 'साइन आउट',
     signOutConfirm: 'क्या आप वास्तव में साइन आउट करना चाहते हैं?',
+    signOutDialogSubtitle: 'अपने बैच, उपस्थिति और कार्यों तक पहुँचने के लिए आपको फिर से साइन इन करना होगा।',
+    staySignedIn: 'साइन इन रहें',
+    signingOut: 'साइन आउट हो रहा है...',
+    sessionSafeNote: 'आपका सारा डेटा सुरक्षित रूप से सिंक है',
+    studentSignOutTitle: 'विद्यार्थी पोर्टल से बाहर निकलें',
+    studentSignOutSubtitle: 'क्या आप वास्तव में बाहर निकलना चाहते हैं? आप अपने इनवाइट कोड के साथ कभी भी वापस आ सकते हैं।',
+    exitPortal: 'पोर्टल से बाहर निकलें',
   },
   dashboard: {
     greetingMorning: 'शुभ प्रभात',

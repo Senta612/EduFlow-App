@@ -14,6 +14,7 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SignOutModal } from '@/components/ui/SignOutModal';
 import { LanguageSelectorModal } from '@/components/common/LanguageSelectorModal';
 import { AttendanceMonthlyCalendar } from '@/components/student-portal';
 import { StudentService } from '@/services/student.service';
@@ -31,7 +32,7 @@ export default function StudentProfileScreen() {
   const [attendance, setAttendance] = useState<StudentAttendanceOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLangModalVisible, setIsLangModalVisible] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -70,28 +71,8 @@ export default function StudentProfileScreen() {
     }
   };
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      'Exit Student Portal',
-      'Are you sure you want to exit? You can return anytime with your invite code or link.',
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: 'Exit Portal',
-          style: 'destructive',
-          onPress: async () => {
-            setIsSigningOut(true);
-            try {
-              await signOut();
-            } catch (err) {
-              console.error('Failed to sign out:', err);
-            } finally {
-              setIsSigningOut(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleSignOut = () => {
+    setIsSignOutModalVisible(true);
   };
 
   const studentName = profile?.full_name || summary?.studentName || user?.email?.split('@')[0] || 'Student';
@@ -237,11 +218,11 @@ export default function StudentProfileScreen() {
           {/* Sign Out Button */}
           <View style={styles.signOutSection}>
             <Button
-              title={isSigningOut ? 'Exiting...' : 'Exit Student Portal'}
+              title="Exit Student Portal"
               variant="danger"
+              icon="log-out"
               fullWidth
               onPress={handleSignOut}
-              disabled={isSigningOut}
             />
           </View>
         </ScrollView>
@@ -250,6 +231,15 @@ export default function StudentProfileScreen() {
       <LanguageSelectorModal
         visible={isLangModalVisible}
         onClose={() => setIsLangModalVisible(false)}
+      />
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutModal
+        visible={isSignOutModalVisible}
+        onClose={() => setIsSignOutModalVisible(false)}
+        userName={studentName}
+        userEmail={batch ? `Batch: ${batch.batchName}` : undefined}
+        userRole="Student"
       />
     </View>
   );
