@@ -24,6 +24,7 @@ import {
   AttendanceDetailModal,
   StudentFormModal,
   ShareInviteModal,
+  DeleteBatchModal,
 } from '@/components/batch';
 import { teacherService } from '@/services/teacher.service';
 import {
@@ -87,6 +88,25 @@ export default function BatchDetailScreen() {
   const [isAttDetailModalVisible, setIsAttDetailModalVisible] = useState(false);
   const [attRecordFilter, setAttRecordFilter] = useState<'all' | 'present' | 'absent'>('all');
   const [attSearchQuery, setAttSearchQuery] = useState('');
+
+  // Delete Batch Modal State
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+
+  const handleDeleteBatch = async () => {
+    if (!batch) return;
+    try {
+      setIsDeletingBatch(true);
+      await teacherService.deleteBatch(batch.id);
+      setIsDeleteModalVisible(false);
+      router.replace('/(teacher)/(tabs)/batches');
+    } catch (err) {
+      console.error('Failed to delete batch:', err);
+      Alert.alert('Delete Failed', 'Could not delete batch. Please try again.');
+    } finally {
+      setIsDeletingBatch(false);
+    }
+  };
 
   const handleOpenAttendanceDetail = (record: AttendanceRecord) => {
     setSelectedAttRecord(record);
@@ -244,6 +264,21 @@ export default function BatchDetailScreen() {
         title={batch.name}
         subtitle={`${batch.grade} • ${batch.subject}`}
         showBack
+        rightAction={
+          <Pressable
+            onPress={() => setIsDeleteModalVisible(true)}
+            hitSlop={8}
+            style={styles.deleteHeaderButton}
+            accessibilityRole="button"
+            accessibilityLabel="Delete batch"
+          >
+            <Feather
+              name="trash-2"
+              size={18}
+              color={theme.colors.semantic.danger.main}
+            />
+          </Pressable>
+        }
       />
 
       {/* Section Tabs */}
@@ -303,6 +338,7 @@ export default function BatchDetailScreen() {
             testsList={testsList}
             onSwitchTab={setActiveTab}
             onTakeAttendance={() => router.push(`/(teacher)/attendance/${batch.id}`)}
+            onDeleteBatch={() => setIsDeleteModalVisible(true)}
           />
         )}
 
@@ -392,6 +428,15 @@ export default function BatchDetailScreen() {
         student={inviteStudent}
         batch={batch}
       />
+
+      {/* Delete Batch Confirmation Modal */}
+      <DeleteBatchModal
+        visible={isDeleteModalVisible}
+        batch={batch}
+        onClose={() => setIsDeleteModalVisible(false)}
+        onConfirmDelete={handleDeleteBatch}
+        isDeleting={isDeletingBatch}
+      />
     </View>
   );
 }
@@ -408,6 +453,16 @@ const styles = StyleSheet.create({
   loadingText: {
     color: theme.colors.text.secondary,
     marginTop: theme.spacing.sm,
+  },
+  deleteHeaderButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabsContainer: {
     backgroundColor: theme.colors.background.paper,

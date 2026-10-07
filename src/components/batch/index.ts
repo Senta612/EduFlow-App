@@ -5,4 +5,5 @@ export { BatchHomeworkSection } from './BatchHomeworkSection';
 export { BatchTestsSection } from './BatchTestsSection';
 export { AttendanceDetailModal } from './AttendanceDetailModal';
 export { StudentFormModal } from './StudentFormModal';
+export { DeleteBatchModal } from './DeleteBatchModal';
 export { ShareInviteModal } from '../student/ShareInviteModal';

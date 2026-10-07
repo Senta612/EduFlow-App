@@ -240,6 +240,24 @@ class TeacherService {
     const batches = await this.getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
     const filtered = batches.filter((b) => b.id !== batchId);
     await this.setStored(STORAGE_KEYS.BATCHES, filtered);
+
+    // Clean up associated local records
+    try {
+      const students = await this.getStored<Student[]>(STORAGE_KEYS.STUDENTS, []);
+      await this.setStored(STORAGE_KEYS.STUDENTS, students.filter((s) => s.batchId !== batchId));
+
+      const attendance = await this.getStored<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
+      await this.setStored(STORAGE_KEYS.ATTENDANCE, attendance.filter((a) => a.batchId !== batchId));
+
+      const homework = await this.getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
+      await this.setStored(STORAGE_KEYS.HOMEWORK, homework.filter((h) => h.batchId !== batchId));
+
+      const tests = await this.getStored<Test[]>(STORAGE_KEYS.TESTS, []);
+      await this.setStored(STORAGE_KEYS.TESTS, tests.filter((t) => t.batchId !== batchId));
+    } catch (e) {
+      console.warn('Cleanup storage notice:', e);
+    }
+
     batchListeners.forEach((listener) => listener(filtered));
   }
 

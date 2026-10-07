@@ -16,6 +16,7 @@ interface BatchOverviewSectionProps {
   testsList: Test[];
   onSwitchTab: (tab: 'students' | 'attendance' | 'homework' | 'tests') => void;
   onTakeAttendance: () => void;
+  onDeleteBatch?: () => void;
 }
 
 export const BatchOverviewSection: React.FC<BatchOverviewSectionProps> = ({
@@ -25,6 +26,7 @@ export const BatchOverviewSection: React.FC<BatchOverviewSectionProps> = ({
   testsList,
   onSwitchTab,
   onTakeAttendance,
+  onDeleteBatch,
 }) => {
   const isAttendanceDone = Boolean(batch.attendanceTakenToday);
 
@@ -204,6 +206,34 @@ export const BatchOverviewSection: React.FC<BatchOverviewSectionProps> = ({
           ))
         )}
       </View>
+
+      {/* Danger Zone: Batch Management */}
+      {onDeleteBatch && (
+        <View style={styles.dangerZoneCard}>
+          <View style={styles.dangerZoneHeader}>
+            <View style={styles.dangerIconWrap}>
+              <Feather name="alert-triangle" size={16} color={theme.colors.semantic.danger.main} />
+            </View>
+            <View style={styles.dangerTitleTexts}>
+              <Text variant="label" style={styles.dangerTitle}>
+                Batch Management
+              </Text>
+              <Text variant="caption" style={styles.dangerSubtitle}>
+                Permanently delete this batch and its associated records.
+              </Text>
+            </View>
+          </View>
+
+          <Button
+            title="Delete This Batch"
+            icon="trash-2"
+            variant="danger"
+            size="sm"
+            fullWidth
+            onPress={onDeleteBatch}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -346,5 +376,40 @@ const styles = StyleSheet.create({
   itemDesc: {
     color: theme.colors.text.secondary,
     marginTop: 2,
+  },
+  dangerZoneCard: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    gap: 12,
+    marginTop: theme.spacing.sm,
+  },
+  dangerZoneHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dangerIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dangerTitleTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  dangerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  dangerSubtitle: {
+    fontSize: 11,
+    color: '#B91C1C',
   },
 });
