@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,14 +9,6 @@ import {
 import Animated, {
   FadeIn,
   FadeOut,
-  ZoomIn,
-  ZoomOut,
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
@@ -55,41 +47,6 @@ export function SignOutModal({
   const { signOut, user, profile, studentSession } = useAuth();
   const { t } = useTranslation();
   const [isSigningOut, setIsSigningOut] = useState(false);
-
-  // Animated pulse values for the danger halo
-  const pulseScale = useSharedValue(1);
-  const pulseOpacity = useSharedValue(0.3);
-
-  useEffect(() => {
-    if (visible) {
-      pulseScale.value = withRepeat(
-        withSequence(
-          withTiming(1.22, { duration: 1300, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.96, { duration: 1300, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        true,
-      );
-
-      pulseOpacity.value = withRepeat(
-        withSequence(
-          withTiming(0.45, { duration: 1300, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.12, { duration: 1300, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        true,
-      );
-    } else {
-      pulseScale.value = 1;
-      pulseOpacity.value = 0.3;
-      setIsSigningOut(false);
-    }
-  }, [visible, pulseScale, pulseOpacity]);
-
-  const animatedPulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-    opacity: pulseOpacity.value,
-  }));
 
   // Resolve display metadata for current session
   const displayName =
@@ -158,14 +115,14 @@ export function SignOutModal({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
       onRequestClose={isSigningOut ? undefined : onClose}
     >
       <View style={styles.overlay}>
-        {/* Animated backdrop */}
+        {/* Subtle Backdrop Fade */}
         <Animated.View
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(150)}
+          entering={FadeIn.duration(160)}
+          exiting={FadeOut.duration(120)}
           style={styles.backdrop}
         >
           <Pressable
@@ -176,10 +133,10 @@ export function SignOutModal({
           />
         </Animated.View>
 
-        {/* Modal Dialog Card */}
+        {/* Modal Dialog Card with Crisp Subtle Fade */}
         <Animated.View
-          entering={ZoomIn.duration(240).springify().damping(18)}
-          exiting={ZoomOut.duration(150)}
+          entering={FadeIn.duration(180)}
+          exiting={FadeOut.duration(120)}
           style={styles.cardContainer}
         >
           {/* Close button top right */}
@@ -197,12 +154,9 @@ export function SignOutModal({
             <Feather name="x" size={18} color={theme.colors.text.tertiary} />
           </Pressable>
 
-          {/* Hero Icon with Breathing Pulse Aura */}
-          <View style={styles.iconCenterWrapper}>
-            <Animated.View style={[styles.pulseAura, animatedPulseStyle]} />
-            <View style={styles.iconCircle}>
-              <Feather name="log-out" size={26} color={theme.colors.state.danger} />
-            </View>
+          {/* Clean Static Icon Badge */}
+          <View style={styles.iconCircle}>
+            <Feather name="log-out" size={24} color={theme.colors.state.danger} />
           </View>
 
           {/* Header Texts */}
@@ -323,32 +277,32 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
   },
   cardContainer: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 356,
     backgroundColor: theme.colors.background.paper,
-    borderRadius: 24,
-    paddingHorizontal: 22,
-    paddingTop: 26,
-    paddingBottom: 22,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
     alignItems: 'center',
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.22,
-    shadowRadius: 28,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    elevation: 10,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.9)',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
   },
   closeIconButton: {
     position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    top: 12,
+    right: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
@@ -360,47 +314,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     transform: [{ scale: 0.94 }],
   },
-  iconCenterWrapper: {
-    width: 72,
-    height: 72,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  pulseAura: {
-    position: 'absolute',
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#FEE2E2',
-  },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: '#FEE2E2',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#FECACA',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.state.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 14,
   },
   textContainer: {
     alignItems: 'center',
-    marginBottom: 18,
-    paddingHorizontal: 6,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   titleText: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
     color: theme.colors.text.primary,
     textAlign: 'center',
     marginBottom: 6,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   subtitleText: {
     fontSize: 13.5,
@@ -411,29 +347,29 @@ const styles = StyleSheet.create({
   userCard: {
     width: '100%',
     backgroundColor: '#F8FAFC',
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     padding: 12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatarCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#EFF6FF',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#DBEAFE',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   avatarInitials: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: theme.colors.primary.main,
   },
@@ -454,7 +390,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userSubtext: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: theme.colors.text.secondary,
   },
   safetyRow: {
@@ -475,24 +411,19 @@ const styles = StyleSheet.create({
   },
   actionColumn: {
     width: '100%',
-    gap: 10,
+    gap: 9,
   },
   confirmButton: {
     width: '100%',
-    height: 46,
-    borderRadius: 12,
+    height: 44,
+    borderRadius: 11,
     backgroundColor: theme.colors.state.danger,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.state.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
   },
   confirmButtonPressed: {
     backgroundColor: '#B91C1C',
-    transform: [{ scale: 0.985 }],
+    transform: [{ scale: 0.99 }],
   },
   confirmButtonDisabled: {
     opacity: 0.75,
@@ -503,13 +434,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnIcon: {
-    marginRight: 8,
+    marginRight: 7,
   },
   confirmButtonText: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '600',
     color: theme.colors.text.inverse,
-    letterSpacing: -0.2,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -519,18 +449,18 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     width: '100%',
-    height: 44,
-    borderRadius: 12,
+    height: 42,
+    borderRadius: 11,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButtonPressed: {
     backgroundColor: '#E2E8F0',
-    transform: [{ scale: 0.985 }],
+    transform: [{ scale: 0.99 }],
   },
   cancelButtonText: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '600',
     color: '#475569',
   },
