@@ -687,14 +687,15 @@ class TeacherService {
   async createHomework(
     data: Omit<Homework, 'id' | 'createdAt' | 'submissionsCount'>,
   ): Promise<Homework> {
+    const totalStudents = data.totalStudents || 0;
     const newHw: Homework = {
       ...data,
       id: `hw-${Date.now()}`,
       createdAt: 'Just now',
-      submissionsCount: 0,
-      doneCount: 0,
+      submissionsCount: totalStudents,
+      doneCount: totalStudents,
       halfDoneCount: 0,
-      notDoneCount: data.totalStudents || 0,
+      notDoneCount: 0,
     };
 
     try {
@@ -716,7 +717,7 @@ class TeacherService {
       console.warn('Supabase createHomework notice:', err);
     }
 
-    // Initialize student submission list for this homework
+    // Initialize student submission list for this homework (default: done)
     try {
       const students = await this.getBatchStudents(data.batchId);
       if (students.length > 0) {
@@ -724,10 +725,16 @@ class TeacherService {
           studentId: st.id,
           studentName: st.name,
           rollNumber: st.rollNumber,
-          status: 'not_done' as const,
+          status: 'done' as const,
         }));
         const subKey = `${STORAGE_KEYS.HW_SUBMISSIONS}_${newHw.id}`;
         await this.setStored(subKey, initialSubmissions);
+
+        newHw.totalStudents = students.length;
+        newHw.submissionsCount = students.length;
+        newHw.doneCount = students.length;
+        newHw.halfDoneCount = 0;
+        newHw.notDoneCount = 0;
       }
     } catch (err) {
       console.warn('Initialize submissions notice:', err);
@@ -792,6 +799,7 @@ class TeacherService {
             ...existing,
             studentName: s.name,
             rollNumber: s.rollNumber,
+            status: existing.status || ('done' as const),
           };
         }
         return {
