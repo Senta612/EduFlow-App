@@ -16,11 +16,10 @@ import { theme } from '@/theme';
 export interface BatchCardProps {
   batch: Batch;
   onPress: () => void;
-  onDelete?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
-export function BatchCard({ batch, onPress, onDelete, style }: BatchCardProps) {
+export function BatchCard({ batch, onPress, style }: BatchCardProps) {
   const { t } = useTranslation();
 
   return (
@@ -90,7 +89,7 @@ export function BatchCard({ batch, onPress, onDelete, style }: BatchCardProps) {
         )}
       </View>
 
-      {/* Footer: Action hint & options */}
+      {/* Footer: Action hint */}
       <View style={styles.footerRow}>
         {batch.attendanceTakenToday ? (
           <Badge
@@ -105,35 +104,15 @@ export function BatchCard({ batch, onPress, onDelete, style }: BatchCardProps) {
             size="sm"
           />
         )}
-        <View style={styles.actionsRight}>
-          {onDelete && (
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              hitSlop={8}
-              style={styles.deleteCardButton}
-              accessibilityRole="button"
-              accessibilityLabel={`Delete batch ${batch.name}`}
-            >
-              <Feather
-                name="trash-2"
-                size={14}
-                color={theme.colors.semantic.danger.main}
-              />
-            </Pressable>
-          )}
-          <View style={styles.openHint}>
-            <Text variant="label" style={styles.openText}>
-              {t('batches.open')}
-            </Text>
-            <Feather
-              name="arrow-right"
-              size={15}
-              color={theme.colors.primary.main}
-            />
-          </View>
+        <View style={styles.openHint}>
+          <Text variant="label" style={styles.openText}>
+            {t('batches.open')}
+          </Text>
+          <Feather
+            name="arrow-right"
+            size={15}
+            color={theme.colors.primary.main}
+          />
         </View>
       </View>
     </Pressable>
@@ -205,21 +184,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.light,
-  },
-  actionsRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  deleteCardButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   openHint: {
     flexDirection: 'row',

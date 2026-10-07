@@ -7,7 +7,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   TextInput,
-  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +16,6 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { BatchCard } from '@/components/ui/BatchCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { DeleteBatchModal } from '@/components/batch';
 import { teacherService, isBatchScheduledToday } from '@/services/teacher.service';
 import { Batch } from '@/types/teacher';
 import { useTranslation } from '@/i18n';
@@ -36,24 +34,6 @@ export default function TeacherBatchesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
-
-  // Delete Batch Confirmation State
-  const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleConfirmDelete = async () => {
-    if (!batchToDelete) return;
-    try {
-      setIsDeleting(true);
-      await teacherService.deleteBatch(batchToDelete.id);
-      setBatchToDelete(null);
-    } catch (err) {
-      console.error('Failed to delete batch:', err);
-      Alert.alert('Delete Failed', 'Could not delete batch. Please try again.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   const loadBatches = useCallback(async () => {
     setHasError(false);
@@ -242,7 +222,6 @@ export default function TeacherBatchesScreen() {
             <BatchCard
               batch={item}
               onPress={() => router.push(`/(teacher)/batch/${item.id}`)}
-              onDelete={() => setBatchToDelete(item)}
               style={styles.batchCardSpacing}
             />
           )}
@@ -299,15 +278,6 @@ export default function TeacherBatchesScreen() {
       >
         <Feather name="plus" size={26} color="#FFFFFF" />
       </Pressable>
-
-      {/* Delete Batch Confirmation Modal */}
-      <DeleteBatchModal
-        visible={Boolean(batchToDelete)}
-        batch={batchToDelete}
-        onClose={() => setBatchToDelete(null)}
-        onConfirmDelete={handleConfirmDelete}
-        isDeleting={isDeleting}
-      />
     </View>
   );
 }
