@@ -55,20 +55,32 @@ export class StudentService {
   }
 
   /**
-   * Extract and sanitize invite code from raw input or URL
+   * Extract and sanitize invite code from raw input, URL, or shared WhatsApp message
    */
   static parseInviteCode(rawInput: string): string {
     if (!rawInput) return '';
-    let text = rawInput.trim();
-    if (text.includes('code=')) {
-      const parts = text.split('code=');
-      text = parts[1].split('&')[0];
-    } else if (text.includes('token=')) {
-      const parts = text.split('token=');
-      text = parts[1].split('&')[0];
+    const text = rawInput.trim();
+
+    // 1. Direct match for STU-XXXXXX pattern
+    const stuMatch = text.match(/\b(STU-[a-zA-Z0-9]+)\b/i);
+    if (stuMatch && stuMatch[1]) {
+      return stuMatch[1].toUpperCase();
     }
-    text = text.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase();
-    return text;
+
+    // 2. Query parameter match in URL (e.g. ?code=STU-123 or &token=123)
+    const urlParamMatch = text.match(/[?&](?:code|token)=([a-zA-Z0-9-]+)/i);
+    if (urlParamMatch && urlParamMatch[1]) {
+      return urlParamMatch[1].toUpperCase();
+    }
+
+    // 3. Match after "Access Code:" or "Code:"
+    const codeLabelMatch = text.match(/(?:Access\s*Code|Code)\s*:\s*([a-zA-Z0-9-]+)/i);
+    if (codeLabelMatch && codeLabelMatch[1]) {
+      return codeLabelMatch[1].toUpperCase();
+    }
+
+    // 4. Default clean up
+    return text.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase();
   }
 
   /**
@@ -80,17 +92,26 @@ export class StudentService {
     error?: string;
   }> {
     const cleanCode = this.parseInviteCode(rawCode);
-    if (!cleanCode || cleanCode.length < 3) {
+    if (!cleanCode || cleanCode.length < 2) {
       return { success: false, error: 'Please enter a valid student invite code.' };
     }
 
+    // 1. Check Supabase by invite_code
     try {
-      // 1. Check Supabase by invite_code or ID
-      const { data, error } = await supabase
+      // Check if cleanCode is a valid UUID format to avoid Postgres casting error
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanCode);
+      
+      let query = supabase
         .from('students')
-        .select('*, batches(id, name, subject, grade)')
-        .or(`invite_code.ilike.${cleanCode},id.eq.${cleanCode}`)
-        .maybeSingle();
+        .select('*, batches(id, name, subject, grade)');
+
+      if (isUUID) {
+        query = query.or(`invite_code.ilike.${cleanCode},id.eq.${cleanCode}`);
+      } else {
+        query = query.or(`invite_code.ilike.${cleanCode},invite_code.ilike.STU-${cleanCode}`);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (!error && data) {
         const batchInfo = (data as any).batches;
@@ -99,7 +120,7 @@ export class StudentService {
           name: data.name,
           rollNumber: data.roll_number,
           batchId: data.batch_id,
-          batchName: batchInfo?.name || 'Class Batch',
+          batchName: batchInfo ? `${batchInfo.name} (${batchInfo.subject || ''})` : 'Class Batch',
           inviteCode: data.invite_code || cleanCode,
           email: data.email || undefined,
           parentPhone: data.parent_phone || undefined,
@@ -115,32 +136,78 @@ export class StudentService {
 
     // 2. Fallback: Search local storage students for offline / demo support
     try {
-      const allStudentsRaw = await AsyncStorage.getItem('@eduflow_teacher_students_v1');
-      if (allStudentsRaw) {
-        const allStudents: Record<string, any[]> = JSON.parse(allStudentsRaw);
-        for (const [batchId, students] of Object.entries(allStudents)) {
-          const match = students.find(
-            (s) =>
-              s.inviteCode?.toUpperCase() === cleanCode ||
-              s.id?.toUpperCase() === cleanCode ||
-              `STU-${s.id.slice(-6).toUpperCase()}` === cleanCode ||
-              s.rollNumber === cleanCode
-          );
-          if (match) {
-            const session: StudentSession = {
-              studentId: match.id,
-              name: match.name,
-              rollNumber: match.rollNumber,
-              batchId,
-              batchName: 'Class Batch',
-              inviteCode: match.inviteCode || cleanCode,
-              email: match.email,
-              parentPhone: match.parentPhone,
-              joinedAt: new Date().toISOString(),
-            };
-            await this.setActiveSession(session);
-            return { success: true, session };
+      // Check all possible student storage keys in EduFlow
+      const candidateKeys = [
+        '@eduflow_teacher_students',
+        '@eduflow_teacher_students_v1',
+        '@eduflow_students',
+      ];
+
+      // Also get batches from local storage for accurate batch names
+      let localBatches: any[] = [];
+      try {
+        const batchesRaw = await AsyncStorage.getItem('@eduflow_teacher_batches');
+        if (batchesRaw) localBatches = JSON.parse(batchesRaw);
+      } catch {
+        // ignore
+      }
+
+      for (const key of candidateKeys) {
+        const raw = await AsyncStorage.getItem(key);
+        if (!raw) continue;
+
+        const parsed = JSON.parse(raw);
+        let studentList: { student: any; batchId: string }[] = [];
+
+        if (Array.isArray(parsed)) {
+          studentList = parsed.map((s) => ({ student: s, batchId: s.batchId || '' }));
+        } else if (typeof parsed === 'object' && parsed !== null) {
+          for (const [batchId, students] of Object.entries(parsed)) {
+            if (Array.isArray(students)) {
+              students.forEach((s) => studentList.push({ student: s, batchId }));
+            }
           }
+        }
+
+        const match = studentList.find(({ student: s }) => {
+          if (!s) return false;
+          const sInvite = s.inviteCode?.toUpperCase();
+          const sId = s.id?.toUpperCase();
+          const sGenerated = `STU-${(s.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase()}`;
+          const sRoll = String(s.rollNumber || '').trim();
+
+          return (
+            sInvite === cleanCode ||
+            sInvite === `STU-${cleanCode}` ||
+            cleanCode === sInvite ||
+            sId === cleanCode ||
+            sGenerated === cleanCode ||
+            sRoll === cleanCode ||
+            (s.email && s.email.toUpperCase() === cleanCode)
+          );
+        });
+
+        if (match) {
+          const s = match.student;
+          const batchObj = localBatches.find((b) => b.id === match.batchId);
+          const batchName = batchObj
+            ? `${batchObj.name} (${batchObj.subject || batchObj.grade || ''})`
+            : 'Class Batch';
+
+          const session: StudentSession = {
+            studentId: s.id,
+            name: s.name,
+            rollNumber: s.rollNumber,
+            batchId: match.batchId,
+            batchName,
+            inviteCode: s.inviteCode || cleanCode,
+            email: s.email,
+            parentPhone: s.parentPhone,
+            joinedAt: new Date().toISOString(),
+          };
+
+          await this.setActiveSession(session);
+          return { success: true, session };
         }
       }
     } catch (localErr) {
@@ -299,6 +366,44 @@ export class StudentService {
       } catch (err) {
         console.warn('Dashboard batch fetch warning:', err);
       }
+
+      // Local storage fallback for batch
+      if (!enrolledBatch) {
+        try {
+          const batchesRaw = await AsyncStorage.getItem('@eduflow_teacher_batches');
+          if (batchesRaw) {
+            const batches = JSON.parse(batchesRaw);
+            const b = batches.find((item: any) => item.id === student.batchId);
+            if (b) {
+              enrolledBatch = {
+                id: b.id,
+                name: b.name,
+                grade: b.grade,
+                subject: b.subject,
+                schedule: b.schedule,
+                timing: b.timing,
+                room: b.room || undefined,
+                teacherName: 'Teacher',
+                instituteName: 'EduFlow Academy',
+              };
+
+              if (isBatchScheduledToday(b.schedule)) {
+                todayClasses.push({
+                  id: `cls-${b.id}`,
+                  batchName: b.name,
+                  subject: b.subject,
+                  timing: b.timing,
+                  room: b.room || 'Classroom',
+                  status: 'upcoming',
+                  teacherName: 'Teacher',
+                });
+              }
+            }
+          }
+        } catch (localBatchErr) {
+          console.warn('Local batch lookup error:', localBatchErr);
+        }
+      }
     }
 
     const hwList = await this.getHomeworkList(sId);
@@ -347,6 +452,7 @@ export class StudentService {
       return [];
     }
 
+    // 1. Supabase Fetch
     try {
       const { data: assignments, error } = await supabase
         .from('homework_assignments')
@@ -354,7 +460,7 @@ export class StudentService {
         .eq('batch_id', student.batchId)
         .order('created_at', { ascending: false });
 
-      if (!error && assignments) {
+      if (!error && assignments && assignments.length > 0) {
         const { data: submissions } = await supabase
           .from('homework_submissions')
           .select('*')
@@ -389,7 +495,37 @@ export class StudentService {
         return items;
       }
     } catch (e) {
-      console.warn('Student getHomeworkList error:', e);
+      console.warn('Student getHomeworkList Supabase error:', e);
+    }
+
+    // 2. Local Storage Fallback
+    try {
+      const localHwRaw = await AsyncStorage.getItem('@eduflow_teacher_homework');
+      if (localHwRaw) {
+        const localHw = JSON.parse(localHwRaw);
+        const batchHw = (Array.isArray(localHw) ? localHw : []).filter(
+          (h: any) => h.batchId === student.batchId
+        );
+
+        const items: StudentHomeworkItemView[] = batchHw.map((h: any) => ({
+          id: h.id,
+          batchId: h.batchId,
+          batchName: 'My Batch',
+          subject: 'Homework',
+          title: h.title,
+          description: h.description || undefined,
+          dueDate: h.dueDate,
+          isUrgent: false,
+          isDueToday: h.dueDate === new Date().toISOString().split('T')[0],
+          status: 'pending',
+        }));
+
+        if (filter === 'pending') return items.filter((h) => h.status !== 'done');
+        if (filter === 'completed') return items.filter((h) => h.status === 'done');
+        return items;
+      }
+    } catch (localErr) {
+      console.warn('Local homework fallback error:', localErr);
     }
 
     return [];
@@ -429,6 +565,7 @@ export class StudentService {
       return [];
     }
 
+    // 1. Supabase Fetch
     try {
       const { data: tests, error } = await supabase
         .from('tests')
@@ -436,7 +573,7 @@ export class StudentService {
         .eq('batch_id', student.batchId)
         .order('date', { ascending: false });
 
-      if (!error && tests) {
+      if (!error && tests && tests.length > 0) {
         const { data: marks } = await supabase
           .from('test_marks')
           .select('*')
@@ -474,7 +611,38 @@ export class StudentService {
         });
       }
     } catch (e) {
-      console.warn('Student getTestResults error:', e);
+      console.warn('Student getTestResults Supabase error:', e);
+    }
+
+    // 2. Local Storage Fallback
+    try {
+      const localTestsRaw = await AsyncStorage.getItem('@eduflow_teacher_tests');
+      if (localTestsRaw) {
+        const localTests = JSON.parse(localTestsRaw);
+        const batchTests = (Array.isArray(localTests) ? localTests : []).filter(
+          (t: any) => t.batchId === student.batchId
+        );
+
+        return batchTests.map((t: any) => {
+          const maxMarks = Number(t.maxMarks) || 50;
+          return {
+            id: t.id,
+            title: t.title,
+            subject: 'Test',
+            date: t.date,
+            maxMarks,
+            marksObtained: 0,
+            percentage: 0,
+            gradeBadge: 'Pending Marks',
+            classAverage: maxMarks * 0.7,
+            highestMarks: maxMarks,
+            rankInBatch: 1,
+            totalStudents: 1,
+          };
+        });
+      }
+    } catch (localTestErr) {
+      console.warn('Local tests fallback error:', localTestErr);
     }
 
     return [];
@@ -496,6 +664,7 @@ export class StudentService {
       };
     }
 
+    // 1. Supabase Fetch
     try {
       const { data: items, error } = await supabase
         .from('attendance_items')
@@ -525,7 +694,49 @@ export class StudentService {
         };
       }
     } catch (e) {
-      console.warn('Student getAttendanceOverview error:', e);
+      console.warn('Student getAttendanceOverview Supabase error:', e);
+    }
+
+    // 2. Local Storage Fallback
+    try {
+      const localAttRaw = await AsyncStorage.getItem('@eduflow_teacher_attendance');
+      if (localAttRaw) {
+        const localRecords = JSON.parse(localAttRaw);
+        if (Array.isArray(localRecords)) {
+          const studentRecords: any[] = [];
+          for (const rec of localRecords) {
+            if (rec.batchId === student.batchId && Array.isArray(rec.items)) {
+              const myItem = rec.items.find((it: any) => it.studentId === student.id);
+              if (myItem) {
+                studentRecords.push({
+                  date: rec.date,
+                  dayName: new Date(rec.date).toLocaleDateString('en-US', { weekday: 'short' }),
+                  status: myItem.status,
+                  batchName: 'My Batch',
+                });
+              }
+            }
+          }
+
+          if (studentRecords.length > 0) {
+            const total = studentRecords.length;
+            const present = studentRecords.filter((r) => r.status === 'present').length;
+            const absent = total - present;
+            const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+            return {
+              overallPercentage: percentage,
+              totalClasses: total,
+              presentCount: present,
+              absentCount: absent,
+              streakDays: present,
+              currentMonthDays: studentRecords,
+            };
+          }
+        }
+      }
+    } catch (localAttErr) {
+      console.warn('Local attendance fallback error:', localAttErr);
     }
 
     return {
