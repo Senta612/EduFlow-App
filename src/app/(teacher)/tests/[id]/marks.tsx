@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +29,7 @@ export default function EnterTestMarksScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [test, setTest] = useState<Test | null>(null);
   const [marks, setMarks] = useState<StudentMark[]>([]);
@@ -36,6 +38,27 @@ export default function EnterTestMarksScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const loadTestData = useCallback(async () => {
     if (!id) return;
@@ -64,6 +87,17 @@ export default function EnterTestMarksScreen() {
   useEffect(() => {
     loadTestData();
   }, [loadTestData]);
+
+  const ROW_HEIGHT = 75;
+  const LIST_TOP_OFFSET = 24;
+
+  const handleInputFocus = (index: number) => {
+    // Exact vertical offset of the target student row
+    const targetY = Math.max(0, LIST_TOP_OFFSET + index * ROW_HEIGHT - 40);
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
+    }, Platform.OS === 'ios' ? 200 : 120);
+  };
 
   const handleMarkChange = (studentId: string, text: string) => {
     // Strip non-numeric/non-decimal characters to prevent wheel or text jitter
@@ -205,7 +239,7 @@ export default function EnterTestMarksScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <ScreenHeader
@@ -244,12 +278,19 @@ export default function EnterTestMarksScreen() {
 
         {/* Marks Entry List */}
         <ScrollView
+          ref={scrollViewRef}
+          style={styles.flex}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 100 },
+            {
+              paddingBottom: isKeyboardVisible
+                ? Math.max(keyboardHeight + 60, 260)
+                : Math.max(insets.bottom + 40, theme.spacing.xxl),
+            },
           ]}
-          keyboardShouldPersistTaps="handled"
         >
           {marks.length === 0 ? (
             <EmptyState
@@ -266,86 +307,92 @@ export default function EnterTestMarksScreen() {
                 const hasError = Boolean(inputErrors[item.studentId]);
                 const isFilled = item.marksObtained !== null;
 
-              return (
-                <View
-                  key={item.studentId}
-                  style={[
-                    styles.markRow,
-                    !isLast && styles.markRowBorder,
-                    hasError && styles.markRowError,
-                  ]}
-                >
-                  <View style={styles.studentInfoGroup}>
-                    <View style={styles.rollBadge}>
-                      <Text variant="caption" style={styles.rollText}>
-                        {item.rollNumber}
-                      </Text>
-                    </View>
-                    <View style={styles.nameBlock}>
-                      <Text variant="label" style={styles.studentName}>
-                        {item.studentName}
-                      </Text>
-                      {hasError ? (
-                        <Text variant="caption" style={styles.errorCaption}>
-                          {inputErrors[item.studentId]}
+                return (
+                  <View
+                    key={item.studentId}
+                    style={[
+                      styles.markRow,
+                      !isLast && styles.markRowBorder,
+                      hasError && styles.markRowError,
+                    ]}
+                  >
+                    <View style={styles.studentInfoGroup}>
+                      <View style={styles.rollBadge}>
+                        <Text variant="caption" style={styles.rollText}>
+                          {item.rollNumber}
                         </Text>
-                      ) : (
-                        <Text variant="caption" style={styles.subtext}>
-                          {isFilled
-                            ? `${item.marksObtained} / ${test.maxMarks} marks`
-                            : 'Marks not entered'}
+                      </View>
+                      <View style={styles.nameBlock}>
+                        <Text variant="label" style={styles.studentName}>
+                          {item.studentName}
                         </Text>
-                      )}
+                        {hasError ? (
+                          <Text variant="caption" style={styles.errorCaption}>
+                            {inputErrors[item.studentId]}
+                          </Text>
+                        ) : (
+                          <Text variant="caption" style={styles.subtext}>
+                            {isFilled
+                              ? `${item.marksObtained} / ${test.maxMarks} marks`
+                              : 'Marks not entered'}
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                  </View>
 
-                  {/* Marks Input Box */}
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={[
-                        styles.marksInput,
-                        hasError && styles.marksInputError,
-                        isFilled && !hasError && styles.marksInputFilled,
-                      ]}
-                      placeholder="-"
-                      placeholderTextColor={theme.colors.text.disabled}
-                      keyboardType="number-pad"
-                      inputMode="decimal"
-                      value={
-                        inputValues[item.studentId] !== undefined
-                          ? inputValues[item.studentId]
-                          : item.marksObtained !== null
-                          ? String(item.marksObtained)
-                          : ''
-                      }
-                      onChangeText={(text) =>
-                        handleMarkChange(item.studentId, text)
-                      }
-                      maxLength={5}
-                      multiline={false}
-                      numberOfLines={1}
-                      scrollEnabled={false}
-                      textAlignVertical="center"
-                      accessibilityLabel={`Marks for ${item.studentName}`}
-                    />
-                    <Text variant="caption" style={styles.maxMarksSuffix}>
-                      / {test.maxMarks}
-                    </Text>
+                    {/* Marks Input Box */}
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={[
+                          styles.marksInput,
+                          hasError && styles.marksInputError,
+                          isFilled && !hasError && styles.marksInputFilled,
+                        ]}
+                        placeholder="-"
+                        placeholderTextColor={theme.colors.text.disabled}
+                        keyboardType="number-pad"
+                        inputMode="decimal"
+                        returnKeyType="next"
+                        selectTextOnFocus
+                        onFocus={() => handleInputFocus(index)}
+                        value={
+                          inputValues[item.studentId] !== undefined
+                            ? inputValues[item.studentId]
+                            : item.marksObtained !== null
+                            ? String(item.marksObtained)
+                            : ''
+                        }
+                        onChangeText={(text) =>
+                          handleMarkChange(item.studentId, text)
+                        }
+                        maxLength={5}
+                        multiline={false}
+                        numberOfLines={1}
+                        scrollEnabled={false}
+                        textAlignVertical="center"
+                        accessibilityLabel={`Marks for ${item.studentName}`}
+                      />
+                      <Text variant="caption" style={styles.maxMarksSuffix}>
+                        / {test.maxMarks}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              );
-            })}
-          </Card>
+                );
+              })}
+            </Card>
           )}
         </ScrollView>
 
-        {/* Floating Save Button Bar */}
+        {/* Floating / Docked Save Button Bar */}
         <View
           style={[
             styles.submitBar,
             {
-              paddingBottom:
-                insets.bottom > 0 ? insets.bottom : theme.spacing.md,
+              paddingBottom: isKeyboardVisible
+                ? theme.spacing.sm
+                : insets.bottom > 0
+                ? insets.bottom
+                : theme.spacing.md,
             },
           ]}
         >
@@ -562,10 +609,6 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.medium,
   },
   submitBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: theme.colors.background.paper,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.main,
