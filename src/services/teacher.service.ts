@@ -1272,7 +1272,7 @@ class TeacherService {
     return tasks;
   }
 
-  // Tuition Analytics Aggregator
+  // Tuition Analytics Aggregator (High Performance Parallelized)
   async getTuitionAnalytics(selectedBatchId?: string): Promise<TuitionAnalyticsSummary> {
     const allBatches = await this.getBatches();
     const activeBatches =
@@ -1291,210 +1291,251 @@ class TeacherService {
     let totalHwAssignedOverall = 0;
     let totalTestsCount = 0;
 
-    for (const batch of activeBatches) {
-      const [students, attendanceRecords, homeworkList, testsList] = await Promise.all([
-        this.getBatchStudents(batch.id),
-        this.getBatchAttendanceHistory(batch.id),
-        this.getBatchHomework(batch.id),
-        this.getBatchTests(batch.id),
-      ]);
+    // Process all active batches concurrently
+    const batchResults = await Promise.all(
+      activeBatches.map(async (batch) => {
+        const [students, attendanceRecords, homeworkList, testsList] = await Promise.all([
+          this.getBatchStudents(batch.id),
+          this.getBatchAttendanceHistory(batch.id),
+          this.getBatchHomework(batch.id),
+          this.getBatchTests(batch.id),
+        ]);
 
-      totalStudentsAcc += students.length;
-      totalTestsCount += testsList.length;
+        // Prefetch all homework submissions for this batch in parallel (1 query per HW instead of N*M)
+        const hwSubmissionsEntries = await Promise.all(
+          homeworkList.map(async (hw) => {
+            const subs = await this.getHomeworkSubmissions(hw.id, batch.id);
+            return [hw.id, subs] as const;
+          }),
+        );
+        const hwSubmissionsMap = new Map(hwSubmissionsEntries);
 
-      // 1. Batch Attendance calculation
-      let batchPresent = 0;
-      let batchTotalEntries = 0;
-      for (const rec of attendanceRecords) {
-        batchPresent += rec.presentCount;
-        batchTotalEntries += rec.presentCount + rec.absentCount;
-      }
-      totalPresentOverall += batchPresent;
-      totalAttendanceEntriesOverall += batchTotalEntries;
+        // Prefetch all test marks for this batch in parallel (1 query per test instead of N*M)
+        const testMarksEntries = await Promise.all(
+          testsList.map(async (t) => {
+            const marks = await this.getTestMarks(t.id, batch.id);
+            return [t.id, marks] as const;
+          }),
+        );
+        const testMarksMap = new Map(testMarksEntries);
 
-      const batchAttPercent =
-        batchTotalEntries > 0 ? Math.round((batchPresent / batchTotalEntries) * 100) : 0;
-
-      let attStatus: 'excellent' | 'good' | 'needs_attention' = 'good';
-      if (batchAttPercent >= 90) attStatus = 'excellent';
-      else if (batchAttPercent < 75 && batchTotalEntries > 0) attStatus = 'needs_attention';
-
-      // 2. Batch Homework calculation
-      let batchHwDone = 0;
-      let batchHwTotal = 0;
-      for (const hw of homeworkList) {
-        batchHwDone += hw.submissionsCount;
-        batchHwTotal += hw.totalStudents;
-      }
-      totalHwSubmissionsOverall += batchHwDone;
-      totalHwAssignedOverall += batchHwTotal;
-
-      const batchHwPercent =
-        batchHwTotal > 0 ? Math.round((batchHwDone / batchHwTotal) * 100) : 0;
-
-      batchSummaries.push({
-        batch,
-        totalStudents: students.length,
-        attendancePercentage: batchAttPercent,
-        attendanceStatus: attStatus,
-        totalClasses: attendanceRecords.length,
-        hwCompletionPercentage: batchHwPercent,
-        activeTestsCount: testsList.length,
-      });
-
-      // 3. Defaulter Identification per student
-      const sortedAttendance = [...attendanceRecords].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
-
-      for (const student of students) {
-        const issues: DefaulterIssue[] = [];
-
-        // Check attendance
-        let studentPresent = 0;
-        let studentTotal = 0;
-        let consecutiveAbsences = 0;
-        let checkingConsecutive = true;
-
-        for (const record of sortedAttendance) {
-          const item = record.records?.find((r) => r.studentId === student.id);
-          if (item) {
-            studentTotal++;
-            if (item.status === 'present') {
-              studentPresent++;
-              checkingConsecutive = false;
-            } else if (item.status === 'absent') {
-              if (checkingConsecutive) consecutiveAbsences++;
-            }
-          }
+        // 1. Batch Attendance calculation
+        let batchPresent = 0;
+        let batchTotalEntries = 0;
+        for (const rec of attendanceRecords) {
+          batchPresent += rec.presentCount;
+          batchTotalEntries += rec.presentCount + rec.absentCount;
         }
 
-        const studentAttPercent =
-          studentTotal > 0 ? Math.round((studentPresent / studentTotal) * 100) : 0;
+        const batchAttPercent =
+          batchTotalEntries > 0 ? Math.round((batchPresent / batchTotalEntries) * 100) : 0;
 
-        if (consecutiveAbsences >= 2) {
-          issues.push({
-            type: 'attendance',
-            severity: 'high',
-            label: `${consecutiveAbsences} Consecutive Absences`,
-            details: `Absent in last ${consecutiveAbsences} classes`,
-          });
-        } else if (studentTotal >= 2 && studentAttPercent < 75) {
-          issues.push({
-            type: 'attendance',
-            severity: 'high',
-            label: `Low Attendance (${studentAttPercent}%)`,
-            details: `Attended ${studentPresent} of ${studentTotal} classes`,
-          });
-        }
+        let attStatus: 'excellent' | 'good' | 'needs_attention' = 'good';
+        if (batchAttPercent >= 90) attStatus = 'excellent';
+        else if (batchAttPercent < 75 && batchTotalEntries > 0) attStatus = 'needs_attention';
 
-        // Check homeworks
-        let missedHw = 0;
+        // 2. Batch Homework calculation
+        let batchHwDone = 0;
+        let batchHwTotal = 0;
         for (const hw of homeworkList) {
-          const subs = await this.getHomeworkSubmissions(hw.id, batch.id);
-          const sub = subs.find((s) => s.studentId === student.id);
-          if (sub && sub.status === 'not_done') {
-            missedHw++;
-          }
+          batchHwDone += hw.submissionsCount;
+          batchHwTotal += hw.totalStudents;
         }
 
-        if (missedHw >= 2) {
-          issues.push({
-            type: 'homework',
-            severity: 'medium',
-            label: `${missedHw} Missed Homeworks`,
-            details: `Incomplete assignments pending review`,
-          });
-        }
+        const batchHwPercent =
+          batchHwTotal > 0 ? Math.round((batchHwDone / batchHwTotal) * 100) : 0;
 
-        // Check test scores
-        let latestScoreStr: string | undefined;
-        for (const test of testsList) {
-          const marks = await this.getTestMarks(test.id, batch.id);
-          const markEntry = marks.find((m) => m.studentId === student.id);
-          if (markEntry && markEntry.marksObtained !== null) {
-            const mark = markEntry.marksObtained;
-            const pct = test.maxMarks > 0 ? Math.round((mark / test.maxMarks) * 100) : 0;
-            latestScoreStr = `${mark}/${test.maxMarks} (${pct}%)`;
+        const summary: BatchAnalyticsSummary = {
+          batch,
+          totalStudents: students.length,
+          attendancePercentage: batchAttPercent,
+          attendanceStatus: attStatus,
+          totalClasses: attendanceRecords.length,
+          hwCompletionPercentage: batchHwPercent,
+          activeTestsCount: testsList.length,
+        };
 
-            if (pct < 50) {
-              issues.push({
-                type: 'test',
-                severity: 'high',
-                label: `Low Test Score (${pct}%)`,
-                details: `Scored ${mark}/${test.maxMarks} in ${test.title}`,
-              });
+        // 3. Defaulter Identification per student (Instant synchronous Map lookup)
+        const sortedAttendance = [...attendanceRecords].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
+
+        const batchDefaulters: DefaulterStudent[] = [];
+
+        for (const student of students) {
+          const issues: DefaulterIssue[] = [];
+
+          // Check attendance
+          let studentPresent = 0;
+          let studentTotal = 0;
+          let consecutiveAbsences = 0;
+          let checkingConsecutive = true;
+
+          for (const record of sortedAttendance) {
+            const item = record.records?.find((r) => r.studentId === student.id);
+            if (item) {
+              studentTotal++;
+              if (item.status === 'present') {
+                studentPresent++;
+                checkingConsecutive = false;
+              } else if (item.status === 'absent') {
+                if (checkingConsecutive) consecutiveAbsences++;
+              }
             }
           }
-        }
 
-        if (issues.length > 0) {
-          defaulters.push({
-            studentId: student.id,
-            studentName: student.name,
-            rollNumber: student.rollNumber,
-            parentPhone: student.parentPhone,
-            batchId: batch.id,
-            batchName: batch.name,
-            issues,
-            attendancePercentage: studentAttPercent,
-            missedHwCount: missedHw,
-            recentTestScore: latestScoreStr,
-          });
-        }
-      }
+          const studentAttPercent =
+            studentTotal > 0 ? Math.round((studentPresent / studentTotal) * 100) : 0;
 
-      // 4. Test Leaderboards
-      for (const test of testsList) {
-        const marks = await this.getTestMarks(test.id, batch.id);
-        const enteredMarks = marks.filter((m) => m.marksObtained !== null);
-
-        if (enteredMarks.length > 0) {
-          const numericMarks = enteredMarks.map((m) => m.marksObtained as number);
-          const highestMarks = Math.max(...numericMarks);
-          const lowestMarks = Math.min(...numericMarks);
-          const averageMarks = Math.round(
-            numericMarks.reduce((a, b) => a + b, 0) / numericMarks.length,
-          );
-
-          // Sort descending by marks
-          const sortedMarks = [...enteredMarks].sort(
-            (a, b) => (b.marksObtained ?? 0) - (a.marksObtained ?? 0),
-          );
-
-          let currentRank = 1;
-          const topStudents: TestRankStudent[] = [];
-
-          sortedMarks.slice(0, 5).forEach((m, idx) => {
-            if (idx > 0 && m.marksObtained! < sortedMarks[idx - 1].marksObtained!) {
-              currentRank = idx + 1;
-            }
-            const st = students.find((s) => s.id === m.studentId);
-            const pct =
-              test.maxMarks > 0 ? Math.round((m.marksObtained! / test.maxMarks) * 100) : 0;
-
-            topStudents.push({
-              rank: currentRank,
-              studentId: m.studentId,
-              studentName: m.studentName,
-              rollNumber: m.rollNumber,
-              marksObtained: m.marksObtained!,
-              maxMarks: test.maxMarks,
-              percentage: pct,
-              parentPhone: st?.parentPhone,
+          if (consecutiveAbsences >= 2) {
+            issues.push({
+              type: 'attendance',
+              severity: 'high',
+              label: `${consecutiveAbsences} Consecutive Absences`,
+              details: `Absent in last ${consecutiveAbsences} classes`,
             });
-          });
+          } else if (studentTotal >= 2 && studentAttPercent < 75) {
+            issues.push({
+              type: 'attendance',
+              severity: 'high',
+              label: `Low Attendance (${studentAttPercent}%)`,
+              details: `Attended ${studentPresent} of ${studentTotal} classes`,
+            });
+          }
 
-          testLeaderboards.push({
-            test,
-            highestMarks,
-            lowestMarks,
-            averageMarks,
-            topStudents,
-            totalEntered: enteredMarks.length,
-          });
+          // Check homeworks from pre-fetched Map
+          let missedHw = 0;
+          for (const hw of homeworkList) {
+            const subs = hwSubmissionsMap.get(hw.id) || [];
+            const sub = subs.find((s) => s.studentId === student.id);
+            if (sub && sub.status === 'not_done') {
+              missedHw++;
+            }
+          }
+
+          if (missedHw >= 2) {
+            issues.push({
+              type: 'homework',
+              severity: 'medium',
+              label: `${missedHw} Missed Homeworks`,
+              details: `Incomplete assignments pending review`,
+            });
+          }
+
+          // Check test scores from pre-fetched Map
+          let latestScoreStr: string | undefined;
+          for (const test of testsList) {
+            const marks = testMarksMap.get(test.id) || [];
+            const markEntry = marks.find((m) => m.studentId === student.id);
+            if (markEntry && markEntry.marksObtained !== null) {
+              const mark = markEntry.marksObtained;
+              const pct = test.maxMarks > 0 ? Math.round((mark / test.maxMarks) * 100) : 0;
+              latestScoreStr = `${mark}/${test.maxMarks} (${pct}%)`;
+
+              if (pct < 50) {
+                issues.push({
+                  type: 'test',
+                  severity: 'high',
+                  label: `Low Test Score (${pct}%)`,
+                  details: `Scored ${mark}/${test.maxMarks} in ${test.title}`,
+                });
+              }
+            }
+          }
+
+          if (issues.length > 0) {
+            batchDefaulters.push({
+              studentId: student.id,
+              studentName: student.name,
+              rollNumber: student.rollNumber,
+              parentPhone: student.parentPhone,
+              batchId: batch.id,
+              batchName: batch.name,
+              issues,
+              attendancePercentage: studentAttPercent,
+              missedHwCount: missedHw,
+              recentTestScore: latestScoreStr,
+            });
+          }
         }
-      }
+
+        // 4. Test Leaderboards (Reusing pre-fetched testMarksMap)
+        const batchLeaderboards: TestLeaderboardItem[] = [];
+        for (const test of testsList) {
+          const marks = testMarksMap.get(test.id) || [];
+          const enteredMarks = marks.filter((m) => m.marksObtained !== null);
+
+          if (enteredMarks.length > 0) {
+            const numericMarks = enteredMarks.map((m) => m.marksObtained as number);
+            const highestMarks = Math.max(...numericMarks);
+            const lowestMarks = Math.min(...numericMarks);
+            const averageMarks = Math.round(
+              numericMarks.reduce((a, b) => a + b, 0) / numericMarks.length,
+            );
+
+            // Sort descending by marks
+            const sortedMarks = [...enteredMarks].sort(
+              (a, b) => (b.marksObtained ?? 0) - (a.marksObtained ?? 0),
+            );
+
+            let currentRank = 1;
+            const topStudents: TestRankStudent[] = [];
+
+            sortedMarks.slice(0, 5).forEach((m, idx) => {
+              if (idx > 0 && m.marksObtained! < sortedMarks[idx - 1].marksObtained!) {
+                currentRank = idx + 1;
+              }
+              const st = students.find((s) => s.id === m.studentId);
+              const pct =
+                test.maxMarks > 0 ? Math.round((m.marksObtained! / test.maxMarks) * 100) : 0;
+
+              topStudents.push({
+                rank: currentRank,
+                studentId: m.studentId,
+                studentName: m.studentName,
+                rollNumber: m.rollNumber,
+                marksObtained: m.marksObtained!,
+                maxMarks: test.maxMarks,
+                percentage: pct,
+                parentPhone: st?.parentPhone,
+              });
+            });
+
+            batchLeaderboards.push({
+              test,
+              highestMarks,
+              lowestMarks,
+              averageMarks,
+              topStudents,
+              totalEntered: enteredMarks.length,
+            });
+          }
+        }
+
+        return {
+          studentsCount: students.length,
+          testsCount: testsList.length,
+          presentCount: batchPresent,
+          totalAttendanceEntries: batchTotalEntries,
+          hwDone: batchHwDone,
+          hwTotal: batchHwTotal,
+          summary,
+          defaulters: batchDefaulters,
+          leaderboards: batchLeaderboards,
+        };
+      }),
+    );
+
+    for (const res of batchResults) {
+      totalStudentsAcc += res.studentsCount;
+      totalTestsCount += res.testsCount;
+      totalPresentOverall += res.presentCount;
+      totalAttendanceEntriesOverall += res.totalAttendanceEntries;
+      totalHwSubmissionsOverall += res.hwDone;
+      totalHwAssignedOverall += res.hwTotal;
+      batchSummaries.push(res.summary);
+      defaulters.push(...res.defaulters);
+      testLeaderboards.push(...res.leaderboards);
     }
 
     const overallAttPercent =

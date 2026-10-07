@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   Alert,
   Linking,
   RefreshControl,
@@ -22,6 +21,7 @@ import {
   BatchAttendanceSection,
   ShareStudentReportModal,
   EnrolledStudentsModal,
+  ReportsSkeleton,
   EnrolledStudentItem,
 } from '@/components/reports';
 import {
@@ -46,7 +46,7 @@ export default function TeacherReportsScreen() {
 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [allStudents, setAllStudents] = useState<EnrolledStudentItem[]>([]);
-  const [analytics, setAnalytics] = useState<TuitionAnalyticsSummary | null>(null);
+  const [rawAnalytics, setRawAnalytics] = useState<TuitionAnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -69,52 +69,82 @@ export default function TeacherReportsScreen() {
     batchName: string;
   } | null>(null);
 
-  const loadData = useCallback(async (batchFilter: string = selectedBatchId) => {
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     try {
+      // 1. Fetch batches and overall analytics in parallel
       const [bList, analyticsData] = await Promise.all([
         teacherService.getBatches(),
-        teacherService.getTuitionAnalytics(batchFilter),
+        teacherService.getTuitionAnalytics('all'),
       ]);
       setBatches(bList);
-      setAnalytics(analyticsData);
+      setRawAnalytics(analyticsData);
 
-      // Load enrolled students list for directory
-      const enrolled: EnrolledStudentItem[] = [];
-      for (const b of bList) {
-        const students = await teacherService.getBatchStudents(b.id);
-        for (const s of students) {
-          enrolled.push({
+      // 2. Fetch all batch students in parallel for the student directory
+      const enrolledNested = await Promise.all(
+        bList.map(async (b) => {
+          const students = await teacherService.getBatchStudents(b.id);
+          return students.map((s) => ({
             ...s,
             batchId: b.id,
             batchName: b.name,
             batchSubject: b.subject,
             batchGrade: b.grade,
-          });
-        }
-      }
-      setAllStudents(enrolled);
+          }));
+        }),
+      );
+      setAllStudents(enrolledNested.flat());
     } catch (error) {
       console.error('Failed to load tuition report data:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [selectedBatchId]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      loadData(selectedBatchId);
-    }, [selectedBatchId, loadData])
+      // Initial load or silent refresh on screen focus
+      loadData(Boolean(rawAnalytics));
+    }, [loadData, rawAnalytics]),
   );
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    loadData(selectedBatchId);
+    loadData(true);
   };
 
   const handleSelectBatchFilter = (batchId: string) => {
     setSelectedBatchId(batchId);
   };
+
+  // Instant 0ms In-Memory Filter Calculation (Senior Developer Architecture)
+  const analytics = useMemo<TuitionAnalyticsSummary | null>(() => {
+    if (!rawAnalytics) return null;
+    if (selectedBatchId === 'all') return rawAnalytics;
+
+    const filteredBatches = rawAnalytics.batchSummaries.filter(
+      (b) => b.batch.id === selectedBatchId,
+    );
+    const filteredDefaulters = rawAnalytics.defaulters.filter(
+      (d) => d.batchId === selectedBatchId,
+    );
+    const filteredLeaderboards = rawAnalytics.testLeaderboards.filter(
+      (l) => l.test.batchId === selectedBatchId,
+    );
+
+    const batchSummary = filteredBatches[0];
+
+    return {
+      totalStudentsCount: batchSummary ? batchSummary.totalStudents : 0,
+      averageAttendance: batchSummary ? batchSummary.attendancePercentage : 0,
+      hwCompletionRate: batchSummary ? batchSummary.hwCompletionPercentage : 0,
+      totalTestsConducted: batchSummary ? batchSummary.activeTestsCount : 0,
+      defaulters: filteredDefaulters,
+      testLeaderboards: filteredLeaderboards,
+      batchSummaries: filteredBatches,
+    };
+  }, [rawAnalytics, selectedBatchId]);
 
   // WhatsApp & Phone Communication Handlers
   const handleCallParent = (phone?: string) => {
@@ -278,13 +308,8 @@ export default function TeacherReportsScreen() {
           />
         }
       >
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary.main} />
-            <Text variant="body" style={styles.loadingText}>
-              {t('reports.loadingInsights')}
-            </Text>
-          </View>
+        {isLoading && !rawAnalytics ? (
+          <ReportsSkeleton />
         ) : (
           analytics && (
             <>
