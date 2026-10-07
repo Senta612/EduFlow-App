@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SuccessModal } from '@/components/ui/SuccessModal';
 import { teacherService } from '@/services/teacher.service';
 import { Test, StudentMark } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -34,6 +35,7 @@ export default function EnterTestMarksScreen() {
   const [inputErrors, setInputErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
 
   const loadTestData = useCallback(async () => {
     if (!id) return;
@@ -135,24 +137,7 @@ export default function EnterTestMarksScreen() {
     setIsSaving(true);
     try {
       await teacherService.saveTestMarks(id, marks);
-      const filledCount = marks.filter((m) => m.marksObtained !== null).length;
-
-      Alert.alert(
-        'Marks Saved!',
-        `Successfully recorded marks for ${filledCount} of ${marks.length} students.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(teacher)/(tabs)');
-              }
-            },
-          },
-        ],
-      );
+      setIsSuccessModalVisible(true);
     } catch (error) {
       console.error('Failed to save test marks:', error);
       Alert.alert('Error', 'Could not save marks. Please try again.');
@@ -161,7 +146,35 @@ export default function EnterTestMarksScreen() {
     }
   };
 
-  const enteredCount = marks.filter((m) => m.marksObtained !== null).length;
+  const handleSuccessDone = () => {
+    setIsSuccessModalVisible(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(teacher)/(tabs)');
+    }
+  };
+
+  const handleOpenBatchWorkspace = () => {
+    setIsSuccessModalVisible(false);
+    if (test?.batchId) {
+      router.replace(`/(teacher)/batch/${test.batchId}`);
+    } else {
+      router.replace('/(teacher)/(tabs)');
+    }
+  };
+
+  const filledMarks = marks.filter((m) => m.marksObtained !== null && !isNaN(Number(m.marksObtained)));
+  const enteredCount = filledMarks.length;
+  const totalStudents = marks.length;
+  const gradingPercentage = totalStudents > 0 ? Math.round((enteredCount / totalStudents) * 100) : 0;
+
+  const numericScores = filledMarks.map((m) => Number(m.marksObtained));
+  const topScore = numericScores.length > 0 ? Math.max(...numericScores) : 0;
+  const avgMarks =
+    numericScores.length > 0
+      ? (numericScores.reduce((a, b) => a + b, 0) / numericScores.length).toFixed(1)
+      : '0';
 
   if (isLoading) {
     return (
@@ -355,6 +368,65 @@ export default function EnterTestMarksScreen() {
           />
         </View>
       </View>
+
+      {/* Marks Saved Success Modal */}
+      <SuccessModal
+        visible={isSuccessModalVisible}
+        onClose={handleSuccessDone}
+        title="Marks Saved!"
+        subtitle={
+          test
+            ? `Scorecards for "${test.title}" have been successfully saved.`
+            : 'Student test marks have been recorded successfully.'
+        }
+        badgeIcon="check"
+        badgeVariant="success"
+        contextBadge={
+          test
+            ? {
+                icon: 'award',
+                label: `${test.batchName} • Max: ${test.maxMarks} Marks`,
+              }
+            : undefined
+        }
+        stats={[
+          {
+            label: 'Graded',
+            value: `${enteredCount}/${totalStudents}`,
+            variant: 'success',
+            icon: 'check-circle',
+          },
+          {
+            label: 'Top Score',
+            value: `${topScore}/${test?.maxMarks || 50}`,
+            variant: 'primary',
+            icon: 'award',
+          },
+          {
+            label: 'Class Avg',
+            value: `${avgMarks} pts`,
+            variant: 'neutral',
+            icon: 'trending-up',
+          },
+        ]}
+        progress={{
+          label: 'Grading Completion Rate',
+          percentage: gradingPercentage,
+        }}
+        primaryAction={{
+          title: 'Done',
+          onPress: handleSuccessDone,
+        }}
+        secondaryAction={
+          test?.batchId
+            ? {
+                title: 'Open Batch Workspace',
+                icon: 'grid',
+                onPress: handleOpenBatchWorkspace,
+              }
+            : undefined
+        }
+      />
     </KeyboardAvoidingView>
   );
 }
