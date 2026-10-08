@@ -405,7 +405,7 @@ export default function TeacherReportsScreen() {
         onSelectStudent={handleOpenStudentProfile}
       />
 
-      {/* Modular 1-Tap Student Progress Card Modal */}
+      {/* Modular 1-Tap Monthly Student Progress Card Modal */}
       <ShareStudentReportModal
         visible={isShareModalVisible}
         onClose={() => {
@@ -413,6 +413,15 @@ export default function TeacherReportsScreen() {
           setShareTargetStudent(null);
         }}
         targetStudent={shareTargetStudent}
+        studentsList={allStudents.map((s) => ({
+          studentId: s.id,
+          studentName: s.name,
+          rollNumber: s.rollNumber,
+          parentPhone: s.parentPhone,
+          batchId: s.batchId,
+          batchName: s.batchName,
+        }))}
+        onSelectStudent={setShareTargetStudent}
       />
     </SafeAreaView>
   );

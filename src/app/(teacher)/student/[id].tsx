@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -26,6 +26,7 @@ import {
   EditStudentModal,
   ShareInviteModal,
 } from '@/components/student';
+import { ShareStudentReportModal } from '@/components/reports';
 import { teacherService } from '@/services/teacher.service';
 import { StudentProfileData } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -40,6 +41,9 @@ export default function StudentProfileScreen() {
   const [data, setData] = useState<StudentProfileData | null>(null);
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Share Progress Report Modal State
+  const [isProgressModalVisible, setIsProgressModalVisible] = useState(false);
 
   // Share Invite Modal State
   const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
@@ -231,14 +235,17 @@ export default function StudentProfileScreen() {
         showBack
         rightAction={
           <View style={styles.headerRightActions}>
-            <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={() => setIsInviteModalVisible(true)}>
-              <Feather name="send" size={17} color="#059669" />
+            <Pressable hitSlop={10} style={[styles.headerIconBtn, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0' }]} onPress={() => setIsProgressModalVisible(true)} accessibilityLabel="Share Monthly Progress Report on WhatsApp">
+              <FontAwesome name="whatsapp" size={18} color="#16A34A" />
             </Pressable>
-            <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={handleOpenEdit}>
-              <Feather name="edit-2" size={18} color={theme.colors.primary.main} />
+            <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={() => setIsInviteModalVisible(true)} accessibilityLabel="Share Student Portal Access">
+              <Feather name="send" size={16} color="#059669" />
             </Pressable>
-            <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={handleDeleteStudent}>
-              <Feather name="trash-2" size={18} color={theme.colors.semantic.danger.main} />
+            <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={handleOpenEdit} accessibilityLabel="Edit Student Info">
+              <Feather name="edit-2" size={17} color={theme.colors.primary.main} />
+            </Pressable>
+            <Pressable hitSlop={10} style={styles.headerIconBtn} onPress={handleDeleteStudent} accessibilityLabel="Remove Student">
+              <Feather name="trash-2" size={17} color={theme.colors.semantic.danger.main} />
             </Pressable>
           </View>
         }
@@ -389,6 +396,20 @@ export default function StudentProfileScreen() {
         onClose={() => setIsInviteModalVisible(false)}
         student={student}
         batch={batch}
+      />
+
+      {/* 7. 1-Tap Monthly Parent Progress Report Studio Modal */}
+      <ShareStudentReportModal
+        visible={isProgressModalVisible}
+        onClose={() => setIsProgressModalVisible(false)}
+        targetStudent={{
+          studentId: student.id,
+          studentName: student.name,
+          rollNumber: student.rollNumber,
+          parentPhone: student.parentPhone,
+          batchId: batch.id,
+          batchName: batch.name,
+        }}
       />
     </SafeAreaView>
   );

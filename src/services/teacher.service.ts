@@ -1567,95 +1567,190 @@ export function formatStudentProgressWhatsAppMessage(params: {
   studentName: string;
   rollNumber: string;
   batchName: string;
+  instituteName?: string;
+  teacherName?: string;
+  periodName?: string;
+  overallGrade?: string;
   attendancePercentage: number;
   totalClassesAttended: number;
   totalClasses: number;
   hwCompletionPercentage: number;
+  hwDoneCount?: number;
+  hwTotal?: number;
+  averageTestPercentage?: number;
+  testsAttempted?: number;
+  batchRank?: number;
+  totalStudentsInBatch?: number;
   latestTest?: { title: string; marksObtained: number; maxMarks: number; rank?: number };
+  nextMonthFocus?: string;
   remarks?: string;
   language?: 'en' | 'hi' | 'gu';
 }): string {
   const lang = params.language || 'en';
+  const institute = params.instituteName?.trim() || 'EduFlow Tuition Academy';
+  const period = params.periodName?.trim() || 'Monthly Progress Report';
 
   if (lang === 'gu') {
     const lines = [
-      `📚 *EduFlow ટ્યુશન પ્રગતિ પત્રક* 📚`,
+      `🏫 *${institute.toUpperCase()}*`,
+      `📑 *વિદ્યાર્થી માસિક પ્રગતિ પત્રક* (${period})`,
       `━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `👤 *વિદ્યાર્થી:* ${params.studentName} (રોલ નં: ${params.rollNumber})`,
-      `🏷️ *બેચ:* ${params.batchName}`,
-      `━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `📅 *હાજરી:* ${params.attendancePercentage}% (${params.totalClassesAttended}/${params.totalClasses} દિવસો)`,
-      `📝 *લેસન:* ${params.hwCompletionPercentage}% પૂર્ણ`,
+      `👤 *વિદ્યાર્થી:* ${params.studentName}`,
+      `🔢 *રોલ નં:* #${params.rollNumber} | 🏷️ *બેચ:* ${params.batchName}`,
     ];
+
+    if (params.overallGrade) {
+      lines.push(`🏅 *સમગ્ર પ્રદર્શન ગ્રેડ:* ${params.overallGrade}`);
+    }
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`📅 *હાજરી પત્રક:* ${params.attendancePercentage}%`);
+    lines.push(`   (${params.totalClassesAttended}/${params.totalClasses} દિવસો હાજર)`);
+
+    const hwCountStr = params.hwTotal !== undefined ? ` (${params.hwDoneCount || 0}/${params.hwTotal} લેસન)` : '';
+    lines.push(`📝 *હોમવર્ક નિયમિતતા:* ${params.hwCompletionPercentage}% પૂર્ણ${hwCountStr}`);
+
+    if (params.averageTestPercentage !== undefined && params.testsAttempted !== undefined && params.testsAttempted > 0) {
+      const rankSuffix = params.batchRank
+        ? ` | 🏆 રેન્ક: #${params.batchRank}${params.totalStudentsInBatch ? `/${params.totalStudentsInBatch}` : ''}`
+        : '';
+      lines.push(`🎯 *ટેસ્ટ સરેરાશ:* ${params.averageTestPercentage}% (${params.testsAttempted} ટેસ્ટ)${rankSuffix}`);
+    }
+
     if (params.latestTest) {
       const testPercent =
         params.latestTest.maxMarks > 0
           ? Math.round((params.latestTest.marksObtained / params.latestTest.maxMarks) * 100)
           : 0;
-      const rankStr = params.latestTest.rank ? ` | 🏆 રેન્ક: #${params.latestTest.rank}` : '';
-      lines.push(`🎯 *છેલ્લી ટેસ્ટ:* ${params.latestTest.title}`);
+      const rankStr = params.latestTest.rank ? ` [રેન્ક: #${params.latestTest.rank}]` : '';
+      lines.push(`📊 *છેલ્લી ટેસ્ટ:* ${params.latestTest.title}`);
       lines.push(`   ગુણ: ${params.latestTest.marksObtained}/${params.latestTest.maxMarks} (${testPercent}%)${rankStr}`);
     }
+
     if (params.remarks && params.remarks.trim()) {
       lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
-      lines.push(`💬 *શિક્ષકની નોંધ:* ${params.remarks.trim()}`);
+      lines.push(`💬 *શિક્ષકની નોંધ:*`);
+      lines.push(`"${params.remarks.trim()}"`);
     }
+
+    if (params.nextMonthFocus && params.nextMonthFocus.trim()) {
+      lines.push(`📌 *આવતા મહિનાનું લક્ષ્ય:* ${params.nextMonthFocus.trim()}`);
+    }
+
     lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
-    lines.push(`_આપના સતત સહકાર અને વિશ્વાસ બદલ આભાર!_`);
+    if (params.teacherName) {
+      lines.push(`👨‍🏫 *શિક્ષક:* ${params.teacherName}`);
+    }
+    lines.push(`_આપના સતત સહકાર અને વિશ્વાસ બદલ ખૂબ ખૂબ આભાર!_`);
     return lines.join('\n');
   }
 
   if (lang === 'hi') {
     const lines = [
-      `📚 *EduFlow ट्यूशन प्रगति पत्र* 📚`,
+      `🏫 *${institute.toUpperCase()}*`,
+      `📑 *विद्यार्थी मासिक प्रगति पत्र* (${period})`,
       `━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `👤 *छात्र:* ${params.studentName} (रोल नं: ${params.rollNumber})`,
-      `🏷️ *बैच:* ${params.batchName}`,
-      `━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `📅 *उपस्थिति:* ${params.attendancePercentage}% (${params.totalClassesAttended}/${params.totalClasses} दिन)`,
-      `📝 *गृहकार्य:* ${params.hwCompletionPercentage}% पूर्ण`,
+      `👤 *विद्यार्थी:* ${params.studentName}`,
+      `🔢 *रोल नं:* #${params.rollNumber} | 🏷️ *बैच:* ${params.batchName}`,
     ];
+
+    if (params.overallGrade) {
+      lines.push(`🏅 *समग्र प्रदर्शन ग्रेड:* ${params.overallGrade}`);
+    }
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`📅 *उपस्थिति दर:* ${params.attendancePercentage}%`);
+    lines.push(`   (${params.totalClassesAttended}/${params.totalClasses} दिन उपस्थित)`);
+
+    const hwCountStr = params.hwTotal !== undefined ? ` (${params.hwDoneCount || 0}/${params.hwTotal} कार्य)` : '';
+    lines.push(`📝 *गृहकार्य नियमितता:* ${params.hwCompletionPercentage}% पूर्ण${hwCountStr}`);
+
+    if (params.averageTestPercentage !== undefined && params.testsAttempted !== undefined && params.testsAttempted > 0) {
+      const rankSuffix = params.batchRank
+        ? ` | 🏆 रैंक: #${params.batchRank}${params.totalStudentsInBatch ? `/${params.totalStudentsInBatch}` : ''}`
+        : '';
+      lines.push(`🎯 *टेस्ट औसत:* ${params.averageTestPercentage}% (${params.testsAttempted} टेस्ट)${rankSuffix}`);
+    }
+
     if (params.latestTest) {
       const testPercent =
         params.latestTest.maxMarks > 0
           ? Math.round((params.latestTest.marksObtained / params.latestTest.maxMarks) * 100)
           : 0;
-      const rankStr = params.latestTest.rank ? ` | 🏆 रैंक: #${params.latestTest.rank}` : '';
-      lines.push(`🎯 *नवीनतम टेस्ट:* ${params.latestTest.title}`);
+      const rankStr = params.latestTest.rank ? ` [रैंक: #${params.latestTest.rank}]` : '';
+      lines.push(`📊 *नवीनतम टेस्ट:* ${params.latestTest.title}`);
       lines.push(`   अंक: ${params.latestTest.marksObtained}/${params.latestTest.maxMarks} (${testPercent}%)${rankStr}`);
     }
+
     if (params.remarks && params.remarks.trim()) {
       lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
-      lines.push(`💬 *शिक्षक टिप्पणी:* ${params.remarks.trim()}`);
+      lines.push(`💬 *शिक्षक टिप्पणी:*`);
+      lines.push(`"${params.remarks.trim()}"`);
     }
+
+    if (params.nextMonthFocus && params.nextMonthFocus.trim()) {
+      lines.push(`📌 *आगामी माह का लक्ष्य:* ${params.nextMonthFocus.trim()}`);
+    }
+
     lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    if (params.teacherName) {
+      lines.push(`👨‍🏫 *शिक्षक:* ${params.teacherName}`);
+    }
     lines.push(`_आपके निरंतर सहयोग और विश्वास के लिए धन्यवाद!_`);
     return lines.join('\n');
   }
 
+  // English Default
   const lines = [
-    `📚 *EduFlow Tuition Progress Report* 📚`,
+    `🏫 *${institute.toUpperCase()}*`,
+    `📑 *Monthly Student Progress Report* (${period})`,
     `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `👤 *Student:* ${params.studentName} (Roll: ${params.rollNumber})`,
-    `🏷️ *Batch:* ${params.batchName}`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `📅 *Attendance:* ${params.attendancePercentage}% (${params.totalClassesAttended}/${params.totalClasses} classes)`,
-    `📝 *Homework:* ${params.hwCompletionPercentage}% Completed`,
+    `👤 *Student:* ${params.studentName}`,
+    `🔢 *Roll No:* #${params.rollNumber} | 🏷️ *Batch:* ${params.batchName}`,
   ];
+
+  if (params.overallGrade) {
+    lines.push(`🏅 *Overall Grade:* ${params.overallGrade}`);
+  }
+
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`📅 *Attendance:* ${params.attendancePercentage}%`);
+  lines.push(`   (${params.totalClassesAttended}/${params.totalClasses} classes attended)`);
+
+  const hwCountStr = params.hwTotal !== undefined ? ` (${params.hwDoneCount || 0}/${params.hwTotal} tasks)` : '';
+  lines.push(`📝 *Homework Regularity:* ${params.hwCompletionPercentage}% Completed${hwCountStr}`);
+
+  if (params.averageTestPercentage !== undefined && params.testsAttempted !== undefined && params.testsAttempted > 0) {
+    const rankSuffix = params.batchRank
+      ? ` | 🏆 Rank: #${params.batchRank}${params.totalStudentsInBatch ? `/${params.totalStudentsInBatch}` : ''}`
+      : '';
+    lines.push(`🎯 *Test Average:* ${params.averageTestPercentage}% (${params.testsAttempted} tests)${rankSuffix}`);
+  }
+
   if (params.latestTest) {
     const testPercent =
       params.latestTest.maxMarks > 0
         ? Math.round((params.latestTest.marksObtained / params.latestTest.maxMarks) * 100)
         : 0;
-    const rankStr = params.latestTest.rank ? ` | 🏆 Rank: #${params.latestTest.rank}` : '';
-    lines.push(`🎯 *Latest Test:* ${params.latestTest.title}`);
+    const rankStr = params.latestTest.rank ? ` [Rank: #${params.latestTest.rank}]` : '';
+    lines.push(`📊 *Latest Test:* ${params.latestTest.title}`);
     lines.push(`   Score: ${params.latestTest.marksObtained}/${params.latestTest.maxMarks} (${testPercent}%)${rankStr}`);
   }
+
   if (params.remarks && params.remarks.trim()) {
     lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
-    lines.push(`💬 *Teacher Remarks:* ${params.remarks.trim()}`);
+    lines.push(`💬 *Teacher Remarks:*`);
+    lines.push(`"${params.remarks.trim()}"`);
   }
+
+  if (params.nextMonthFocus && params.nextMonthFocus.trim()) {
+    lines.push(`📌 *Next Month Focus:* ${params.nextMonthFocus.trim()}`);
+  }
+
   lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+  if (params.teacherName) {
+    lines.push(`👨‍🏫 *Faculty:* ${params.teacherName}`);
+  }
   lines.push(`_Thank you for your continuous support & trust!_`);
   return lines.join('\n');
 }

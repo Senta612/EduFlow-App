@@ -5,4 +5,5 @@ export { DefaultersAlertSection } from './DefaultersAlertSection';
 export { TestToppersSection } from './TestToppersSection';
 export { BatchAttendanceSection } from './BatchAttendanceSection';
 export { ShareStudentReportModal } from './ShareStudentReportModal';
+export type { TargetStudentReportInfo } from './ShareStudentReportModal';
 export { ReportsSkeleton } from './ReportsSkeleton';
