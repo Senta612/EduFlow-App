@@ -196,7 +196,8 @@ export default function AllStudyMaterialsScreen() {
       <ScreenHeader
         title="Study Materials"
         subtitle="Manage notes, formulas & question banks"
-        rightElement={
+        showBack
+        rightAction={
           <Button
             title="Upload"
             icon="plus"
