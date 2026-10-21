@@ -1,6 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { decode } from 'base64-arraybuffer';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { StudyMaterial, StudyMaterialCategory } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
 import { batchesService } from './batches.service';
