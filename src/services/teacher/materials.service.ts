@@ -152,46 +152,37 @@ export class MaterialsService {
       console.log('Notice: Local persistent copy notice (using picked URI):', fsErr);
     }
 
-    // 2. Safe Supabase Storage upload via ArrayBuffer (no fetch/blob native crashes)
+    // 2. Safe Supabase Storage upload using native FileSystem.uploadAsync
+    // Streams directly from device disk to Supabase Storage endpoint without loading into Hermes memory or crossing the JS bridge
     try {
-      const isManageableSize = !pickedFile.size || pickedFile.size <= 20 * 1024 * 1024;
-      if (isManageableSize) {
+      if (SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('placeholder')) {
         const fileExt = pickedFile.name.split('.').pop() || (fileType === 'pdf' ? 'pdf' : 'bin');
         const storagePath = `batch_${data.batchId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const uploadEndpoint = `${SUPABASE_URL}/storage/v1/object/study-materials/${storagePath}`;
+        const mimeType =
+          pickedFile.mimeType ||
+          (fileType === 'pdf' ? 'application/pdf' : fileType === 'image' ? 'image/jpeg' : 'application/octet-stream');
 
-        // Read using FileSystem to avoid native networking/blob OOM crashes on Android
-        const base64Content = await FileSystem.readAsStringAsync(finalFileUrl, {
-          encoding: FileSystem.EncodingType.Base64,
+        const uploadResponse = await FileSystem.uploadAsync(uploadEndpoint, finalFileUrl, {
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': mimeType,
+            'x-upsert': 'true',
+          },
         });
 
-        if (base64Content) {
-          const arrayBuffer = decode(base64Content);
-          const mimeType =
-            pickedFile.mimeType ||
-            (fileType === 'pdf' ? 'application/pdf' : 'application/octet-stream');
-
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('study-materials')
-            .upload(storagePath, arrayBuffer, {
-              contentType: mimeType,
-              upsert: true,
-            });
-
-          if (!uploadError && uploadData) {
-            const { data: publicUrlData } = supabase.storage
-              .from('study-materials')
-              .getPublicUrl(uploadData.path);
-            if (publicUrlData?.publicUrl) {
-              finalFileUrl = publicUrlData.publicUrl;
-            }
-          } else if (uploadError) {
-            console.log('Notice: Supabase storage upload notice:', uploadError.message);
-          }
+        if (uploadResponse.status >= 200 && uploadResponse.status < 300) {
+          finalFileUrl = `${SUPABASE_URL}/storage/v1/object/public/study-materials/${storagePath}`;
+        } else {
+          console.warn('MaterialsService: Supabase storage returned non-2xx status:', uploadResponse.status, uploadResponse.body);
         }
       }
-    } catch (err) {
-      // Graceful fallback to persistent local uri
-      console.log('Notice: Uploaded using local device URI:', err);
+    } catch (uploadErr) {
+      // Graceful fallback to persistent local URI so material is still saved safely without crashing
+      console.warn('MaterialsService: Cloud storage upload fallback to local URI:', uploadErr);
     }
 
     const newMaterial: StudyMaterial = {
