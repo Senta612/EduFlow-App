@@ -41,54 +41,6 @@ export function detectFileType(fileName: string, mimeType?: string): 'pdf' | 'im
   return 'other';
 }
 
-const DEFAULT_SAMPLE_MATERIALS: StudyMaterial[] = [
-  {
-    id: 'mat-sample-1',
-    batchId: '', // Filled dynamically with first batch
-    batchName: 'Class 10 - Science',
-    title: 'Chapter 1: Chemical Reactions & Equations - Full Revision Notes',
-    description: 'Complete hand-written summary with key equations and balanced reaction tricks.',
-    subject: 'Science',
-    category: 'notes',
-    fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    fileName: 'Science_Ch1_Chemical_Reactions.pdf',
-    fileSize: '1.4 MB',
-    fileType: 'pdf',
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    downloadCount: 14,
-  },
-  {
-    id: 'mat-sample-2',
-    batchId: '',
-    batchName: 'Class 10 - Science',
-    title: 'Physics & Chemistry Quick Formula Cheat Sheet 2026',
-    description: 'All important formulas, SI units, and constant values on 2 pages.',
-    subject: 'Science',
-    category: 'formula_sheet',
-    fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    fileName: 'Formula_Sheet_Term2.pdf',
-    fileSize: '820 KB',
-    fileType: 'pdf',
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    downloadCount: 28,
-  },
-  {
-    id: 'mat-sample-3',
-    batchId: '',
-    batchName: 'Class 10 - Science',
-    title: 'Last 5 Years Board Exam Questions (Solved)',
-    description: 'Previous year board questions sorted topic-wise with step-by-step marking scheme.',
-    subject: 'Science',
-    category: 'question_bank',
-    fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    fileName: 'PYQ_Solved_Questions.pdf',
-    fileSize: '3.1 MB',
-    fileType: 'pdf',
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    downloadCount: 42,
-  },
-];
-
 export class MaterialsService {
   /**
    * Get all study materials across all batches
@@ -96,17 +48,12 @@ export class MaterialsService {
   async getAllMaterials(): Promise<StudyMaterial[]> {
     let localMaterials = await getStored<StudyMaterial[]>(STORAGE_KEYS.MATERIALS, []);
 
-    // If storage is empty, initialize with high quality starter materials
-    if (localMaterials.length === 0) {
-      const batches = await batchesService.getBatches();
-      const firstBatch = batches[0];
-      const initialSeed = DEFAULT_SAMPLE_MATERIALS.map((m) => ({
-        ...m,
-        batchId: firstBatch?.id || 'batch-demo-1',
-        batchName: firstBatch?.name || 'Class 10 Science',
-        subject: firstBatch?.subject || m.subject,
-      }));
-      localMaterials = initialSeed;
+    // Purge any previously stored sample / dummy materials
+    const cleaned = localMaterials.filter(
+      (m) => !m.id.startsWith('mat-sample-') && !m.fileUrl.includes('dummy.pdf'),
+    );
+    if (cleaned.length !== localMaterials.length) {
+      localMaterials = cleaned;
       await setStored(STORAGE_KEYS.MATERIALS, localMaterials);
     }
 

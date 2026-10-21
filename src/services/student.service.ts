@@ -763,14 +763,10 @@ export class StudentService {
 
       const allMaterials = await teacherService.getAllMaterials();
       
-      // If a specific batchId is present, filter for that batch, but if empty, show all available materials
-      let relevant = batchId
+      // Filter strictly for the student's batch if known
+      const relevant = batchId
         ? allMaterials.filter((m) => m.batchId === batchId)
         : allMaterials;
-
-      if (relevant.length === 0 && allMaterials.length > 0) {
-        relevant = allMaterials;
-      }
 
       // Mark materials created in the last 3 days as "new"
       const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
