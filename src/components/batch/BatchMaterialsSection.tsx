@@ -173,13 +173,36 @@ export const BatchMaterialsSection: React.FC<BatchMaterialsSectionProps> = ({
           </Text>
         </View>
         <Button
-          title="Upload"
-          icon="upload"
+          title="Add Material"
+          icon="plus"
           size="sm"
           variant="primary"
           onPress={onUploadPress}
         />
       </View>
+
+      {/* Prominent Add Material Action Banner */}
+      <TouchableOpacity
+        style={styles.addMaterialHeroCta}
+        onPress={onUploadPress}
+        activeOpacity={0.8}
+      >
+        <View style={styles.addMaterialHeroLeft}>
+          <View style={styles.addMaterialHeroIcon}>
+            <Feather name="file-plus" size={20} color={theme.colors.primary.main} />
+          </View>
+          <View style={styles.addMaterialHeroTexts}>
+            <Text style={styles.addMaterialHeroTitle}>Add Study Material</Text>
+            <Text style={styles.addMaterialHeroSubtitle}>
+              Upload PDFs, formula sheets, or exam papers
+            </Text>
+          </View>
+        </View>
+        <View style={styles.addMaterialHeroBadge}>
+          <Feather name="plus" size={14} color="#FFFFFF" />
+          <Text style={styles.addMaterialHeroBadgeText}>Add</Text>
+        </View>
+      </TouchableOpacity>
 
       {/* Filter and Search Bar when there are materials */}
       {materials.length > 0 && (
@@ -231,7 +254,7 @@ export const BatchMaterialsSection: React.FC<BatchMaterialsSectionProps> = ({
           icon="file-text"
           title="No study materials uploaded yet"
           description="Upload notes, formula sheets, or questions for students to view in their app."
-          actionLabel="Upload First Material"
+          actionLabel="Add Study Material"
           onAction={onUploadPress}
         />
       ) : filteredMaterials.length === 0 ? (
@@ -541,5 +564,61 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.semantic.danger.bg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addMaterialHeroCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.primary.bg,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: theme.colors.primary.main,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 4,
+  },
+  addMaterialHeroLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  addMaterialHeroIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: theme.colors.background.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.primary.light,
+  },
+  addMaterialHeroTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  addMaterialHeroTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.primary.dark,
+  },
+  addMaterialHeroSubtitle: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+  },
+  addMaterialHeroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary.main,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: theme.radii.full,
+  },
+  addMaterialHeroBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

@@ -17,6 +17,7 @@ interface BatchOverviewSectionProps {
   materialsCount?: number;
   onSwitchTab: (tab: 'students' | 'attendance' | 'homework' | 'tests' | 'materials') => void;
   onTakeAttendance: () => void;
+  onAddMaterial?: () => void;
   onDeleteBatch?: () => void;
 }
 
@@ -25,8 +26,10 @@ export const BatchOverviewSection: React.FC<BatchOverviewSectionProps> = ({
   students,
   homeworkList,
   testsList,
+  materialsCount = 0,
   onSwitchTab,
   onTakeAttendance,
+  onAddMaterial,
   onDeleteBatch,
 }) => {
   const isAttendanceDone = Boolean(batch.attendanceTakenToday);
@@ -172,6 +175,50 @@ export const BatchOverviewSection: React.FC<BatchOverviewSectionProps> = ({
           </Card>
         </Pressable>
       </View>
+
+      {/* Study Materials & Notes Section in Overview */}
+      <Card variant="outlined" padding="md" style={styles.materialsOverviewCard}>
+        <View style={styles.materialsOverviewTop}>
+          <View style={styles.materialsOverviewIconWrap}>
+            <Feather name="folder" size={20} color={theme.colors.primary.main} />
+          </View>
+          <View style={styles.materialsOverviewTitleGroup}>
+            <View style={styles.titleBadgeInline}>
+              <Text variant="label" style={styles.materialsOverviewTitle}>
+                Study Materials & Notes
+              </Text>
+              <Badge
+                label={`${materialsCount}`}
+                variant="primary"
+                size="sm"
+              />
+            </View>
+            <Text variant="caption" style={styles.materialsOverviewSubtitle}>
+              Documents, formula sheets, and past question papers
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.materialsOverviewActions}>
+          <Button
+            title="View All"
+            variant="outline"
+            size="sm"
+            style={styles.materialsActionBtn}
+            onPress={() => onSwitchTab('materials')}
+          />
+          {onAddMaterial && (
+            <Button
+              title="Add Material"
+              icon="plus"
+              variant="primary"
+              size="sm"
+              style={styles.materialsActionBtn}
+              onPress={onAddMaterial}
+            />
+          )}
+        </View>
+      </Card>
 
       {/* Recent Homework Preview */}
       <View style={styles.sectionBlock}>
@@ -377,6 +424,54 @@ const styles = StyleSheet.create({
   itemDesc: {
     color: theme.colors.text.secondary,
     marginTop: 2,
+  },
+  materialsOverviewCard: {
+    gap: 12,
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary.light,
+  },
+  materialsOverviewTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  materialsOverviewIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: theme.colors.primary.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  materialsOverviewTitleGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  titleBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  materialsOverviewTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  materialsOverviewSubtitle: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+  },
+  materialsOverviewActions: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border.light,
+  },
+  materialsActionBtn: {
+    flex: 1,
   },
   dangerZoneCard: {
     backgroundColor: '#FEF2F2',

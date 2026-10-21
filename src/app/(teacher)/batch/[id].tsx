@@ -51,9 +51,9 @@ const SECTION_TABS: { key: BatchSectionTab; label: string; icon: keyof typeof Fe
   { key: 'overview', label: 'Overview', icon: 'grid' },
   { key: 'students', label: 'Students', icon: 'users' },
   { key: 'attendance', label: 'Attendance', icon: 'check-square' },
+  { key: 'materials', label: 'Materials', icon: 'folder' },
   { key: 'homework', label: 'Homework', icon: 'book-open' },
   { key: 'tests', label: 'Tests & Marks', icon: 'award' },
-  { key: 'materials', label: 'Materials', icon: 'folder' },
 ];
 
 export default function BatchDetailScreen() {
@@ -274,19 +274,33 @@ export default function BatchDetailScreen() {
         subtitle={`${batch.grade} • ${batch.subject}`}
         showBack
         rightAction={
-          <Pressable
-            onPress={() => setIsDeleteModalVisible(true)}
-            hitSlop={8}
-            style={styles.deleteHeaderButton}
-            accessibilityRole="button"
-            accessibilityLabel="Delete batch"
-          >
-            <Feather
-              name="trash-2"
-              size={18}
-              color={theme.colors.semantic.danger.main}
-            />
-          </Pressable>
+          <View style={styles.headerRightGroup}>
+            {activeTab === 'materials' && (
+              <Pressable
+                onPress={() => setIsUploadModalVisible(true)}
+                hitSlop={8}
+                style={styles.headerAddBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Add Study Material"
+              >
+                <Feather name="plus" size={13} color="#FFFFFF" />
+                <Text style={styles.headerAddBtnText}>Add Material</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => setIsDeleteModalVisible(true)}
+              hitSlop={8}
+              style={styles.deleteHeaderButton}
+              accessibilityRole="button"
+              accessibilityLabel="Delete batch"
+            >
+              <Feather
+                name="trash-2"
+                size={18}
+                color={theme.colors.semantic.danger.main}
+              />
+            </Pressable>
+          </View>
         }
       />
 
@@ -300,7 +314,11 @@ export default function BatchDetailScreen() {
           {SECTION_TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             const tabLabel =
-              tab.key === 'students' ? `Students (${students.length})` : tab.label;
+              tab.key === 'students'
+                ? `Students (${students.length})`
+                : tab.key === 'materials'
+                ? `Materials (${materialsList.length})`
+                : tab.label;
             return (
               <Pressable
                 key={tab.key}
@@ -348,6 +366,7 @@ export default function BatchDetailScreen() {
             materialsCount={materialsList.length}
             onSwitchTab={setActiveTab}
             onTakeAttendance={() => router.push(`/(teacher)/attendance/${batch.id}`)}
+            onAddMaterial={() => setIsUploadModalVisible(true)}
             onDeleteBatch={() => setIsDeleteModalVisible(true)}
           />
         )}
@@ -524,5 +543,29 @@ const styles = StyleSheet.create({
   contentScroll: {
     padding: theme.spacing.lg,
     gap: theme.spacing.lg,
+  },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary.main,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: theme.radii.full,
+  },
+  headerAddBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  deleteHeaderButton: {
+    padding: 6,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.semantic.danger.bg,
   },
 });
