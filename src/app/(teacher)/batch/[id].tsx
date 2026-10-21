@@ -274,33 +274,19 @@ export default function BatchDetailScreen() {
         subtitle={`${batch.grade} • ${batch.subject}`}
         showBack
         rightAction={
-          <View style={styles.headerRightGroup}>
-            {activeTab === 'materials' && (
-              <Pressable
-                onPress={() => setIsUploadModalVisible(true)}
-                hitSlop={8}
-                style={styles.headerAddBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Add Study Material"
-              >
-                <Feather name="plus" size={13} color="#FFFFFF" />
-                <Text style={styles.headerAddBtnText}>Add Material</Text>
-              </Pressable>
-            )}
-            <Pressable
-              onPress={() => setIsDeleteModalVisible(true)}
-              hitSlop={8}
-              style={styles.deleteHeaderButton}
-              accessibilityRole="button"
-              accessibilityLabel="Delete batch"
-            >
-              <Feather
-                name="trash-2"
-                size={18}
-                color={theme.colors.semantic.danger.main}
-              />
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={() => setIsDeleteModalVisible(true)}
+            hitSlop={8}
+            style={styles.deleteHeaderButton}
+            accessibilityRole="button"
+            accessibilityLabel="Delete batch"
+          >
+            <Feather
+              name="trash-2"
+              size={18}
+              color={theme.colors.semantic.danger.main}
+            />
+          </Pressable>
         }
       />
 
@@ -543,25 +529,6 @@ const styles = StyleSheet.create({
   contentScroll: {
     padding: theme.spacing.lg,
     gap: theme.spacing.lg,
-  },
-  headerRightGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.colors.primary.main,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: theme.radii.full,
-  },
-  headerAddBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   deleteHeaderButton: {
     padding: 6,

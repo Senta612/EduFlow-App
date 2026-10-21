@@ -176,49 +176,40 @@ export const BatchOverviewSection: React.FC<BatchOverviewSectionProps> = ({
         </Pressable>
       </View>
 
-      {/* Study Materials & Notes Section in Overview */}
-      <Card variant="outlined" padding="md" style={styles.materialsOverviewCard}>
-        <View style={styles.materialsOverviewTop}>
-          <View style={styles.materialsOverviewIconWrap}>
-            <Feather name="folder" size={20} color={theme.colors.primary.main} />
-          </View>
-          <View style={styles.materialsOverviewTitleGroup}>
-            <View style={styles.titleBadgeInline}>
-              <Text variant="label" style={styles.materialsOverviewTitle}>
-                Study Materials & Notes
-              </Text>
-              <Badge
-                label={`${materialsCount}`}
-                variant="primary"
-                size="sm"
-              />
+      {/* Study Materials Card in Overview */}
+      <Pressable
+        style={({ pressed }) => [pressed && styles.statCardPressed]}
+        onPress={() => onSwitchTab('materials')}
+        accessibilityRole="button"
+        accessibilityLabel="View study materials"
+      >
+        <Card variant="outlined" padding="md" style={styles.materialsOverviewCard}>
+          <View style={styles.materialsOverviewTop}>
+            <View style={styles.materialsOverviewIconWrap}>
+              <Feather name="folder" size={18} color={theme.colors.primary.main} />
             </View>
-            <Text variant="caption" style={styles.materialsOverviewSubtitle}>
-              Documents, formula sheets, and past question papers
-            </Text>
+            <View style={styles.materialsOverviewTitleGroup}>
+              <View style={styles.titleBadgeInline}>
+                <Text variant="label" style={styles.materialsOverviewTitle}>
+                  Study Materials
+                </Text>
+                <Badge
+                  label={`${materialsCount}`}
+                  variant="primary"
+                  size="sm"
+                />
+              </View>
+              <Text variant="caption" style={styles.materialsOverviewSubtitle}>
+                {materialsCount > 0
+                  ? `${materialsCount} material${materialsCount > 1 ? 's' : ''} uploaded • Tap to view`
+                  : 'Upload notes, formulas & sheets for students'}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={theme.colors.text.tertiary} />
           </View>
-        </View>
+        </Card>
+      </Pressable>
 
-        <View style={styles.materialsOverviewActions}>
-          <Button
-            title="View All"
-            variant="outline"
-            size="sm"
-            style={styles.materialsActionBtn}
-            onPress={() => onSwitchTab('materials')}
-          />
-          {onAddMaterial && (
-            <Button
-              title="Add Material"
-              icon="plus"
-              variant="primary"
-              size="sm"
-              style={styles.materialsActionBtn}
-              onPress={onAddMaterial}
-            />
-          )}
-        </View>
-      </Card>
 
       {/* Recent Homework Preview */}
       <View style={styles.sectionBlock}>
