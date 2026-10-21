@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { StudyMaterial, StudyMaterialCategory } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
@@ -134,32 +136,62 @@ export class MaterialsService {
     const fileSizeStr = formatBytes(pickedFile.size);
     let finalFileUrl = pickedFile.uri;
 
-    // Optional: Upload to Supabase Storage if bucket is reachable
+    // 1. Safely persist a local copy into app document storage so it's permanent and cached
     try {
-      const fileExt = pickedFile.name.split('.').pop() || 'bin';
-      const storagePath = `batch_${data.batchId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      if (FileSystem.documentDirectory && pickedFile.uri) {
+        const materialsDir = `${FileSystem.documentDirectory}study_materials/`;
+        const dirInfo = await FileSystem.getInfoAsync(materialsDir);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(materialsDir, { intermediates: true });
+        }
+        const safeName = `${Date.now()}_${pickedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const destination = `${materialsDir}${safeName}`;
+        await FileSystem.copyAsync({ from: pickedFile.uri, to: destination });
+        finalFileUrl = destination;
+      }
+    } catch (fsErr) {
+      console.log('Notice: Local persistent copy notice (using picked URI):', fsErr);
+    }
 
-      // Check if file can be uploaded via FormData / Blob
-      const response = await fetch(pickedFile.uri);
-      const blob = await response.blob();
+    // 2. Safe Supabase Storage upload via ArrayBuffer (no fetch/blob native crashes)
+    try {
+      const isManageableSize = !pickedFile.size || pickedFile.size <= 20 * 1024 * 1024;
+      if (isManageableSize) {
+        const fileExt = pickedFile.name.split('.').pop() || (fileType === 'pdf' ? 'pdf' : 'bin');
+        const storagePath = `batch_${data.batchId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('study-materials')
-        .upload(storagePath, blob, {
-          contentType: pickedFile.mimeType || 'application/octet-stream',
-          upsert: true,
+        // Read using FileSystem to avoid native networking/blob OOM crashes on Android
+        const base64Content = await FileSystem.readAsStringAsync(finalFileUrl, {
+          encoding: FileSystem.EncodingType.Base64,
         });
 
-      if (!uploadError && uploadData) {
-        const { data: publicUrlData } = supabase.storage
-          .from('study-materials')
-          .getPublicUrl(uploadData.path);
-        if (publicUrlData?.publicUrl) {
-          finalFileUrl = publicUrlData.publicUrl;
+        if (base64Content) {
+          const arrayBuffer = decode(base64Content);
+          const mimeType =
+            pickedFile.mimeType ||
+            (fileType === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('study-materials')
+            .upload(storagePath, arrayBuffer, {
+              contentType: mimeType,
+              upsert: true,
+            });
+
+          if (!uploadError && uploadData) {
+            const { data: publicUrlData } = supabase.storage
+              .from('study-materials')
+              .getPublicUrl(uploadData.path);
+            if (publicUrlData?.publicUrl) {
+              finalFileUrl = publicUrlData.publicUrl;
+            }
+          } else if (uploadError) {
+            console.log('Notice: Supabase storage upload notice:', uploadError.message);
+          }
         }
       }
     } catch (err) {
-      // Graceful fallback to local uri
+      // Graceful fallback to persistent local uri
       console.log('Notice: Uploaded using local device URI:', err);
     }
 

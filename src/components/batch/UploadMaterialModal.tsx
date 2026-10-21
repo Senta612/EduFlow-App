@@ -9,6 +9,7 @@ import {
   Pressable,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
@@ -59,6 +60,7 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
   const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<{ title?: string; file?: string }>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isPicking, setIsPicking] = useState(false);
 
   // Sync subject when modal opens with defaultSubject
   React.useEffect(() => {
@@ -70,6 +72,8 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
   }, [visible, defaultSubject]);
 
   const handlePickDocument = async () => {
+    if (isPicking || isUploading) return;
+    setIsPicking(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: [
@@ -79,6 +83,7 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'application/vnd.ms-powerpoint',
           'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          '*/*',
         ],
         copyToCacheDirectory: true,
       });
@@ -103,6 +108,8 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
     } catch (err) {
       console.error('Error picking document:', err);
       Alert.alert('File Selection Failed', 'Could not open document picker. Please try again.');
+    } finally {
+      setIsPicking(false);
     }
   };
 
@@ -114,10 +121,11 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
     setDescription('');
     setErrors({});
     setIsUploading(false);
+    setIsPicking(false);
   };
 
   const handleClose = () => {
-    if (isUploading) return;
+    if (isUploading || isPicking) return;
     resetForm();
     onClose();
   };
@@ -230,7 +238,7 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
                   <TouchableOpacity
                     style={styles.changeFileButton}
                     onPress={handlePickDocument}
-                    disabled={isUploading}
+                    disabled={isUploading || isPicking}
                   >
                     <Feather name="edit-2" size={16} color={theme.colors.primary.main} />
                   </TouchableOpacity>
@@ -240,13 +248,17 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
                   style={[styles.pickerDropzone, errors.file ? styles.dropzoneError : null]}
                   onPress={handlePickDocument}
                   activeOpacity={0.7}
-                  disabled={isUploading}
+                  disabled={isUploading || isPicking}
                 >
                   <View style={styles.dropzoneIconBox}>
-                    <Feather name="file-plus" size={26} color={theme.colors.primary.main} />
+                    {isPicking ? (
+                      <ActivityIndicator size="small" color={theme.colors.primary.main} />
+                    ) : (
+                      <Feather name="file-plus" size={26} color={theme.colors.primary.main} />
+                    )}
                   </View>
                   <Text variant="body" style={styles.dropzoneTitle}>
-                    Tap to Choose Document
+                    {isPicking ? 'Opening Document Picker...' : 'Tap to Choose Document'}
                   </Text>
                   <Text variant="caption" style={styles.dropzoneHint}>
                     Supports PDF, DOCX, PPTX, or Images

@@ -530,9 +530,4 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.lg,
   },
-  deleteHeaderButton: {
-    padding: 6,
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.semantic.danger.bg,
-  },
 });
