@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { StudyMaterialCategory } from '@/types/teacher';
 import { detectFileType } from '@/services/teacher/materials.service';
+import { teacherService } from '@/services/teacher.service';
 import { theme } from '@/theme';
 
 interface UploadMaterialModalProps {
@@ -147,7 +148,6 @@ export const UploadMaterialModal: React.FC<UploadMaterialModalProps> = ({
 
     try {
       setIsUploading(true);
-      const { teacherService } = await import('@/services/teacher.service');
 
       await teacherService.createMaterial(
         {
