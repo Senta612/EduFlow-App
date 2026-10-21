@@ -181,29 +181,6 @@ export const BatchMaterialsSection: React.FC<BatchMaterialsSectionProps> = ({
         />
       </View>
 
-      {/* Prominent Add Material Action Banner */}
-      <TouchableOpacity
-        style={styles.addMaterialHeroCta}
-        onPress={onUploadPress}
-        activeOpacity={0.8}
-      >
-        <View style={styles.addMaterialHeroLeft}>
-          <View style={styles.addMaterialHeroIcon}>
-            <Feather name="file-plus" size={20} color={theme.colors.primary.main} />
-          </View>
-          <View style={styles.addMaterialHeroTexts}>
-            <Text style={styles.addMaterialHeroTitle}>Add Study Material</Text>
-            <Text style={styles.addMaterialHeroSubtitle}>
-              Upload PDFs, formula sheets, or exam papers
-            </Text>
-          </View>
-        </View>
-        <View style={styles.addMaterialHeroBadge}>
-          <Feather name="plus" size={14} color="#FFFFFF" />
-          <Text style={styles.addMaterialHeroBadgeText}>Add</Text>
-        </View>
-      </TouchableOpacity>
-
       {/* Filter and Search Bar when there are materials */}
       {materials.length > 0 && (
         <View style={styles.filterControls}>
