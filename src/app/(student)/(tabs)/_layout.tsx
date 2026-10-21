@@ -58,6 +58,15 @@ export default function StudentTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="materials"
+        options={{
+          title: 'Materials',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="folder" size={size ?? 22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: t('tabs.more'),

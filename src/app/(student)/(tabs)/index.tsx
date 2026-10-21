@@ -175,6 +175,31 @@ export default function StudentDashboardScreen() {
           )}
         </View>
 
+        {/* Study Materials & Notes Banner */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.materialsBanner}
+            onPress={() => router.push('/(student)/(tabs)/materials')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.materialsBannerLeft}>
+              <View style={styles.materialsIconCircle}>
+                <Feather name="folder" size={20} color={theme.colors.primary.main} />
+              </View>
+              <View style={styles.materialsBannerTexts}>
+                <View style={styles.materialsBannerTitleRow}>
+                  <Text style={styles.materialsBannerTitle}>Study Materials & Notes</Text>
+                  <Badge label="RESOURCES" variant="primary" size="sm" />
+                </View>
+                <Text style={styles.materialsBannerSubtitle}>
+                  Access PDFs, formulas & PYQ question banks
+                </Text>
+              </View>
+            </View>
+            <Feather name="chevron-right" size={20} color={theme.colors.text.secondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* Announcements & Notices */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
@@ -379,6 +404,53 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 13,
+    color: theme.colors.text.secondary,
+  },
+  materialsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.background.paper,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary.light,
+    shadowColor: theme.colors.primary.main,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  materialsBannerLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  materialsIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primary.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  materialsBannerTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  materialsBannerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  materialsBannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  materialsBannerSubtitle: {
+    fontSize: 12,
     color: theme.colors.text.secondary,
   },
 });

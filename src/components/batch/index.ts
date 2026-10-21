@@ -3,6 +3,8 @@ export { BatchStudentsSection } from './BatchStudentsSection';
 export { BatchAttendanceSection } from './BatchAttendanceSection';
 export { BatchHomeworkSection } from './BatchHomeworkSection';
 export { BatchTestsSection } from './BatchTestsSection';
+export { BatchMaterialsSection } from './BatchMaterialsSection';
+export { UploadMaterialModal } from './UploadMaterialModal';
 export { AttendanceDetailModal } from './AttendanceDetailModal';
 export { StudentFormModal } from './StudentFormModal';
 export { DeleteBatchModal } from './DeleteBatchModal';

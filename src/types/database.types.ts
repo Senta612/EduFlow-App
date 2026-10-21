@@ -300,6 +300,54 @@ export interface Database {
         };
         Relationships: [];
       };
+      study_materials: {
+        Row: {
+          id: string;
+          batch_id: string;
+          teacher_id: string | null;
+          title: string;
+          description: string | null;
+          subject: string;
+          category: string;
+          file_url: string;
+          file_name: string;
+          file_size: string | null;
+          file_type: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          teacher_id?: string | null;
+          title: string;
+          description?: string | null;
+          subject: string;
+          category: string;
+          file_url: string;
+          file_name: string;
+          file_size?: string | null;
+          file_type?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          batch_id?: string;
+          teacher_id?: string | null;
+          title?: string;
+          description?: string | null;
+          subject?: string;
+          category?: string;
+          file_url?: string;
+          file_name?: string;
+          file_size?: string | null;
+          file_type?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

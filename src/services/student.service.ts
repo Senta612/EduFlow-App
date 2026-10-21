@@ -9,9 +9,10 @@ import {
   StudentTodayClass,
   StudentAnnouncement,
   StudentSession,
+  StudentMaterialItemView,
 } from '@/types/student';
 import { HomeworkStatus } from '@/types/teacher';
-import { isBatchScheduledToday } from './teacher.service';
+import { isBatchScheduledToday, teacherService } from './teacher.service';
 
 const STUDENT_DATA_STORAGE_KEY = '@eduflow_student_storage_v1';
 const STUDENT_SESSION_KEY = '@eduflow_active_student_session';
@@ -747,5 +748,54 @@ export class StudentService {
       streakDays: 0,
       currentMonthDays: [],
     };
+  }
+
+  /**
+   * Fetch study materials for the current student's enrolled batch
+   */
+  static async getStudyMaterials(targetBatchId?: string): Promise<StudentMaterialItemView[]> {
+    try {
+      let batchId = targetBatchId;
+      if (!batchId) {
+        const session = await this.getActiveSession();
+        batchId = session?.batchId;
+      }
+
+      const allMaterials = await teacherService.getAllMaterials();
+      
+      // If a specific batchId is present, filter for that batch, but if empty, show all available materials
+      let relevant = batchId
+        ? allMaterials.filter((m) => m.batchId === batchId)
+        : allMaterials;
+
+      if (relevant.length === 0 && allMaterials.length > 0) {
+        relevant = allMaterials;
+      }
+
+      // Mark materials created in the last 3 days as "new"
+      const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+
+      return relevant.map((m) => {
+        const createdTime = new Date(m.createdAt).getTime();
+        return {
+          id: m.id,
+          batchId: m.batchId,
+          batchName: m.batchName,
+          title: m.title,
+          description: m.description,
+          subject: m.subject,
+          category: m.category,
+          fileUrl: m.fileUrl,
+          fileName: m.fileName,
+          fileSize: m.fileSize,
+          fileType: m.fileType,
+          createdAt: m.createdAt,
+          isNew: createdTime > threeDaysAgo,
+        };
+      });
+    } catch (e) {
+      console.warn('StudentService: Failed to get study materials:', e);
+      return [];
+    }
   }
 }

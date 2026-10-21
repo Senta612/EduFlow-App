@@ -215,3 +215,28 @@ export interface TuitionAnalyticsSummary {
   batchSummaries: BatchAnalyticsSummary[];
 }
 
+export type StudyMaterialCategory =
+  | 'notes'
+  | 'formula_sheet'
+  | 'question_bank'
+  | 'syllabus'
+  | 'assignment'
+  | 'other';
+
+export interface StudyMaterial {
+  id: string;
+  batchId: string;
+  batchName: string;
+  teacherId?: string;
+  title: string;
+  description?: string;
+  subject: string;
+  category: StudyMaterialCategory;
+  fileUrl: string;
+  fileName: string;
+  fileSize?: string;
+  fileType: 'pdf' | 'image' | 'doc' | 'other';
+  createdAt: string;
+  downloadCount?: number;
+}
+

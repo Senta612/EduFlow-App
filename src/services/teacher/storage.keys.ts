@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   MARKS: '@eduflow_teacher_marks',
   STUDENTS: '@eduflow_teacher_students',
   HW_SUBMISSIONS: '@eduflow_teacher_hw_submissions',
+  MATERIALS: '@eduflow_teacher_study_materials',
 } as const;
 
 export async function getStored<T>(key: string, fallback: T): Promise<T> {

@@ -12,6 +12,7 @@ export { HomeworkService, homeworkService } from './homework.service';
 export { TestsService, testsService } from './tests.service';
 export { AnalyticsService, analyticsService } from './analytics.service';
 export { TasksService, tasksService } from './tasks.service';
+export { MaterialsService, materialsService, detectFileType } from './materials.service';
 export {
   formatStudentProgressWhatsAppMessage,
   formatDefaulterWhatsAppMessage,

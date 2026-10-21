@@ -17,6 +17,8 @@ import {
   TeacherTask,
   StudentProfileData,
   TuitionAnalyticsSummary,
+  StudyMaterial,
+  StudyMaterialCategory,
 } from '@/types/teacher';
 
 import {
@@ -27,6 +29,7 @@ import {
   testsService,
   analyticsService,
   tasksService,
+  materialsService,
   BatchListener,
   isBatchScheduledToday,
   isBatchScheduledOnDate,
@@ -207,6 +210,41 @@ export class TeacherService {
   // 7. Pending Tasks
   async getPendingTasks(): Promise<TeacherTask[]> {
     return tasksService.getPendingTasks();
+  }
+
+  // 8. Study Materials & Documents
+  async getAllMaterials(): Promise<StudyMaterial[]> {
+    return materialsService.getAllMaterials();
+  }
+
+  async getMaterialsByBatch(batchId: string): Promise<StudyMaterial[]> {
+    return materialsService.getMaterialsByBatch(batchId);
+  }
+
+  async createMaterial(
+    data: {
+      batchId: string;
+      title: string;
+      description?: string;
+      subject: string;
+      category: StudyMaterialCategory;
+    },
+    file: {
+      uri: string;
+      name: string;
+      size?: number;
+      mimeType?: string;
+    },
+  ): Promise<StudyMaterial> {
+    return materialsService.createMaterial(data, file);
+  }
+
+  async deleteMaterial(id: string): Promise<void> {
+    return materialsService.deleteMaterial(id);
+  }
+
+  formatMaterialWhatsAppMessage(material: StudyMaterial): string {
+    return materialsService.formatMaterialWhatsAppMessage(material);
   }
 }
 

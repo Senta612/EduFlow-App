@@ -14,7 +14,8 @@ interface BatchOverviewSectionProps {
   students: Student[];
   homeworkList: Homework[];
   testsList: Test[];
-  onSwitchTab: (tab: 'students' | 'attendance' | 'homework' | 'tests') => void;
+  materialsCount?: number;
+  onSwitchTab: (tab: 'students' | 'attendance' | 'homework' | 'tests' | 'materials') => void;
   onTakeAttendance: () => void;
   onDeleteBatch?: () => void;
 }

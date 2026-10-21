@@ -39,6 +39,12 @@ export default function TeacherMoreScreen() {
       title: 'Teaching & Insights',
       items: [
         {
+          icon: 'folder',
+          title: 'Study Materials',
+          subtitle: 'Upload & share PDFs, notes and sheets',
+          route: '/(teacher)/more/materials',
+        },
+        {
           icon: 'bar-chart-2',
           title: t('reports.title'),
           subtitle: t('reports.subtitle'),

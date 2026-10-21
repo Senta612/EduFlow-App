@@ -21,6 +21,8 @@ import {
   BatchAttendanceSection,
   BatchHomeworkSection,
   BatchTestsSection,
+  BatchMaterialsSection,
+  UploadMaterialModal,
   AttendanceDetailModal,
   StudentFormModal,
   ShareInviteModal,
@@ -33,6 +35,7 @@ import {
   AttendanceRecord,
   Homework,
   Test,
+  StudyMaterial,
 } from '@/types/teacher';
 import { theme } from '@/theme';
 
@@ -41,7 +44,8 @@ type BatchSectionTab =
   | 'students'
   | 'attendance'
   | 'homework'
-  | 'tests';
+  | 'tests'
+  | 'materials';
 
 const SECTION_TABS: { key: BatchSectionTab; label: string; icon: keyof typeof Feather.glyphMap }[] = [
   { key: 'overview', label: 'Overview', icon: 'grid' },
@@ -49,6 +53,7 @@ const SECTION_TABS: { key: BatchSectionTab; label: string; icon: keyof typeof Fe
   { key: 'attendance', label: 'Attendance', icon: 'check-square' },
   { key: 'homework', label: 'Homework', icon: 'book-open' },
   { key: 'tests', label: 'Tests & Marks', icon: 'award' },
+  { key: 'materials', label: 'Materials', icon: 'folder' },
 ];
 
 export default function BatchDetailScreen() {
@@ -61,6 +66,8 @@ export default function BatchDetailScreen() {
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [homeworkList, setHomeworkList] = useState<Homework[]>([]);
   const [testsList, setTestsList] = useState<Test[]>([]);
+  const [materialsList, setMaterialsList] = useState<StudyMaterial[]>([]);
+  const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<BatchSectionTab>('overview');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -118,18 +125,20 @@ export default function BatchDetailScreen() {
   const loadBatchData = useCallback(async () => {
     if (!id) return;
     try {
-      const [batchData, studentData, attData, hwData, tData] = await Promise.all([
+      const [batchData, studentData, attData, hwData, tData, matData] = await Promise.all([
         teacherService.getBatchById(id),
         teacherService.getBatchStudents(id),
         teacherService.getBatchAttendanceHistory(id),
         teacherService.getBatchHomework(id),
         teacherService.getBatchTests(id),
+        teacherService.getMaterialsByBatch(id),
       ]);
       setBatch(batchData);
       setStudents(studentData);
       setAttendanceHistory(attData);
       setHomeworkList(hwData);
       setTestsList(tData);
+      setMaterialsList(matData);
     } catch (error) {
       console.error('Failed to load batch workspace:', error);
     } finally {
@@ -336,6 +345,7 @@ export default function BatchDetailScreen() {
             students={students}
             homeworkList={homeworkList}
             testsList={testsList}
+            materialsCount={materialsList.length}
             onSwitchTab={setActiveTab}
             onTakeAttendance={() => router.push(`/(teacher)/attendance/${batch.id}`)}
             onDeleteBatch={() => setIsDeleteModalVisible(true)}
@@ -386,7 +396,25 @@ export default function BatchDetailScreen() {
             }
           />
         )}
+
+        {activeTab === 'materials' && (
+          <BatchMaterialsSection
+            batch={batch}
+            materials={materialsList}
+            onUploadPress={() => setIsUploadModalVisible(true)}
+            onRefreshMaterials={loadBatchData}
+          />
+        )}
       </ScrollView>
+
+      {/* Upload Study Material Modal */}
+      <UploadMaterialModal
+        visible={isUploadModalVisible}
+        onClose={() => setIsUploadModalVisible(false)}
+        batchId={batch.id}
+        defaultSubject={batch.subject}
+        onUploadSuccess={loadBatchData}
+      />
 
       {/* Student Add / Edit Modal */}
       <StudentFormModal

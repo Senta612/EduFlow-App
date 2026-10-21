@@ -113,3 +113,19 @@ export interface StudentSession {
   parentPhone?: string;
   joinedAt: string;
 }
+
+export interface StudentMaterialItemView {
+  id: string;
+  batchId: string;
+  batchName: string;
+  title: string;
+  description?: string;
+  subject: string;
+  category: 'notes' | 'formula_sheet' | 'question_bank' | 'syllabus' | 'assignment' | 'other';
+  fileUrl: string;
+  fileName: string;
+  fileSize?: string;
+  fileType: 'pdf' | 'image' | 'doc' | 'other';
+  createdAt: string;
+  isNew?: boolean;
+}
