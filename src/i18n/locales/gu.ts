@@ -34,6 +34,10 @@ export const gu: TranslationDictionary = {
     attendance: 'હાજરી',
     homework: 'લેસન (Homework)',
     tests: 'પરીક્ષાઓ',
+    paid: 'ચૂકવેલ',
+    free: 'મફત / રાહત',
+    overdue: 'મુદત વીતી ગયેલ',
+    feeStatus: 'ફી સ્થિતિ',
   },
   tabs: {
     home: 'મુખ્ય પેજ',
@@ -224,6 +228,8 @@ export const gu: TranslationDictionary = {
     appVersion: 'EduFlow એપ વર્ઝન',
     classReminders: 'ક્લાસ સમય રીમાઇન્ડર',
     attendanceAlerts: 'બાકી હાજરી એલર્ટ',
+    feeStatusTracking: 'વિદ્યાર્થી ફી સ્થિતિ',
+    feeStatusTrackingDesc: 'ટ્યુશન ફી (ચૂકવેલ, બાકી, વિલંબિત) અને ફ્રી બેઠકો ટ્રેક કરો',
   },
   student: {
     greeting: 'નમસ્તે, {name} 👋',
