@@ -3,16 +3,22 @@ import { Platform } from 'react-native';
 import { STORAGE_KEYS, getStored, setStored } from '../teacher/storage.keys';
 import { Batch } from '@/types/teacher';
 
-// Configure foreground notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Configure foreground notification behavior safely
+if (Platform.OS !== 'web') {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (e) {
+    console.warn('Failed to initialize NotificationHandler:', e);
+  }
+}
 
 export type NotificationType = 'class' | 'attendance' | 'homework' | 'fee' | 'system';
 
