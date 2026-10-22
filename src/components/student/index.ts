@@ -7,3 +7,4 @@ export { StudentTestsTab } from './StudentTestsTab';
 export { EditStudentModal } from './EditStudentModal';
 export { ShareInviteModal } from './ShareInviteModal';
 export { FeeStatusSelector } from './FeeStatusSelector';
+export { UpdateFeeStatusModal } from './UpdateFeeStatusModal';

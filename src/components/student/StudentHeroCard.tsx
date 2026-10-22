@@ -54,13 +54,20 @@ export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
             <Badge label={`Roll #${student.rollNumber}`} variant="primary" size="sm" />
             <Badge label={batch.subject} variant="neutral" size="sm" />
             {isFeeStatusEnabled && (
-              onPressFeeStatus ? (
-                <Pressable hitSlop={6} onPress={onPressFeeStatus}>
-                  <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
-                </Pressable>
-              ) : (
+              <Pressable
+                hitSlop={8}
+                style={styles.heroFeeBadgePressable}
+                onPress={onPressFeeStatus}
+                accessibilityRole="button"
+                accessibilityLabel="Change fee status"
+              >
                 <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
-              )
+                <Feather
+                  name="chevron-down"
+                  size={11}
+                  color={theme.colors.text.secondary}
+                />
+              </Pressable>
             )}
           </View>
         </View>
@@ -86,6 +93,80 @@ export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
             </View>
           </View>
           <Feather name="chevron-right" size={16} color="#059669" />
+        </Pressable>
+      )}
+
+      {/* Dedicated Interactive Fee Status Strip */}
+      {isFeeStatusEnabled && (
+        <Pressable
+          style={styles.feeStatusHeroStrip}
+          onPress={onPressFeeStatus}
+          accessibilityRole="button"
+          accessibilityLabel="Update student fee status"
+        >
+          <View style={styles.feeStatusStripLeft}>
+            <View
+              style={[
+                styles.feeStatusIconCircle,
+                {
+                  backgroundColor:
+                    student.feeStatus === 'paid'
+                      ? '#DCFCE7'
+                      : student.feeStatus === 'free'
+                      ? '#EDE9FE'
+                      : student.feeStatus === 'overdue'
+                      ? '#FEE2E2'
+                      : '#FEF3C7',
+                },
+              ]}
+            >
+              <Feather
+                name={
+                  student.feeStatus === 'paid'
+                    ? 'check-circle'
+                    : student.feeStatus === 'free'
+                    ? 'award'
+                    : student.feeStatus === 'overdue'
+                    ? 'alert-circle'
+                    : 'clock'
+                }
+                size={14}
+                color={
+                  student.feeStatus === 'paid'
+                    ? '#15803D'
+                    : student.feeStatus === 'free'
+                    ? '#6D28D9'
+                    : student.feeStatus === 'overdue'
+                    ? '#B91C1C'
+                    : '#B45309'
+                }
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={styles.feeStatusTitleRow}>
+                <Text variant="label" style={styles.feeStatusStripTitle}>
+                  Fee Status
+                </Text>
+                <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
+              </View>
+              <Text variant="caption" style={styles.feeStatusStripSubtitle}>
+                {student.feeStatus === 'paid'
+                  ? 'Fees fully cleared • Tap to update'
+                  : student.feeStatus === 'free'
+                  ? 'Free seat / concession • Tap to update'
+                  : student.feeStatus === 'overdue'
+                  ? 'Payment delayed • Tap to update'
+                  : 'Fee payment pending • Tap to update'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.feeStatusUpdateChip}>
+            <Text variant="caption" style={styles.feeStatusUpdateText}>
+              Update
+            </Text>
+            <Feather name="chevron-right" size={13} color={theme.colors.primary.main} />
+          </View>
         </Pressable>
       )}
 
@@ -260,5 +341,63 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: theme.colors.text.primary,
+  },
+  heroFeeBadgePressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  feeStatusHeroStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: theme.radii.lg,
+    padding: 10,
+    gap: 10,
+  },
+  feeStatusStripLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  feeStatusIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feeStatusTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  feeStatusStripTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  feeStatusStripSubtitle: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+    marginTop: 1,
+  },
+  feeStatusUpdateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: theme.colors.primary.bg,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.radii.full,
+  },
+  feeStatusUpdateText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary.main,
   },
 });

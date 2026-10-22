@@ -25,6 +25,7 @@ import {
   StudentTestsTab,
   EditStudentModal,
   ShareInviteModal,
+  UpdateFeeStatusModal,
 } from '@/components/student';
 import { ShareStudentReportModal } from '@/components/reports';
 import { teacherService } from '@/services/teacher.service';
@@ -61,6 +62,10 @@ export default function StudentProfileScreen() {
   const [editFeeStatus, setEditFeeStatus] = useState<FeeStatus>('pending');
   const [editErrors, setEditErrors] = useState<{ name?: string; roll?: string }>({});
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  // Quick Fee Status Update Modal State
+  const [isUpdateFeeStatusModalVisible, setIsUpdateFeeStatusModalVisible] = useState(false);
+  const [isSubmittingFeeStatus, setIsSubmittingFeeStatus] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -174,6 +179,41 @@ export default function StudentProfileScreen() {
     }
   };
 
+  // Quick Fee Status Handler with Optimistic UI Update
+  const handleSaveFeeStatus = async (newStatus: FeeStatus) => {
+    if (!data) return;
+    setIsSubmittingFeeStatus(true);
+    try {
+      // 1. Optimistic instant UI update
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              student: {
+                ...prev.student,
+                feeStatus: newStatus,
+              },
+            }
+          : null,
+      );
+      setEditFeeStatus(newStatus);
+      setIsUpdateFeeStatusModalVisible(false);
+
+      // 2. Persistent storage & backend sync
+      await teacherService.updateStudentFeeStatus(
+        data.batch.id,
+        data.student.id,
+        newStatus,
+      );
+    } catch (error) {
+      console.error('Failed to update student fee status:', error);
+      Alert.alert('Error', 'Failed to update fee status. Please try again.');
+      await loadData();
+    } finally {
+      setIsSubmittingFeeStatus(false);
+    }
+  };
+
   const handleDeleteStudent = () => {
     if (!data) return;
     Alert.alert(
@@ -266,7 +306,7 @@ export default function StudentProfileScreen() {
           onMessageParent={handleMessageParent}
           onEmailStudent={handleEmailStudent}
           onSharePortalAccess={() => setIsInviteModalVisible(true)}
-          onPressFeeStatus={handleOpenEdit}
+          onPressFeeStatus={() => setIsUpdateFeeStatusModalVisible(true)}
         />
 
         {/* 2. 4 Quick Stat Metric Badges */}
@@ -353,6 +393,7 @@ export default function StudentProfileScreen() {
             data={data}
             onOpenEdit={handleOpenEdit}
             onSwitchTab={setActiveTab}
+            onOpenUpdateFeeStatus={() => setIsUpdateFeeStatusModalVisible(true)}
           />
         )}
 
@@ -416,6 +457,17 @@ export default function StudentProfileScreen() {
           batchId: batch.id,
           batchName: batch.name,
         }}
+      />
+
+      {/* 8. Quick Fee Status Update Bottom Sheet */}
+      <UpdateFeeStatusModal
+        visible={isUpdateFeeStatusModalVisible}
+        onClose={() => setIsUpdateFeeStatusModalVisible(false)}
+        student={student}
+        batch={batch}
+        currentStatus={student.feeStatus || 'pending'}
+        isSubmitting={isSubmittingFeeStatus}
+        onSaveStatus={handleSaveFeeStatus}
       />
     </SafeAreaView>
   );

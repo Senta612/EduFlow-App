@@ -13,12 +13,14 @@ interface StudentOverviewTabProps {
   data: StudentProfileData;
   onOpenEdit: () => void;
   onSwitchTab: (tab: 'attendance' | 'homework' | 'tests') => void;
+  onOpenUpdateFeeStatus?: () => void;
 }
 
 export const StudentOverviewTab: React.FC<StudentOverviewTabProps> = ({
   data,
   onOpenEdit,
   onSwitchTab,
+  onOpenUpdateFeeStatus,
 }) => {
   const { isFeeStatusEnabled } = useTeacherPreferences();
   const { student, batch, attendance, homework, tests } = data;
@@ -104,8 +106,22 @@ export const StudentOverviewTab: React.FC<StudentOverviewTabProps> = ({
                 <Text variant="caption" style={styles.infoLabel}>
                   Fee / Concession Status
                 </Text>
-                <View style={{ marginTop: 3 }}>
+                <View style={styles.feeInfoRowContent}>
                   <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
+                  {onOpenUpdateFeeStatus && (
+                    <Pressable
+                      style={styles.feeChangeBtn}
+                      onPress={onOpenUpdateFeeStatus}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Update student fee status"
+                    >
+                      <Feather name="refresh-cw" size={11} color={theme.colors.primary.main} />
+                      <Text variant="caption" style={styles.feeChangeBtnText}>
+                        Update
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
             </View>
@@ -258,6 +274,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.text.primary,
     fontWeight: '600',
+  },
+  feeInfoRowContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  feeChangeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary.bg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radii.full,
+  },
+  feeChangeBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary.main,
   },
   healthItem: {
     gap: 4,
