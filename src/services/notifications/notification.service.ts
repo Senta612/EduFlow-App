@@ -1,24 +1,6 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { STORAGE_KEYS, getStored, setStored } from '../teacher/storage.keys';
 import { Batch } from '@/types/teacher';
-
-// Configure foreground notification behavior safely
-if (Platform.OS !== 'web') {
-  try {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
-    });
-  } catch (e) {
-    console.warn('Failed to initialize NotificationHandler:', e);
-  }
-}
 
 export type NotificationType = 'class' | 'attendance' | 'homework' | 'fee' | 'system';
 
@@ -52,29 +34,12 @@ export class NotificationService {
   async init(): Promise<void> {
     if (this.isInitialized) return;
     this.isInitialized = true;
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'EduFlow Alerts',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#2563EB',
-      });
-    }
   }
 
   async requestPermissions(): Promise<boolean> {
-    try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      return finalStatus === 'granted';
-    } catch {
-      return false;
-    }
+    // In Expo Go, remote push notifications are restricted by Google/Expo,
+    // but in-app notifications and reminders are always supported.
+    return true;
   }
 
   async getSettings(): Promise<NotificationSettingsState> {
@@ -130,38 +95,29 @@ export class NotificationService {
   }
 
   /**
-   * Triggers an immediate local push notification and saves it to history
+   * Triggers a notification, stores it in the notification inbox, and gives user feedback
    */
   async triggerLocalNotification(params: {
     title: string;
     body: string;
     type: NotificationType;
     data?: Record<string, any>;
-  }): Promise<string | null> {
+    showAlertModal?: boolean;
+  }): Promise<string> {
     await this.init();
-    await this.addNotificationToHistory(params);
+    const saved = await this.addNotificationToHistory(params);
 
-    try {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: params.title,
-          body: params.body,
-          data: { type: params.type, ...params.data },
-          sound: true,
-        },
-        trigger: null, // immediate
-      });
-      return id;
-    } catch (e) {
-      console.warn('Failed to dispatch notification:', e);
-      return null;
+    if (params.showAlertModal) {
+      Alert.alert(params.title, params.body);
     }
+
+    return saved.id;
   }
 
   /**
    * Schedule class reminder for an upcoming batch
    */
-  async scheduleClassReminder(batch: Batch, secondsBefore: number = 900): Promise<void> {
+  async scheduleClassReminder(batch: Batch): Promise<void> {
     const settings = await this.getSettings();
     if (!settings.classReminders) return;
 
