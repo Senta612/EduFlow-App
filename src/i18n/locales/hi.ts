@@ -34,6 +34,10 @@ export const hi: TranslationDictionary = {
     attendance: 'उपस्थिति',
     homework: 'गृहकार्य',
     tests: 'परीक्षाएं',
+    paid: 'भुगतान किया',
+    free: 'निःशुल्क (फ्री)',
+    overdue: 'अतिदेय',
+    feeStatus: 'फीस स्थिति',
   },
   tabs: {
     home: 'होम',
@@ -224,6 +228,8 @@ export const hi: TranslationDictionary = {
     appVersion: 'EduFlow ऐप वर्शन',
     classReminders: 'कक्षा समय अनुस्मारक',
     attendanceAlerts: 'लंबित उपस्थिति अलर्ट',
+    feeStatusTracking: 'विद्यार्थी फीस स्थिति',
+    feeStatusTrackingDesc: 'ट्यूशन फीस (भुगतान, बाकी, अतिदेय) एवं फ्री सीट ट्रैक करें',
   },
   student: {
     greeting: 'नमस्ते, {name} 👋',
