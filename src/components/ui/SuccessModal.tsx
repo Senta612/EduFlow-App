@@ -23,12 +23,12 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { theme } from '@/theme';
 
-export type SuccessModalVariant = 'success' | 'primary' | 'warning' | 'info' | 'danger';
+export type SuccessModalVariant = 'success' | 'primary' | 'warning' | 'info' | 'danger' | 'purple';
 
 export interface ModalStatItem {
   label: string;
   value: string | number;
-  variant?: 'neutral' | 'success' | 'warning' | 'danger' | 'primary';
+  variant?: 'neutral' | 'success' | 'warning' | 'danger' | 'primary' | 'purple';
   icon?: keyof typeof Feather.glyphMap;
 }
 
@@ -150,6 +150,11 @@ export function SuccessModal({
           main: theme.colors.semantic.info.main,
           glow: 'rgba(2, 132, 199, 0.22)',
         };
+      case 'purple':
+        return {
+          main: '#7C3AED',
+          glow: 'rgba(124, 58, 237, 0.22)',
+        };
       case 'success':
       default:
         return {
@@ -161,6 +166,14 @@ export function SuccessModal({
 
   const getStatStyles = (variant: ModalStatItem['variant'] = 'neutral') => {
     switch (variant) {
+      case 'purple':
+        return {
+          container: styles.statBoxPurple,
+          iconBadge: styles.statIconBadgePurple,
+          number: styles.statNumberPurple,
+          label: styles.statLabelPurple,
+          iconColor: '#7C3AED',
+        };
       case 'success':
         return {
           container: styles.statBoxSuccess,
@@ -640,6 +653,19 @@ const styles = StyleSheet.create({
   },
   statLabelPrimary: {
     color: theme.colors.primary.main,
+  },
+  statBoxPurple: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+  },
+  statIconBadgePurple: {
+    backgroundColor: '#EDE9FE',
+  },
+  statNumberPurple: {
+    color: '#6D28D9',
+  },
+  statLabelPurple: {
+    color: '#7C3AED',
   },
   statTextDisabled: {
     color: theme.colors.text.disabled,

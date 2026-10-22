@@ -16,6 +16,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SuccessAlert, SuccessAlertVariant } from '@/components/ui/SuccessAlert';
 import {
   StudentHeroCard,
   StudentMetricsGrid,
@@ -66,6 +67,16 @@ export default function StudentProfileScreen() {
   // Quick Fee Status Update Modal State
   const [isUpdateFeeStatusModalVisible, setIsUpdateFeeStatusModalVisible] = useState(false);
   const [isSubmittingFeeStatus, setIsSubmittingFeeStatus] = useState(false);
+
+  // Success Alert Toast State
+  const [successAlert, setSuccessAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    variant?: SuccessAlertVariant;
+    feeStatus?: FeeStatus;
+    icon?: any;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -170,7 +181,13 @@ export default function StudentProfileScreen() {
 
       setIsEditModalVisible(false);
       await loadData();
-      Alert.alert('Success', 'Student details updated successfully.');
+      setSuccessAlert({
+        visible: true,
+        title: 'Profile Updated',
+        message: `${editName.trim()}'s profile details saved successfully.`,
+        variant: 'success',
+        icon: 'user-check',
+      });
     } catch (error) {
       console.error('Failed to update student:', error);
       Alert.alert('Error', 'Failed to update student. Please try again.');
@@ -179,7 +196,7 @@ export default function StudentProfileScreen() {
     }
   };
 
-  // Quick Fee Status Handler with Optimistic UI Update
+  // Quick Fee Status Handler with Optimistic UI Update & Animated Success Alert
   const handleSaveFeeStatus = async (newStatus: FeeStatus) => {
     if (!data) return;
     setIsSubmittingFeeStatus(true);
@@ -199,7 +216,39 @@ export default function StudentProfileScreen() {
       setEditFeeStatus(newStatus);
       setIsUpdateFeeStatusModalVisible(false);
 
-      // 2. Persistent storage & backend sync
+      // 2. Trigger modern animated success alert
+      const statusTitle =
+        newStatus === 'free'
+          ? 'Free / Scholarship Applied'
+          : newStatus === 'paid'
+          ? 'Fee Marked as Paid'
+          : newStatus === 'overdue'
+          ? 'Fee Marked as Overdue'
+          : 'Fee Marked as Pending';
+
+      const statusMsg =
+        newStatus === 'free'
+          ? `${data.student.name} is marked as 100% scholarship / fee exempt.`
+          : `${data.student.name}'s fee status is now updated.`;
+
+      const statusVariant: SuccessAlertVariant =
+        newStatus === 'free'
+          ? 'purple'
+          : newStatus === 'paid'
+          ? 'success'
+          : newStatus === 'overdue'
+          ? 'warning'
+          : 'info';
+
+      setSuccessAlert({
+        visible: true,
+        title: statusTitle,
+        message: statusMsg,
+        variant: statusVariant,
+        feeStatus: newStatus,
+      });
+
+      // 3. Persistent storage & backend sync
       await teacherService.updateStudentFeeStatus(
         data.batch.id,
         data.student.id,
@@ -469,6 +518,19 @@ export default function StudentProfileScreen() {
         isSubmitting={isSubmittingFeeStatus}
         onSaveStatus={handleSaveFeeStatus}
       />
+
+      {/* 9. Floating Animated Success Alert Toast */}
+      {successAlert && (
+        <SuccessAlert
+          visible={successAlert.visible}
+          onClose={() => setSuccessAlert(null)}
+          title={successAlert.title}
+          message={successAlert.message}
+          variant={successAlert.variant}
+          feeStatus={successAlert.feeStatus}
+          icon={successAlert.icon}
+        />
+      )}
     </SafeAreaView>
   );
 }

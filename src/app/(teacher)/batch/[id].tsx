@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SuccessAlert, SuccessAlertVariant } from '@/components/ui/SuccessAlert';
 import {
   BatchOverviewSection,
   BatchStudentsSection,
@@ -101,6 +102,16 @@ export default function BatchDetailScreen() {
   // Delete Batch Modal State
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+
+  // Success Alert Toast State
+  const [successAlert, setSuccessAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message?: string;
+    variant?: SuccessAlertVariant;
+    feeStatus?: FeeStatus;
+    icon?: any;
+  } | null>(null);
 
   const handleDeleteBatch = async () => {
     if (!batch) return;
@@ -213,6 +224,14 @@ export default function BatchDetailScreen() {
         setStudents((prev) =>
           prev.map((s) => (s.id === editingStudent.id ? updated : s))
         );
+
+        setSuccessAlert({
+          visible: true,
+          title: 'Student Updated',
+          message: `${formName.trim()}'s profile saved successfully.`,
+          variant: formFeeStatus === 'free' ? 'purple' : 'success',
+          feeStatus: formFeeStatus,
+        });
       } else {
         const newStudent = await teacherService.addStudent(batch.id, {
           name: formName.trim(),
@@ -478,6 +497,19 @@ export default function BatchDetailScreen() {
         onConfirmDelete={handleDeleteBatch}
         isDeleting={isDeletingBatch}
       />
+
+      {/* Floating Animated Success Alert Toast */}
+      {successAlert && (
+        <SuccessAlert
+          visible={successAlert.visible}
+          onClose={() => setSuccessAlert(null)}
+          title={successAlert.title}
+          message={successAlert.message}
+          variant={successAlert.variant}
+          feeStatus={successAlert.feeStatus}
+          icon={successAlert.icon}
+        />
+      )}
     </View>
   );
 }
