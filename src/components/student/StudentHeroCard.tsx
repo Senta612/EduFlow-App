@@ -5,7 +5,9 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { FeeStatusBadge } from '@/components/ui/FeeStatusBadge';
 import { Student, Batch } from '@/types/teacher';
+import { useTeacherPreferences } from '@/providers';
 import { theme } from '@/theme';
 
 function getInitials(name: string): string {
@@ -22,6 +24,7 @@ interface StudentHeroCardProps {
   onMessageParent: (phone?: string) => void;
   onEmailStudent: (email?: string) => void;
   onSharePortalAccess?: () => void;
+  onPressFeeStatus?: () => void;
 }
 
 export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
@@ -31,7 +34,9 @@ export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
   onMessageParent,
   onEmailStudent,
   onSharePortalAccess,
+  onPressFeeStatus,
 }) => {
+  const { isFeeStatusEnabled } = useTeacherPreferences();
   return (
     <Card variant="elevated" padding="md" style={styles.heroCard}>
       <View style={styles.heroMainRow}>
@@ -48,6 +53,15 @@ export const StudentHeroCard: React.FC<StudentHeroCardProps> = ({
           <View style={styles.heroBadgesRow}>
             <Badge label={`Roll #${student.rollNumber}`} variant="primary" size="sm" />
             <Badge label={batch.subject} variant="neutral" size="sm" />
+            {isFeeStatusEnabled && (
+              onPressFeeStatus ? (
+                <Pressable hitSlop={6} onPress={onPressFeeStatus}>
+                  <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
+                </Pressable>
+              ) : (
+                <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
+              )
+            )}
           </View>
         </View>
       </View>

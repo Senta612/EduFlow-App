@@ -13,7 +13,10 @@ import {
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { FeeStatus } from '@/types/teacher';
 import { theme } from '@/theme';
+import { useTeacherPreferences } from '@/providers';
+import { FeeStatusSelector } from './FeeStatusSelector';
 
 interface EditStudentModalProps {
   visible: boolean;
@@ -26,6 +29,8 @@ interface EditStudentModalProps {
   onChangePhone: (text: string) => void;
   email: string;
   onChangeEmail: (text: string) => void;
+  feeStatus?: FeeStatus;
+  onChangeFeeStatus?: (status: FeeStatus) => void;
   errors: { name?: string; roll?: string };
   isSubmitting: boolean;
   onSave: () => void;
@@ -42,10 +47,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   onChangePhone,
   email,
   onChangeEmail,
+  feeStatus = 'pending',
+  onChangeFeeStatus,
   errors,
   isSubmitting,
   onSave,
 }) => {
+  const { isFeeStatusEnabled } = useTeacherPreferences();
   return (
     <Modal
       visible={visible}
@@ -110,6 +118,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               keyboardType="email-address"
               autoCapitalize="none"
             />
+
+            {isFeeStatusEnabled && onChangeFeeStatus && (
+              <FeeStatusSelector
+                value={feeStatus}
+                onChange={onChangeFeeStatus}
+              />
+            )}
           </ScrollView>
 
           <View style={styles.modalActions}>

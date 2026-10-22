@@ -34,6 +34,10 @@ export const en: TranslationDictionary = {
     attendance: 'Attendance',
     homework: 'Homework',
     tests: 'Tests',
+    paid: 'Paid',
+    free: 'Free',
+    overdue: 'Overdue',
+    feeStatus: 'Fee Status',
   },
   tabs: {
     home: 'Home',
@@ -224,6 +228,8 @@ export const en: TranslationDictionary = {
     appVersion: 'EduFlow App Version',
     classReminders: 'Class Schedule Reminders',
     attendanceAlerts: 'Pending Attendance Alerts',
+    feeStatusTracking: 'Student Fee Status',
+    feeStatusTrackingDesc: 'Track tuition fees (Paid, Pending, Overdue) & free seats',
   },
   student: {
     greeting: 'Hello, {name} 👋',

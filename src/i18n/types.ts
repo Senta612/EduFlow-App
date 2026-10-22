@@ -41,6 +41,10 @@ export interface TranslationDictionary {
     attendance: string;
     homework: string;
     tests: string;
+    paid: string;
+    free: string;
+    overdue: string;
+    feeStatus: string;
   };
   tabs: {
     home: string;
@@ -231,6 +235,8 @@ export interface TranslationDictionary {
     appVersion: string;
     classReminders: string;
     attendanceAlerts: string;
+    feeStatusTracking: string;
+    feeStatusTrackingDesc: string;
   };
   student: {
     greeting: string;

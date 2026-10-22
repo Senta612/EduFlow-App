@@ -3,7 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 
 import { useAuth } from '@/hooks/useAuth';
-import { AuthProvider } from '@/providers/AuthProvider';
+import { AuthProvider, TeacherPreferencesProvider } from '@/providers';
 import { LanguageProvider } from '@/i18n';
 import { theme } from '@/theme';
 
@@ -71,7 +71,9 @@ export default function RootLayout() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <RootNavigator />
+        <TeacherPreferencesProvider>
+          <RootNavigator />
+        </TeacherPreferencesProvider>
       </AuthProvider>
     </LanguageProvider>
   );

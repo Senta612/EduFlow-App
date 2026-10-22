@@ -28,7 +28,7 @@ import {
 } from '@/components/student';
 import { ShareStudentReportModal } from '@/components/reports';
 import { teacherService } from '@/services/teacher.service';
-import { StudentProfileData } from '@/types/teacher';
+import { StudentProfileData, FeeStatus } from '@/types/teacher';
 import { theme } from '@/theme';
 
 type ReportTab = 'overview' | 'attendance' | 'homework' | 'tests';
@@ -58,6 +58,7 @@ export default function StudentProfileScreen() {
   const [editRoll, setEditRoll] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editFeeStatus, setEditFeeStatus] = useState<FeeStatus>('pending');
   const [editErrors, setEditErrors] = useState<{ name?: string; roll?: string }>({});
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
@@ -136,6 +137,7 @@ export default function StudentProfileScreen() {
     setEditRoll(data.student.rollNumber);
     setEditPhone(data.student.parentPhone || '');
     setEditEmail(data.student.email || '');
+    setEditFeeStatus(data.student.feeStatus || 'pending');
     setEditErrors({});
     setIsEditModalVisible(true);
   };
@@ -158,6 +160,7 @@ export default function StudentProfileScreen() {
         rollNumber: editRoll.trim(),
         parentPhone: editPhone.trim() || undefined,
         email: editEmail.trim() || undefined,
+        feeStatus: editFeeStatus,
       });
 
       setIsEditModalVisible(false);
@@ -263,6 +266,7 @@ export default function StudentProfileScreen() {
           onMessageParent={handleMessageParent}
           onEmailStudent={handleEmailStudent}
           onSharePortalAccess={() => setIsInviteModalVisible(true)}
+          onPressFeeStatus={handleOpenEdit}
         />
 
         {/* 2. 4 Quick Stat Metric Badges */}
@@ -385,6 +389,8 @@ export default function StudentProfileScreen() {
         onChangePhone={setEditPhone}
         email={editEmail}
         onChangeEmail={setEditEmail}
+        feeStatus={editFeeStatus}
+        onChangeFeeStatus={setEditFeeStatus}
         errors={editErrors}
         isSubmitting={isSubmittingEdit}
         onSave={handleSaveEdit}

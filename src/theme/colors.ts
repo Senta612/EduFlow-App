@@ -26,6 +26,11 @@ export const colors = {
       main: '#0284C7',
       bg: '#E0F2FE',
     },
+
+    purple: {
+      main: '#7C3AED',
+      bg: '#EDE9FE',
+    },
   },
 
   state: {

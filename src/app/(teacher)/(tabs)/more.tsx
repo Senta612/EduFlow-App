@@ -4,6 +4,7 @@ import {
   View,
   ScrollView,
   Pressable,
+  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
@@ -16,6 +17,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SignOutModal } from '@/components/ui/SignOutModal';
 import { useAuth } from '@/hooks/useAuth';
+import { useTeacherPreferences } from '@/providers';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
@@ -31,6 +33,7 @@ export default function TeacherMoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile, user, signOut } = useAuth();
+  const { isFeeStatusEnabled, setFeeStatusEnabled } = useTeacherPreferences();
   const { t } = useTranslation();
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
 
@@ -123,50 +126,122 @@ export default function TeacherMoreScreen() {
         </Card>
 
         {/* Menu Sections */}
-        {menuSections.map((section) => (
-          <View key={section.title} style={styles.section}>
-            <Text variant="caption" style={styles.sectionHeaderTitle}>
-              {section.title}
-            </Text>
-            <Card variant="outlined" padding="none" style={styles.menuCard}>
-              {section.items.map((item, idx) => {
-                const isLast = idx === section.items.length - 1;
-                return (
-                  <Pressable
-                    key={item.title}
-                    style={[
-                      styles.menuItem,
-                      !isLast && styles.menuItemBorder,
-                    ]}
-                    onPress={() => router.push(item.route as unknown as Href)}
-                  >
-                    <View style={styles.menuIconBox}>
+        {menuSections.map((section, sectionIdx) => (
+          <React.Fragment key={section.title}>
+            <View style={styles.section}>
+              <Text variant="caption" style={styles.sectionHeaderTitle}>
+                {section.title}
+              </Text>
+              <Card variant="outlined" padding="none" style={styles.menuCard}>
+                {section.items.map((item, idx) => {
+                  const isLast = idx === section.items.length - 1;
+                  return (
+                    <Pressable
+                      key={item.title}
+                      style={[
+                        styles.menuItem,
+                        !isLast && styles.menuItemBorder,
+                      ]}
+                      onPress={() => router.push(item.route as unknown as Href)}
+                    >
+                      <View style={styles.menuIconBox}>
+                        <Feather
+                          name={item.icon}
+                          size={18}
+                          color={theme.colors.primary.main}
+                        />
+                      </View>
+                      <View style={styles.menuMeta}>
+                        <Text variant="label" style={styles.menuTitle}>
+                          {item.title}
+                        </Text>
+                        {item.subtitle && (
+                          <Text variant="caption" style={styles.menuSubtitle}>
+                            {item.subtitle}
+                          </Text>
+                        )}
+                      </View>
                       <Feather
-                        name={item.icon}
+                        name="chevron-right"
                         size={18}
-                        color={theme.colors.primary.main}
+                        color={theme.colors.text.secondary}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </Card>
+            </View>
+
+            {/* In-Between Section: Classroom Options (Fee / Free Status Toggle) */}
+            {sectionIdx === 0 && (
+              <View style={styles.section}>
+                <Text variant="caption" style={styles.sectionHeaderTitle}>
+                  Classroom Features
+                </Text>
+                <Card variant="outlined" padding="none" style={styles.menuCard}>
+                  <View style={styles.switchRowContainer}>
+                    <View
+                      style={[
+                        styles.menuIconBox,
+                        {
+                          backgroundColor: isFeeStatusEnabled
+                            ? '#EDE9FE'
+                            : theme.colors.primary.bg,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name="credit-card"
+                        size={18}
+                        color={
+                          isFeeStatusEnabled
+                            ? '#7C3AED'
+                            : theme.colors.primary.main
+                        }
                       />
                     </View>
                     <View style={styles.menuMeta}>
-                      <Text variant="label" style={styles.menuTitle}>
-                        {item.title}
-                      </Text>
-                      {item.subtitle && (
-                        <Text variant="caption" style={styles.menuSubtitle}>
-                          {item.subtitle}
+                      <View style={styles.switchTitleRow}>
+                        <Text variant="label" style={styles.menuTitle}>
+                          Student Fee Status
                         </Text>
-                      )}
+                        <Badge
+                          label={isFeeStatusEnabled ? 'Active' : 'Optional'}
+                          variant={isFeeStatusEnabled ? 'success' : 'neutral'}
+                          size="sm"
+                        />
+                      </View>
+                      <Text variant="caption" style={styles.menuSubtitle}>
+                        Track fee payment (Paid, Pending, Overdue) & free seats
+                      </Text>
                     </View>
-                    <Feather
-                      name="chevron-right"
-                      size={18}
-                      color={theme.colors.text.secondary}
+                    <Switch
+                      value={isFeeStatusEnabled}
+                      onValueChange={setFeeStatusEnabled}
+                      trackColor={{
+                        false: '#CBD5E1',
+                        true: theme.colors.primary.main,
+                      }}
+                      accessibilityRole="switch"
+                      accessibilityLabel="Toggle student fee status tracking"
                     />
-                  </Pressable>
-                );
-              })}
-            </Card>
-          </View>
+                  </View>
+                  {isFeeStatusEnabled && (
+                    <View style={styles.switchHintBar}>
+                      <Feather
+                        name="check-circle"
+                        size={12}
+                        color={theme.colors.semantic.success.main}
+                      />
+                      <Text variant="caption" style={styles.switchHintText}>
+                        Fee chips are active on student enrollment forms, rosters, and directory.
+                      </Text>
+                    </View>
+                  )}
+                </Card>
+              </View>
+            )}
+          </React.Fragment>
         ))}
 
         {/* Sign Out Card */}
@@ -316,6 +391,32 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.semantic.danger.bg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  switchRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
+  },
+  switchTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  switchHintBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border.light,
+  },
+  switchHintText: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+    flex: 1,
   },
   versionContainer: {
     alignItems: 'center',

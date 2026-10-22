@@ -29,6 +29,7 @@ export class StudentsService {
           parentPhone: s.parent_phone || undefined,
           avatarUrl: s.avatar_url || undefined,
           inviteCode: s.invite_code || `STU-${s.id.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || 'PORTAL'}`,
+          feeStatus: s.fee_status || existingBatchStudents.find((ex) => ex.id === s.id)?.feeStatus || undefined,
         }));
 
         const supabaseIds = new Set(mapped.map((s) => s.id));
@@ -55,17 +56,22 @@ export class StudentsService {
     };
 
     try {
+      const insertPayload: any = {
+        batch_id: batchId,
+        name: studentData.name,
+        roll_number: studentData.rollNumber,
+        email: studentData.email || null,
+        parent_phone: studentData.parentPhone || null,
+        avatar_url: studentData.avatarUrl || null,
+        invite_code: newStudent.inviteCode,
+      };
+      if (studentData.feeStatus) {
+        insertPayload.fee_status = studentData.feeStatus;
+      }
+
       const { data: inserted, error } = await (supabase
         .from('students') as any)
-        .insert({
-          batch_id: batchId,
-          name: studentData.name,
-          roll_number: studentData.rollNumber,
-          email: studentData.email || null,
-          parent_phone: studentData.parentPhone || null,
-          avatar_url: studentData.avatarUrl || null,
-          invite_code: newStudent.inviteCode,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -117,15 +123,20 @@ export class StudentsService {
     studentData: Partial<Omit<Student, 'id'>>,
   ): Promise<Student> {
     try {
+      const updatePayload: any = {
+        name: studentData.name,
+        roll_number: studentData.rollNumber,
+        email: studentData.email || null,
+        parent_phone: studentData.parentPhone || null,
+        avatar_url: studentData.avatarUrl || null,
+      };
+      if (studentData.feeStatus !== undefined) {
+        updatePayload.fee_status = studentData.feeStatus;
+      }
+
       await supabase
         .from('students')
-        .update({
-          name: studentData.name,
-          roll_number: studentData.rollNumber,
-          email: studentData.email || null,
-          parent_phone: studentData.parentPhone || null,
-          avatar_url: studentData.avatarUrl || null,
-        })
+        .update(updatePayload)
         .eq('id', studentId);
     } catch (err) {
       console.warn('Supabase updateStudent notice:', err);
@@ -195,6 +206,14 @@ export class StudentsService {
     } catch (e) {
       console.warn('Sync student count notice:', e);
     }
+  }
+
+  async updateStudentFeeStatus(
+    batchId: string,
+    studentId: string,
+    feeStatus: import('@/types/teacher').FeeStatus,
+  ): Promise<Student> {
+    return this.updateStudent(batchId, studentId, { feeStatus });
   }
 }
 

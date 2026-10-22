@@ -10,7 +10,8 @@ export type BadgeVariant =
   | 'danger'
   | 'warning'
   | 'neutral'
-  | 'info';
+  | 'info'
+  | 'purple';
 
 export interface BadgeProps {
   label: string;
@@ -126,5 +127,12 @@ const styles = StyleSheet.create({
   },
   neutralText: {
     color: theme.colors.text.secondary,
+  },
+
+  purple: {
+    backgroundColor: '#EDE9FE',
+  },
+  purpleText: {
+    color: '#6D28D9',
   },
 });

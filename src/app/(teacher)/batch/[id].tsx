@@ -32,6 +32,7 @@ import { teacherService } from '@/services/teacher.service';
 import {
   Batch,
   Student,
+  FeeStatus,
   AttendanceRecord,
   Homework,
   Test,
@@ -78,6 +79,7 @@ export default function BatchDetailScreen() {
   const [formRoll, setFormRoll] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formEmail, setFormEmail] = useState('');
+  const [formFeeStatus, setFormFeeStatus] = useState<FeeStatus>('pending');
   const [formErrors, setFormErrors] = useState<{ name?: string; roll?: string }>({});
   const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
 
@@ -169,6 +171,7 @@ export default function BatchDetailScreen() {
     setFormRoll(nextRoll);
     setFormPhone('');
     setFormEmail('');
+    setFormFeeStatus('pending');
     setFormErrors({});
     setIsStudentFormModalVisible(true);
   };
@@ -179,6 +182,7 @@ export default function BatchDetailScreen() {
     setFormRoll(student.rollNumber);
     setFormPhone(student.parentPhone || '');
     setFormEmail(student.email || '');
+    setFormFeeStatus(student.feeStatus || 'pending');
     setFormErrors({});
     setIsStudentFormModalVisible(true);
   };
@@ -203,6 +207,7 @@ export default function BatchDetailScreen() {
           rollNumber: formRoll.trim(),
           parentPhone: formPhone.trim() || undefined,
           email: formEmail.trim() || undefined,
+          feeStatus: formFeeStatus,
         });
 
         setStudents((prev) =>
@@ -214,6 +219,7 @@ export default function BatchDetailScreen() {
           rollNumber: formRoll.trim(),
           parentPhone: formPhone.trim() || undefined,
           email: formEmail.trim() || undefined,
+          feeStatus: formFeeStatus,
         });
 
         setStudents((prev) => [...prev, newStudent]);
@@ -434,6 +440,8 @@ export default function BatchDetailScreen() {
         onChangePhone={setFormPhone}
         formEmail={formEmail}
         onChangeEmail={setFormEmail}
+        formFeeStatus={formFeeStatus}
+        onChangeFeeStatus={setFormFeeStatus}
         errors={formErrors}
         isSubmitting={isSubmittingStudent}
         onSave={handleSaveStudent}

@@ -12,8 +12,10 @@ import {
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Student } from '@/types/teacher';
+import { Student, FeeStatus } from '@/types/teacher';
 import { theme } from '@/theme';
+import { useTeacherPreferences } from '@/providers';
+import { FeeStatusSelector } from '@/components/student';
 
 interface StudentFormModalProps {
   visible: boolean;
@@ -27,6 +29,8 @@ interface StudentFormModalProps {
   onChangePhone: (text: string) => void;
   formEmail: string;
   onChangeEmail: (text: string) => void;
+  formFeeStatus?: FeeStatus;
+  onChangeFeeStatus?: (status: FeeStatus) => void;
   errors: { name?: string; roll?: string };
   isSubmitting: boolean;
   onSave: () => void;
@@ -44,10 +48,13 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   onChangePhone,
   formEmail,
   onChangeEmail,
+  formFeeStatus = 'pending',
+  onChangeFeeStatus,
   errors,
   isSubmitting,
   onSave,
 }) => {
+  const { isFeeStatusEnabled } = useTeacherPreferences();
   return (
     <Modal
       visible={visible}
@@ -114,6 +121,13 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               keyboardType="email-address"
               autoCapitalize="none"
             />
+
+            {isFeeStatusEnabled && onChangeFeeStatus && (
+              <FeeStatusSelector
+                value={formFeeStatus}
+                onChange={onChangeFeeStatus}
+              />
+            )}
           </ScrollView>
 
           <View style={styles.modalActions}>

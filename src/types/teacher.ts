@@ -10,6 +10,8 @@ export interface Batch {
   attendanceTakenToday?: boolean;
 }
 
+export type FeeStatus = 'paid' | 'pending' | 'overdue' | 'free';
+
 export interface Student {
   id: string;
   name: string;
@@ -18,6 +20,7 @@ export interface Student {
   parentPhone?: string;
   avatarUrl?: string;
   inviteCode?: string;
+  feeStatus?: FeeStatus;
 }
 
 export type AttendanceStatus = 'present' | 'absent';

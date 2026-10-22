@@ -11,10 +11,12 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { FeeStatusBadge } from '@/components/ui/FeeStatusBadge';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Batch, Student } from '@/types/teacher';
+import { Batch, Student, FeeStatus } from '@/types/teacher';
 import { useTranslation } from '@/i18n';
+import { useTeacherPreferences } from '@/providers';
 import { theme } from '@/theme';
 
 export interface EnrolledStudentItem extends Student {
@@ -57,12 +59,18 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
   onSelectStudent,
 }) => {
   const { t } = useTranslation();
+  const { isFeeStatusEnabled } = useTeacherPreferences();
+  const [selectedFeeFilter, setSelectedFeeFilter] = useState<'all' | FeeStatus>('all');
   const totalStudents = allStudents.length;
 
   const filteredStudents = useMemo(() => {
     return allStudents.filter((s) => {
       const matchBatch =
         selectedBatchFilter === 'all' || s.batchId === selectedBatchFilter;
+      const matchFee =
+        !isFeeStatusEnabled ||
+        selectedFeeFilter === 'all' ||
+        (s.feeStatus || 'pending') === selectedFeeFilter;
       const q = searchQuery.toLowerCase().trim();
       const matchQuery =
         !q ||
@@ -71,9 +79,9 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
         s.batchName.toLowerCase().includes(q) ||
         s.batchSubject.toLowerCase().includes(q);
 
-      return matchBatch && matchQuery;
+      return matchBatch && matchFee && matchQuery;
     });
-  }, [allStudents, selectedBatchFilter, searchQuery]);
+  }, [allStudents, selectedBatchFilter, selectedFeeFilter, searchQuery, isFeeStatusEnabled]);
 
   return (
     <Modal
@@ -173,6 +181,67 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
             </ScrollView>
           </View>
 
+          {/* Optional Fee Status Filter Row */}
+          {isFeeStatusEnabled && (
+            <View style={styles.feeFilterChipsRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterChipsContent}
+              >
+                {(
+                  [
+                    { key: 'all', label: 'All Status', icon: undefined },
+                    { key: 'paid', label: 'Paid', icon: 'check-circle' },
+                    { key: 'pending', label: 'Pending', icon: 'clock' },
+                    { key: 'overdue', label: 'Overdue', icon: 'alert-circle' },
+                    { key: 'free', label: 'Free', icon: 'award' },
+                  ] as const
+                ).map((f) => {
+                  const isSelected = selectedFeeFilter === f.key;
+                  const count =
+                    f.key === 'all'
+                      ? allStudents.length
+                      : allStudents.filter(
+                          (s) => (s.feeStatus || 'pending') === f.key,
+                        ).length;
+
+                  return (
+                    <Pressable
+                      key={f.key}
+                      style={[
+                        styles.feeFilterChip,
+                        isSelected && styles.feeFilterChipActive,
+                      ]}
+                      onPress={() => setSelectedFeeFilter(f.key)}
+                    >
+                      {f.icon && (
+                        <Feather
+                          name={f.icon as any}
+                          size={11}
+                          color={
+                            isSelected
+                              ? theme.colors.primary.main
+                              : theme.colors.text.secondary
+                          }
+                        />
+                      )}
+                      <Text
+                        variant="caption"
+                        style={[
+                          styles.feeFilterChipText,
+                          isSelected && styles.feeFilterChipTextActive,
+                        ]}
+                      >
+                        {f.label} ({count})
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Students List */}
           {filteredStudents.length === 0 ? (
             <View style={styles.modalEmptyWrap}>
@@ -231,6 +300,12 @@ export const EnrolledStudentsModal: React.FC<EnrolledStudentsModalProps> = ({
                           variant="primary"
                           size="sm"
                         />
+                        {isFeeStatusEnabled && (
+                          <FeeStatusBadge
+                            status={student.feeStatus || 'pending'}
+                            size="sm"
+                          />
+                        )}
                       </View>
                     </View>
 
@@ -338,6 +413,34 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
   },
   filterChipTextActive: {
+    color: theme.colors.primary.main,
+    fontWeight: '700',
+  },
+  feeFilterChipsRow: {
+    maxHeight: 32,
+    marginTop: -4,
+  },
+  feeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  feeFilterChipActive: {
+    backgroundColor: theme.colors.primary.bg,
+    borderColor: theme.colors.primary.main,
+  },
+  feeFilterChipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.colors.text.secondary,
+  },
+  feeFilterChipTextActive: {
     color: theme.colors.primary.main,
     fontWeight: '700',
   },

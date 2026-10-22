@@ -4,7 +4,9 @@ import { Feather } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { FeeStatusBadge } from '@/components/ui/FeeStatusBadge';
 import { StudentProfileData } from '@/types/teacher';
+import { useTeacherPreferences } from '@/providers';
 import { theme } from '@/theme';
 
 interface StudentOverviewTabProps {
@@ -18,6 +20,7 @@ export const StudentOverviewTab: React.FC<StudentOverviewTabProps> = ({
   onOpenEdit,
   onSwitchTab,
 }) => {
+  const { isFeeStatusEnabled } = useTeacherPreferences();
   const { student, batch, attendance, homework, tests } = data;
 
   return (
@@ -91,6 +94,22 @@ export const StudentOverviewTab: React.FC<StudentOverviewTabProps> = ({
               </Text>
             </View>
           </View>
+
+          {isFeeStatusEnabled && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoIconWrap}>
+                <Feather name="credit-card" size={14} color={theme.colors.primary.main} />
+              </View>
+              <View style={styles.infoTexts}>
+                <Text variant="caption" style={styles.infoLabel}>
+                  Fee / Concession Status
+                </Text>
+                <View style={{ marginTop: 3 }}>
+                  <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
+                </View>
+              </View>
+            </View>
+          )}
         </View>
       </Card>
 

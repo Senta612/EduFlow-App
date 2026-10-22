@@ -6,3 +6,4 @@ export { StudentHomeworkTab } from './StudentHomeworkTab';
 export { StudentTestsTab } from './StudentTestsTab';
 export { EditStudentModal } from './EditStudentModal';
 export { ShareInviteModal } from './ShareInviteModal';
+export { FeeStatusSelector } from './FeeStatusSelector';

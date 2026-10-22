@@ -11,3 +11,4 @@ export * from './SuccessModal';
 export * from './EmailConfirmationModal';
 export * from './TimeRangePicker';
 export * from './SignOutModal';
+export * from './FeeStatusBadge';

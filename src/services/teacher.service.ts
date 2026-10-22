@@ -8,6 +8,7 @@
 import {
   Batch,
   Student,
+  FeeStatus,
   StudentAttendanceItem,
   AttendanceRecord,
   Homework,
@@ -105,6 +106,14 @@ export class TeacherService {
 
   async deleteStudent(batchId: string, studentId: string): Promise<void> {
     return studentsService.deleteStudent(batchId, studentId);
+  }
+
+  async updateStudentFeeStatus(
+    batchId: string,
+    studentId: string,
+    feeStatus: FeeStatus,
+  ): Promise<Student> {
+    return studentsService.updateStudentFeeStatus(batchId, studentId, feeStatus);
   }
 
   // 3. Attendance Management

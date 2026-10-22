@@ -16,12 +16,14 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SignOutModal } from '@/components/ui/SignOutModal';
 import { LanguageSelectorModal } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
+import { useTeacherPreferences } from '@/providers';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 export default function TeacherSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
+  const { isFeeStatusEnabled, setFeeStatusEnabled } = useTeacherPreferences();
   const { t, currentLanguageOption } = useTranslation();
 
   const [classReminders, setClassReminders] = useState(true);
@@ -170,7 +172,54 @@ export default function TeacherSettingsScreen() {
           </Card>
         </View>
 
-        {/* 3. Security & App Info */}
+        {/* 3. Classroom Preferences */}
+        <View style={styles.section}>
+          <Text variant="caption" style={styles.sectionTitle}>
+            Classroom Preferences
+          </Text>
+          <Card variant="elevated" padding="none" style={styles.card}>
+            <View style={styles.settingRow}>
+              <View
+                style={[
+                  styles.iconBox,
+                  {
+                    backgroundColor: isFeeStatusEnabled
+                      ? '#EDE9FE'
+                      : theme.colors.background.screen,
+                  },
+                ]}
+              >
+                <Feather
+                  name="credit-card"
+                  size={16}
+                  color={
+                    isFeeStatusEnabled
+                      ? '#7C3AED'
+                      : theme.colors.primary.main
+                  }
+                />
+              </View>
+              <View style={styles.settingMeta}>
+                <Text variant="label" style={styles.settingTitle}>
+                  Student Fee Status Tracking
+                </Text>
+                <Text variant="caption" style={styles.settingSubtitle}>
+                  Track fee payments (Paid, Pending, Overdue) & free seats
+                </Text>
+              </View>
+              <Switch
+                value={isFeeStatusEnabled}
+                onValueChange={setFeeStatusEnabled}
+                trackColor={{
+                  false: '#CBD5E1',
+                  true: theme.colors.primary.main,
+                }}
+              />
+            </View>
+          </Card>
+        </View>
+
+        {/* 4. Security & App Info */}
         <View style={styles.section}>
           <Text variant="caption" style={styles.sectionTitle}>
             Account & Security

@@ -5,9 +5,11 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { FeeStatusBadge } from '@/components/ui/FeeStatusBadge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Student } from '@/types/teacher';
+import { useTeacherPreferences } from '@/providers';
 import { theme } from '@/theme';
 
 function getInitials(name: string): string {
@@ -32,6 +34,7 @@ export const BatchStudentsSection: React.FC<BatchStudentsSectionProps> = ({
   onOpenEditStudent,
   onOpenShareInvite,
 }) => {
+  const { isFeeStatusEnabled } = useTeacherPreferences();
   return (
     <View style={styles.sectionStack}>
       <View style={styles.blockHeader}>
@@ -91,11 +94,16 @@ export const BatchStudentsSection: React.FC<BatchStudentsSectionProps> = ({
                     <Text variant="label" style={styles.studentName}>
                       {student.name}
                     </Text>
-                    <Badge
-                      label={`Roll #${student.rollNumber}`}
-                      variant="neutral"
-                      size="sm"
-                    />
+                    <View style={styles.badgesGroup}>
+                      <Badge
+                        label={`Roll #${student.rollNumber}`}
+                        variant="neutral"
+                        size="sm"
+                      />
+                      {isFeeStatusEnabled && (
+                        <FeeStatusBadge status={student.feeStatus || 'pending'} size="sm" />
+                      )}
+                    </View>
                   </View>
                   <View style={styles.studentMetaRow}>
                     {student.parentPhone ? (
@@ -246,6 +254,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  badgesGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   studentName: {
     fontSize: 14,
