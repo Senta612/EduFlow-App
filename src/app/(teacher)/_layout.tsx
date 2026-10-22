@@ -14,6 +14,8 @@ export default function TeacherLayout() {
       <Stack.Screen name="tests/[id]/marks" options={{ headerShown: false }} />
       <Stack.Screen name="more/profile" options={{ headerShown: false }} />
       <Stack.Screen name="more/reports" options={{ headerShown: false }} />
+      <Stack.Screen name="more/fees" options={{ headerShown: false }} />
+      <Stack.Screen name="more/timetable" options={{ headerShown: false }} />
       <Stack.Screen name="more/notifications" options={{ headerShown: false }} />
       <Stack.Screen name="more/settings" options={{ headerShown: false }} />
     </Stack>

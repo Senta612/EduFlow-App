@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -20,6 +20,8 @@ import { useTeacherPreferences } from '@/providers';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
+import { notificationService } from '@/services/notifications/notification.service';
+
 export default function TeacherSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
@@ -31,6 +33,29 @@ export default function TeacherSettingsScreen() {
   const [homeworkNotifs, setHomeworkNotifs] = useState(true);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
+
+  useEffect(() => {
+    notificationService.getSettings().then((s) => {
+      setClassReminders(s.classReminders);
+      setAttendanceAlerts(s.attendanceAlerts);
+      setHomeworkNotifs(s.homeworkNotifs);
+    });
+  }, []);
+
+  const handleToggleClassReminders = async (val: boolean) => {
+    setClassReminders(val);
+    await notificationService.saveSettings({ classReminders: val });
+  };
+
+  const handleToggleAttendanceAlerts = async (val: boolean) => {
+    setAttendanceAlerts(val);
+    await notificationService.saveSettings({ attendanceAlerts: val });
+  };
+
+  const handleToggleHomeworkNotifs = async (val: boolean) => {
+    setHomeworkNotifs(val);
+    await notificationService.saveSettings({ homeworkNotifs: val });
+  };
 
   const handleSignOut = () => {
     setIsSignOutModalVisible(true);
@@ -110,7 +135,7 @@ export default function TeacherSettingsScreen() {
               </View>
               <Switch
                 value={classReminders}
-                onValueChange={setClassReminders}
+                onValueChange={handleToggleClassReminders}
                 trackColor={{
                   false: '#CBD5E1',
                   true: theme.colors.primary.main,
@@ -136,7 +161,7 @@ export default function TeacherSettingsScreen() {
               </View>
               <Switch
                 value={attendanceAlerts}
-                onValueChange={setAttendanceAlerts}
+                onValueChange={handleToggleAttendanceAlerts}
                 trackColor={{
                   false: '#CBD5E1',
                   true: theme.colors.primary.main,
@@ -162,7 +187,7 @@ export default function TeacherSettingsScreen() {
               </View>
               <Switch
                 value={homeworkNotifs}
-                onValueChange={setHomeworkNotifs}
+                onValueChange={handleToggleHomeworkNotifs}
                 trackColor={{
                   false: '#CBD5E1',
                   true: theme.colors.primary.main,

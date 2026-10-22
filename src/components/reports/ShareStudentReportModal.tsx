@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { teacherService, formatStudentProgressWhatsAppMessage } from '@/services/teacher.service';
+import { reportPdfService } from '@/services/pdf/reportPdf.service';
 import { StudentProfileData } from '@/types/teacher';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
@@ -366,6 +367,30 @@ export function ShareStudentReportModal({
       setTimeout(() => setCopiedToast(false), 2200);
     } catch {
       Alert.alert('Error', 'Unable to copy text to clipboard.');
+    }
+  };
+
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (!profileData) {
+      Alert.alert('Notice', 'Student data is still loading. Please wait a moment.');
+      return;
+    }
+    setIsGeneratingPdf(true);
+    try {
+      await reportPdfService.generateAndShareReport({
+        data: profileData,
+        instituteName,
+        teacherName,
+        periodName: activePeriodLabel,
+        remarks: customRemarks,
+        nextMonthFocus,
+      });
+    } catch (e) {
+      Alert.alert('PDF Error', 'Failed to generate or share PDF report card.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -799,6 +824,7 @@ export function ShareStudentReportModal({
 
             {/* Action Buttons Footer */}
             <View style={styles.modalFooter}>
+              {/* WhatsApp Button */}
               <Pressable
                 style={({ pressed }) => [
                   styles.primaryWhatsAppBtn,
@@ -808,10 +834,33 @@ export function ShareStudentReportModal({
                 accessibilityRole="button"
                 accessibilityLabel="Share progress report to parent on WhatsApp"
               >
-                <FontAwesome name="whatsapp" size={19} color="#FFFFFF" />
+                <FontAwesome name="whatsapp" size={18} color="#FFFFFF" />
                 <Text variant="label" style={styles.primaryWhatsAppText}>
-                  {language === 'gu' ? 'WhatsApp પર મોકલો' : language === 'hi' ? 'WhatsApp पर भेजें' : 'Send on WhatsApp'}
+                  {language === 'gu' ? 'WhatsApp' : language === 'hi' ? 'WhatsApp' : 'WhatsApp'}
                 </Text>
+              </Pressable>
+
+              {/* PDF Export Button */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.pdfExportBtn,
+                  pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={handleExportPdf}
+                disabled={isGeneratingPdf}
+                accessibilityRole="button"
+                accessibilityLabel="Download or share PDF progress report"
+              >
+                {isGeneratingPdf ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Feather name="file-text" size={16} color="#FFFFFF" />
+                    <Text variant="label" style={styles.pdfExportText}>
+                      PDF
+                    </Text>
+                  </>
+                )}
               </Pressable>
 
               <Pressable
@@ -1338,6 +1387,25 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryWhatsAppText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  pdfExportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.primary.main,
+    height: 46,
+    paddingHorizontal: 16,
+    borderRadius: theme.radii.md,
+    shadowColor: theme.colors.primary.main,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  pdfExportText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',

@@ -21,6 +21,8 @@ import {
   StudyMaterial,
   StudyMaterialCategory,
 } from '@/types/teacher';
+import { StudentFeeDetail, TuitionFeeOverview, FeePayment, BatchFeeConfig } from '@/types/fee';
+import { WeeklyTimetableOverview } from './teacher';
 
 import {
   batchesService,
@@ -31,6 +33,8 @@ import {
   analyticsService,
   tasksService,
   materialsService,
+  feesService,
+  timetableService,
   BatchListener,
   isBatchScheduledToday,
   isBatchScheduledOnDate,
@@ -40,6 +44,8 @@ import {
 } from './teacher';
 
 export {
+  feesService,
+  timetableService,
   isBatchScheduledToday,
   isBatchScheduledOnDate,
   formatStudentProgressWhatsAppMessage,
@@ -255,6 +261,37 @@ export class TeacherService {
   formatMaterialWhatsAppMessage(material: StudyMaterial): string {
     return materialsService.formatMaterialWhatsAppMessage(material);
   }
+
+  // 9. Fees & Payments
+  async getStudentFeeDetails(batchId?: string): Promise<StudentFeeDetail[]> {
+    return feesService.getStudentFeeDetails(batchId);
+  }
+
+  async getTuitionFeeOverview(batchId?: string): Promise<TuitionFeeOverview> {
+    return feesService.getTuitionFeeOverview(batchId);
+  }
+
+  async recordFeePayment(data: Parameters<typeof feesService.recordPayment>[0]): Promise<FeePayment> {
+    return feesService.recordPayment(data);
+  }
+
+  async getFeePayments(batchId?: string, studentId?: string): Promise<FeePayment[]> {
+    return feesService.getFeePayments(batchId, studentId);
+  }
+
+  async getBatchFeeConfig(batchId: string): Promise<BatchFeeConfig> {
+    return feesService.getBatchFeeConfig(batchId);
+  }
+
+  async saveBatchFeeConfig(batchId: string, monthlyFee: number, dueDay?: number): Promise<BatchFeeConfig> {
+    return feesService.saveBatchFeeConfig(batchId, monthlyFee, dueDay);
+  }
+
+  // 10. Weekly Timetable & Calendar
+  async getWeeklySchedule(): Promise<WeeklyTimetableOverview> {
+    return timetableService.getWeeklySchedule();
+  }
 }
 
 export const teacherService = new TeacherService();
+

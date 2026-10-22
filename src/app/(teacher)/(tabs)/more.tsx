@@ -42,6 +42,19 @@ export default function TeacherMoreScreen() {
       title: 'Teaching & Insights',
       items: [
         {
+          icon: 'credit-card',
+          title: 'Fees & Payments',
+          subtitle: 'Tuition dues, ledger & WhatsApp receipts',
+          route: '/(teacher)/more/fees',
+          badge: 'New',
+        },
+        {
+          icon: 'calendar',
+          title: 'Weekly Timetable',
+          subtitle: 'Visual class schedule & room timeline',
+          route: '/(teacher)/more/timetable',
+        },
+        {
           icon: 'folder',
           title: 'Study Materials',
           subtitle: 'Upload & share PDFs, notes and sheets',
@@ -56,7 +69,7 @@ export default function TeacherMoreScreen() {
         {
           icon: 'bell',
           title: 'Notifications',
-          subtitle: 'Announcements & system updates',
+          subtitle: 'Smart alerts & reminders',
           route: '/(teacher)/more/notifications',
         },
       ],
