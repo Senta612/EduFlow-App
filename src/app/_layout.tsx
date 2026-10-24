@@ -41,6 +41,42 @@ function RootNavigator() {
     }
   }, [user, studentSession, profile, isLoading, segments, router]);
 
+  // Senior Pattern: Listen for notification click responses and cold-start launches
+  useEffect(() => {
+    import('@/services/notifications/notification.service').then(({ notificationService }) => {
+      notificationService.init();
+    });
+
+    import('expo-notifications').then((Notifications) => {
+      // Handle initial launch from notification
+      const lastResponse = Notifications.getLastNotificationResponse();
+      if (lastResponse?.notification) {
+        const data = lastResponse.notification.request.content.data;
+        if (data?.batchId) {
+          router.push(`/(teacher)/attendance/${data.batchId}` as any);
+        } else if (data?.url) {
+          router.push(data.url as any);
+        }
+      }
+
+      // Handle runtime notification response while app is running
+      const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        if (data?.batchId) {
+          router.push(`/(teacher)/attendance/${data.batchId}` as any);
+        } else if (data?.url) {
+          router.push(data.url as any);
+        }
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    }).catch((err) => {
+      console.warn('Notifications listener setup notice:', err);
+    });
+  }, [router]);
+
   // Show a splash/loading state while we check for an existing session.
   // This prevents flashing the auth screen for logged-in users.
   if (isLoading) {

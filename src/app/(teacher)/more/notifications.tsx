@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -82,11 +83,12 @@ export default function TeacherNotificationsScreen() {
 
   const handleTestNotification = async () => {
     const granted = await notificationService.requestPermissions();
-    if (!granted) {
+    if (!granted && Platform.OS !== 'web') {
       Alert.alert(
         'Permission Needed',
         'Please enable notifications in device settings to receive instant push alerts.',
       );
+      return;
     }
 
     await notificationService.triggerLocalNotification({

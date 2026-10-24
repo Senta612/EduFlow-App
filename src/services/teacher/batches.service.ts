@@ -201,8 +201,13 @@ export class BatchesService {
 
     // Clean up associated local records
     try {
-      const students = await getStored<Student[]>(STORAGE_KEYS.STUDENTS, []);
-      await setStored(STORAGE_KEYS.STUDENTS, students.filter((s) => s.batchId !== batchId));
+      const allStudents = await getStored<any>(STORAGE_KEYS.STUDENTS, {});
+      if (allStudents && typeof allStudents === 'object' && !Array.isArray(allStudents)) {
+        delete allStudents[batchId];
+        await setStored(STORAGE_KEYS.STUDENTS, allStudents);
+      } else if (Array.isArray(allStudents)) {
+        await setStored(STORAGE_KEYS.STUDENTS, allStudents.filter((s: any) => s.batchId !== batchId));
+      }
 
       const attendance = await getStored<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
       await setStored(STORAGE_KEYS.ATTENDANCE, attendance.filter((a) => a.batchId !== batchId));

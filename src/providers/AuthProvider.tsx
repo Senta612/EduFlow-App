@@ -207,6 +207,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await StudentService.clearActiveSession();
 
     try {
+      const { notificationService } = await import('@/services/notifications/notification.service');
+      await notificationService.cancelAllScheduled();
+    } catch {
+      // ignore
+    }
+
+    try {
       await supabase.auth.signOut();
     } catch (err) {
       console.warn('Supabase signOut notice:', err);

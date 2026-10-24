@@ -5,6 +5,8 @@ import {
   ScrollView,
   Switch,
   Pressable,
+  Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -43,11 +45,32 @@ export default function TeacherSettingsScreen() {
   }, []);
 
   const handleToggleClassReminders = async (val: boolean) => {
+    if (val) {
+      const granted = await notificationService.requestPermissions();
+      if (!granted && Platform.OS !== 'web') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant notification permission in your device settings to receive class reminders.',
+        );
+        return;
+      }
+    }
     setClassReminders(val);
     await notificationService.saveSettings({ classReminders: val });
   };
 
   const handleToggleAttendanceAlerts = async (val: boolean) => {
+    if (val) {
+      const granted = await notificationService.requestPermissions();
+      if (!granted && Platform.OS !== 'web') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant notification permission in your device settings to receive attendance alerts.',
+        );
+        return;
+      }
+      await notificationService.scheduleDailyAttendanceAlert();
+    }
     setAttendanceAlerts(val);
     await notificationService.saveSettings({ attendanceAlerts: val });
   };

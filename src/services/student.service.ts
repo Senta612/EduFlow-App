@@ -115,16 +115,17 @@ export class StudentService {
       const { data, error } = await query.maybeSingle();
 
       if (!error && data) {
-        const batchInfo = (data as any).batches;
+        const studentData = data as any;
+        const batchInfo = studentData.batches;
         const session: StudentSession = {
-          studentId: data.id,
-          name: data.name,
-          rollNumber: data.roll_number,
-          batchId: data.batch_id,
+          studentId: studentData.id,
+          name: studentData.name,
+          rollNumber: studentData.roll_number,
+          batchId: studentData.batch_id,
           batchName: batchInfo ? `${batchInfo.name} (${batchInfo.subject || ''})` : 'Class Batch',
-          inviteCode: data.invite_code || cleanCode,
-          email: data.email || undefined,
-          parentPhone: data.parent_phone || undefined,
+          inviteCode: studentData.invite_code || cleanCode,
+          email: studentData.email || undefined,
+          parentPhone: studentData.parent_phone || undefined,
           joinedAt: new Date().toISOString(),
         };
 
@@ -423,7 +424,16 @@ export class StudentService {
       studentName,
       rollNumber,
       avatarUrl: undefined,
-      enrolledBatch,
+      enrolledBatch: enrolledBatch || {
+        id: student?.batchId || 'batch-default',
+        name: (student as any)?.batchName || 'Class Batch',
+        grade: 'Standard',
+        subject: 'General',
+        schedule: 'Mon • Wed • Fri',
+        timing: '04:00 PM',
+        teacherName: 'Teacher',
+        instituteName: 'EduFlow Academy',
+      },
       nextClass: todayClasses[0],
       todayClasses,
       stats: {
@@ -518,7 +528,7 @@ export class StudentService {
           dueDate: h.dueDate,
           isUrgent: false,
           isDueToday: h.dueDate === new Date().toISOString().split('T')[0],
-          status: 'pending',
+          status: 'not_done',
         }));
 
         if (filter === 'pending') return items.filter((h) => h.status !== 'done');
@@ -672,13 +682,15 @@ export class StudentService {
         .select('*, attendance_records(date, batch_id)')
         .eq('student_id', student.id);
 
-      if (!error && items && items.length > 0) {
-        const total = items.length;
-        const present = items.filter((i) => i.status === 'present').length;
+      const typedItems = (items || []) as any[];
+
+      if (!error && typedItems.length > 0) {
+        const total = typedItems.length;
+        const present = typedItems.filter((i) => i.status === 'present').length;
         const absent = total - present;
         const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
-        const days = items.map((i: any) => ({
+        const days = typedItems.map((i: any) => ({
           date: i.attendance_records?.date || '',
           dayName: i.attendance_records?.date ? new Date(i.attendance_records.date).toLocaleDateString('en-US', { weekday: 'short' }) : '',
           status: i.status as 'present' | 'absent',

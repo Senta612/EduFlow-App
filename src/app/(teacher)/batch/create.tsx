@@ -23,6 +23,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuccessModal } from '@/components/ui/SuccessModal';
 import { TimeRangePicker } from '@/components/ui/TimeRangePicker';
 import { teacherService } from '@/services/teacher.service';
+import { notificationService } from '@/services/notifications/notification.service';
 import { Batch } from '@/types/teacher';
 import { theme } from '@/theme';
 
@@ -141,6 +142,11 @@ export default function CreateBatchScreen() {
 
       setCreatedBatch(newBatch);
       setIsSuccessModalVisible(true);
+
+      // Senior Pattern: Schedule OS local reminders for the new batch
+      notificationService.scheduleClassReminder(newBatch).catch((err) => {
+        console.warn('Failed to schedule batch reminder:', err);
+      });
     } catch (error) {
       console.error('Failed to create batch:', error);
       Alert.alert(
