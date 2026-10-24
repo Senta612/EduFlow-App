@@ -5,6 +5,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthProvider, TeacherPreferencesProvider } from '@/providers';
 import { LanguageProvider } from '@/i18n';
+import { notificationService } from '@/services/notifications/notification.service';
 import { theme } from '@/theme';
 
 function RootNavigator() {
@@ -43,38 +44,14 @@ function RootNavigator() {
 
   // Senior Pattern: Listen for notification click responses and cold-start launches
   useEffect(() => {
-    import('@/services/notifications/notification.service').then(({ notificationService }) => {
-      notificationService.init();
+    notificationService.init();
+    const cleanup = notificationService.setupResponseListener((route) => {
+      router.push(route as any);
     });
 
-    import('expo-notifications').then((Notifications) => {
-      // Handle initial launch from notification
-      const lastResponse = Notifications.getLastNotificationResponse();
-      if (lastResponse?.notification) {
-        const data = lastResponse.notification.request.content.data;
-        if (data?.batchId) {
-          router.push(`/(teacher)/attendance/${data.batchId}` as any);
-        } else if (data?.url) {
-          router.push(data.url as any);
-        }
-      }
-
-      // Handle runtime notification response while app is running
-      const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-        if (data?.batchId) {
-          router.push(`/(teacher)/attendance/${data.batchId}` as any);
-        } else if (data?.url) {
-          router.push(data.url as any);
-        }
-      });
-
-      return () => {
-        subscription.remove();
-      };
-    }).catch((err) => {
-      console.warn('Notifications listener setup notice:', err);
-    });
+    return () => {
+      cleanup();
+    };
   }, [router]);
 
   // Show a splash/loading state while we check for an existing session.

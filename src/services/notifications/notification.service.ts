@@ -1,17 +1,6 @@
 import { Alert, Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { STORAGE_KEYS, getStored, setStored } from '../teacher/storage.keys';
 import { Batch } from '@/types/teacher';
-
-// Senior Pattern: Configure foreground notification presentation at module level
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 export type NotificationType = 'class' | 'attendance' | 'homework' | 'fee' | 'system';
 
@@ -39,12 +28,89 @@ const DEFAULT_SETTINGS: NotificationSettingsState = {
   feeReminders: true,
 };
 
-// Storage key to track OS scheduled notification IDs (for batch and attendance reminders)
 const SCHEDULED_NOTIFS_STORAGE_KEY = '@eduflow_scheduled_notification_ids';
 
-/**
- * Parses time strings like "04:00 PM" or "10:30 AM" into 24-hr hour and minute
- */
+// Safe dynamic lazy-loader for expo-notifications
+// Senior Pattern: Bridges Expo SDK 53+ Expo Go Android incompatibility where ExpoTopicSubscriptionModule
+// was removed for remote push, while preserving full local notification functionality.
+let cachedNotificationsModule: typeof import('expo-notifications') | null = null;
+let hasCheckedNativeModule = false;
+
+function ensureTopicSubscriptionPolyfill(): void {
+  if (Platform.OS !== 'android') return;
+
+  try {
+    const g = globalThis as any;
+    if (!g.expo) g.expo = {};
+    if (!g.expo.modules) g.expo.modules = {};
+    if (!g.expo.modules.ExpoTopicSubscriptionModule) {
+      g.expo.modules.ExpoTopicSubscriptionModule = {
+        addListener: () => {},
+        removeListeners: () => {},
+        subscribeToTopicAsync: async () => null,
+        unsubscribeFromTopicAsync: async () => null,
+      };
+    }
+  } catch {
+    // Ignore polyfill registration errors
+  }
+
+  try {
+    const core = require('expo-modules-core');
+    if (core?.NativeModulesProxy && !core.NativeModulesProxy.ExpoTopicSubscriptionModule) {
+      core.NativeModulesProxy.ExpoTopicSubscriptionModule = {
+        addListener: () => {},
+        removeListeners: () => {},
+        subscribeToTopicAsync: async () => null,
+        unsubscribeFromTopicAsync: async () => null,
+      };
+    }
+  } catch {
+    // Ignore polyfill registration errors
+  }
+}
+
+// Polyfill immediately on module evaluation
+ensureTopicSubscriptionPolyfill();
+
+function getNativeNotifications(): typeof import('expo-notifications') | null {
+  if (hasCheckedNativeModule) {
+    return cachedNotificationsModule;
+  }
+  hasCheckedNativeModule = true;
+
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
+  try {
+    ensureTopicSubscriptionPolyfill();
+    // Dynamic require inside try/catch so missing native modules in Expo Go do not crash the app
+    const mod = require('expo-notifications');
+    if (mod && typeof mod.setNotificationHandler === 'function') {
+      mod.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+      cachedNotificationsModule = mod;
+      return mod;
+    }
+  } catch (err: any) {
+    // Expo Go on Android fallback
+    console.warn(
+      '[EduFlow Notifications] Operating safely in in-app notification mode.',
+      err?.message,
+    );
+    cachedNotificationsModule = null;
+  }
+
+  return cachedNotificationsModule;
+}
+
 function parseTimeString(timeStr: string): { hour: number; minute: number } | null {
   if (!timeStr) return null;
   const clean = timeStr.trim().toUpperCase();
@@ -64,9 +130,6 @@ function parseTimeString(timeStr: string): { hour: number; minute: number } | nu
   return { hour, minute };
 }
 
-/**
- * Maps day abbreviations (Mon, Tue, etc.) to 1-indexed weekday (Sunday = 1, Monday = 2, ...)
- */
 function mapDayToWeekday(dayStr: string): number | null {
   const normalized = dayStr.trim().toLowerCase();
   if (normalized.startsWith('sun')) return 1;
@@ -83,76 +146,68 @@ export class NotificationService {
   private isInitialized = false;
 
   /**
-   * Initializes notification channels for Android 8.0+
+   * Initializes notification channels for Android 8.0+ safely
    */
   async init(): Promise<void> {
     if (this.isInitialized) return;
     this.isInitialized = true;
 
-    if (Platform.OS === 'android') {
-      try {
-        await Notifications.setNotificationChannelAsync('classes', {
-          name: 'Class & Schedule Reminders',
-          description: 'Timely reminders before scheduled batches start',
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#2563EB',
-          sound: 'default',
-        });
+    const native = getNativeNotifications();
+    if (!native || Platform.OS !== 'android') return;
 
-        await Notifications.setNotificationChannelAsync('attendance', {
-          name: 'Attendance Alerts',
-          description: 'Daily reminders to submit student attendance rosters',
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#16A34A',
-          sound: 'default',
-        });
+    try {
+      await native.setNotificationChannelAsync('classes', {
+        name: 'Class & Schedule Reminders',
+        description: 'Timely reminders before scheduled batches start',
+        importance: native.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#2563EB',
+        sound: 'default',
+      });
 
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'General Alerts & Updates',
-          description: 'Homework, fees, and general alerts',
-          importance: Notifications.AndroidImportance.DEFAULT,
-          sound: 'default',
-        });
-      } catch (err) {
-        console.warn('Failed to configure Android notification channels:', err);
-      }
+      await native.setNotificationChannelAsync('attendance', {
+        name: 'Attendance Alerts',
+        description: 'Daily reminders to submit student attendance rosters',
+        importance: native.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#16A34A',
+        sound: 'default',
+      });
+
+      await native.setNotificationChannelAsync('default', {
+        name: 'General Alerts & Updates',
+        description: 'Homework, fees, and general alerts',
+        importance: native.AndroidImportance.DEFAULT,
+        sound: 'default',
+      });
+    } catch (err) {
+      console.warn('Notification channel config note:', err);
     }
   }
 
   /**
-   * Request native system notification permissions
+   * Request native system notification permissions (safe in Expo Go, Dev Builds & Web)
    */
   async requestPermissions(): Promise<boolean> {
-    if (Platform.OS === 'web') return false;
+    const native = getNativeNotifications();
+    if (!native) {
+      // In Expo Go or Web where native module is unavailable, treat permissions as granted for in-app inbox
+      return true;
+    }
 
     try {
       await this.init();
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status: existingStatus } = await native.getPermissionsAsync();
       let finalStatus = existingStatus;
 
       if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
+        const { status } = await native.requestPermissionsAsync();
         finalStatus = status;
       }
 
       return finalStatus === 'granted';
     } catch (e) {
       console.warn('Notification permission request error:', e);
-      return false;
-    }
-  }
-
-  /**
-   * Check if notification permission is currently granted
-   */
-  async hasPermissions(): Promise<boolean> {
-    if (Platform.OS === 'web') return false;
-    try {
-      const { status } = await Notifications.getPermissionsAsync();
-      return status === 'granted';
-    } catch {
       return false;
     }
   }
@@ -210,8 +265,7 @@ export class NotificationService {
   }
 
   /**
-   * Triggers an immediate local OS notification and records it in the in-app history.
-   * Works on lock-screen and notification center.
+   * Triggers an immediate local OS notification if available, and records it in in-app inbox
    */
   async triggerLocalNotification(params: {
     title: string;
@@ -223,30 +277,25 @@ export class NotificationService {
     await this.init();
     const saved = await this.addNotificationToHistory(params);
 
-    if (Platform.OS !== 'web') {
+    const native = getNativeNotifications();
+    if (native) {
       try {
-        const channelId =
-          params.type === 'class'
-            ? 'classes'
-            : params.type === 'attendance'
-            ? 'attendance'
-            : 'default';
-
-        await Notifications.scheduleNotificationAsync({
+        await native.scheduleNotificationAsync({
           content: {
             title: params.title,
             body: params.body,
             data: { ...params.data, notificationId: saved.id, type: params.type },
             sound: true,
           },
-          trigger: null, // null trigger presents notification immediately
+          trigger: null,
         });
       } catch (err) {
         console.warn('Native notification presentation warning:', err);
       }
     }
 
-    if (params.showAlertModal && Platform.OS === 'web') {
+    if (params.showAlertModal || !native) {
+      // In Expo Go or Web, show quick Alert feedback
       Alert.alert(params.title, params.body);
     }
 
@@ -258,12 +307,14 @@ export class NotificationService {
    */
   async scheduleClassReminder(batch: Batch): Promise<void> {
     const settings = await this.getSettings();
-    if (!settings.classReminders || Platform.OS === 'web') return;
+    if (!settings.classReminders) return;
+
+    const native = getNativeNotifications();
+    if (!native) return;
 
     const parsedTime = parseTimeString(batch.timing);
     if (!parsedTime) return;
 
-    // Calculate 15 minutes prior
     let reminderHour = parsedTime.hour;
     let reminderMinute = parsedTime.minute - 15;
     if (reminderMinute < 0) {
@@ -271,18 +322,16 @@ export class NotificationService {
       reminderHour = (reminderHour - 1 + 24) % 24;
     }
 
-    // Days list from batch schedule (e.g. "Mon, Wed, Fri")
     const dayTokens = batch.schedule.split(/[,/&|\s]+/);
     const trackedScheduledIds = await getStored<Record<string, string[]>>(
       SCHEDULED_NOTIFS_STORAGE_KEY,
       {},
     );
 
-    // Cancel any previous scheduled notifications for this batch first
     if (trackedScheduledIds[batch.id]) {
       for (const id of trackedScheduledIds[batch.id]) {
         try {
-          await Notifications.cancelScheduledNotificationAsync(id);
+          await native.cancelScheduledNotificationAsync(id);
         } catch {
           // ignore
         }
@@ -296,7 +345,7 @@ export class NotificationService {
       if (!weekday) continue;
 
       try {
-        const id = await Notifications.scheduleNotificationAsync({
+        const id = await native.scheduleNotificationAsync({
           content: {
             title: `🔔 Upcoming Class: ${batch.name}`,
             body: `Starts in 15 mins (${batch.timing}) in ${batch.room || 'Room 101'}. Tap to take attendance.`,
@@ -304,7 +353,7 @@ export class NotificationService {
             sound: true,
           },
           trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            type: native.SchedulableTriggerInputTypes.WEEKLY,
             weekday,
             hour: reminderHour,
             minute: reminderMinute,
@@ -321,24 +370,24 @@ export class NotificationService {
   }
 
   /**
-   * Schedules a daily attendance reminder at 7:00 PM if attendance is pending
+   * Schedules a daily attendance reminder at 7:00 PM
    */
   async scheduleDailyAttendanceAlert(): Promise<void> {
-    if (Platform.OS === 'web') return;
-
     const settings = await this.getSettings();
     if (!settings.attendanceAlerts) return;
 
+    const native = getNativeNotifications();
+    if (!native) return;
+
     try {
-      // Look for and clear existing daily attendance reminder
-      const existing = await Notifications.getAllScheduledNotificationsAsync();
+      const existing = await native.getAllScheduledNotificationsAsync();
       for (const notif of existing) {
         if (notif.content.data?.type === 'daily_attendance_reminder') {
-          await Notifications.cancelScheduledNotificationAsync(notif.identifier);
+          await native.cancelScheduledNotificationAsync(notif.identifier);
         }
       }
 
-      await Notifications.scheduleNotificationAsync({
+      await native.scheduleNotificationAsync({
         content: {
           title: '📋 Daily Attendance Reminder',
           body: 'Have you marked attendance for all of today\'s batches? Tap to check pending rosters.',
@@ -346,8 +395,8 @@ export class NotificationService {
           sound: true,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
-          hour: 19, // 7:00 PM
+          type: native.SchedulableTriggerInputTypes.DAILY,
+          hour: 19,
           minute: 0,
         },
       });
@@ -356,9 +405,6 @@ export class NotificationService {
     }
   }
 
-  /**
-   * Immediate attendance reminder alert
-   */
   async triggerAttendanceAlert(unmarkedBatchesCount: number): Promise<void> {
     const settings = await this.getSettings();
     if (!settings.attendanceAlerts || unmarkedBatchesCount <= 0) return;
@@ -371,9 +417,6 @@ export class NotificationService {
     });
   }
 
-  /**
-   * Immediate fee due alert
-   */
   async triggerFeeAlert(pendingCount: number): Promise<void> {
     const settings = await this.getSettings();
     if (!settings.feeReminders || pendingCount <= 0) return;
@@ -386,16 +429,53 @@ export class NotificationService {
     });
   }
 
-  /**
-   * Cancels all scheduled OS notifications (e.g. on logout or settings reset)
-   */
   async cancelAllScheduled(): Promise<void> {
-    if (Platform.OS === 'web') return;
+    const native = getNativeNotifications();
+    if (!native) return;
     try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await native.cancelAllScheduledNotificationsAsync();
       await setStored(SCHEDULED_NOTIFS_STORAGE_KEY, {});
     } catch (e) {
       console.warn('Failed to cancel scheduled notifications:', e);
+    }
+  }
+
+  /**
+   * Sets up deep link listeners for cold start and tap responses safely
+   */
+  setupResponseListener(onNavigate: (route: string) => void): () => void {
+    const native = getNativeNotifications();
+    if (!native) {
+      return () => {};
+    }
+
+    try {
+      // 1. Cold start
+      const lastResponse = native.getLastNotificationResponse();
+      if (lastResponse?.notification) {
+        const data = lastResponse.notification.request.content.data;
+        if (typeof data?.batchId === 'string') {
+          onNavigate(`/(teacher)/attendance/${data.batchId}`);
+        } else if (typeof data?.url === 'string') {
+          onNavigate(data.url);
+        }
+      }
+
+      // 2. Runtime response
+      const sub = native.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        if (typeof data?.batchId === 'string') {
+          onNavigate(`/(teacher)/attendance/${data.batchId}`);
+        } else if (typeof data?.url === 'string') {
+          onNavigate(data.url);
+        }
+      });
+
+      return () => {
+        sub.remove();
+      };
+    } catch {
+      return () => {};
     }
   }
 }
