@@ -80,17 +80,19 @@ export const profileService = {
     }
 
     // Check for locally saved profile customizations as offline fallback
-    try {
-      const stored = await AsyncStorage.getItem(`${PROFILE_STORAGE_PREFIX}${baseProfile.id}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        baseProfile = {
-          ...baseProfile,
-          ...parsed,
-        };
+    if (baseProfile) {
+      try {
+        const stored = await AsyncStorage.getItem(`${PROFILE_STORAGE_PREFIX}${baseProfile.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          baseProfile = {
+            ...baseProfile,
+            ...parsed,
+          };
+        }
+      } catch {
+        // ignore storage read error
       }
-    } catch {
-      // ignore storage read error
     }
 
     return baseProfile;

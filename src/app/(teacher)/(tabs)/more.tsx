@@ -21,6 +21,8 @@ import { useTeacherPreferences } from '@/providers';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
+import { useSubscription } from '@/hooks/useSubscription';
+
 interface MenuItem {
   icon: keyof typeof Feather.glyphMap;
   title: string;
@@ -35,12 +37,37 @@ export default function TeacherMoreScreen() {
   const { profile, user, signOut } = useAuth();
   const { isFeeStatusEnabled, setFeeStatusEnabled } = useTeacherPreferences();
   const { t } = useTranslation();
+  const { isPro, isTrial, isExpired, daysRemaining } = useSubscription();
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
+
+  const isAdmin = profile?.role === 'admin';
 
   const menuSections: { title: string; items: MenuItem[] }[] = [
     {
-      title: 'Teaching & Insights',
+      title: 'Subscription & Teaching',
       items: [
+        {
+          icon: 'shield',
+          title: 'Subscription & Plans',
+          subtitle: isPro
+            ? `${daysRemaining} days left (${isTrial ? 'Trial' : 'Pro'})`
+            : isExpired
+            ? 'Plan expired — renew to unlock all features'
+            : 'Upgrade to EduFlow Pro (or start trial)',
+          route: '/(teacher)/subscription',
+          badge: isPro ? (isTrial ? 'Trial' : 'Pro') : isExpired ? 'Expired' : '30d Free',
+        },
+        ...(isAdmin
+          ? [
+              {
+                icon: 'check-circle' as const,
+                title: 'Admin: Verify Payments',
+                subtitle: 'Review & approve teacher manual payments',
+                route: '/(teacher)/admin/payments',
+                badge: 'Admin',
+              },
+            ]
+          : []),
         {
           icon: 'credit-card',
           title: 'Fees & Payments',

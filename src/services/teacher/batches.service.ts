@@ -147,6 +147,9 @@ export class BatchesService {
   async createBatch(
     data: Omit<Batch, 'id' | 'studentCount' | 'attendanceTakenToday'>,
   ): Promise<Batch> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('create a new batch');
+
     const newBatch: Batch = {
       ...data,
       id: `batch-${Date.now()}`,

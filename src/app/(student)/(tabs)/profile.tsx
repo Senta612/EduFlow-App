@@ -238,7 +238,7 @@ export default function StudentProfileScreen() {
         visible={isSignOutModalVisible}
         onClose={() => setIsSignOutModalVisible(false)}
         userName={studentName}
-        userEmail={batch ? `Batch: ${batch.batchName}` : undefined}
+        userEmail={batch ? `Batch: ${batch.name}` : undefined}
         userRole="Student"
       />
     </View>

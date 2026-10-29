@@ -1,6 +1,7 @@
 import { ms } from "react-native-size-matters";
 
 export const radii = {
+  xs: ms(2),
   sm: ms(4),
   md: ms(8),
   lg: ms(12),

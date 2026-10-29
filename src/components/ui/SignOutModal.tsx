@@ -52,15 +52,15 @@ export function SignOutModal({
   const displayName =
     userName ||
     profile?.full_name ||
-    studentSession?.studentName ||
+    studentSession?.name ||
     user?.email?.split('@')[0] ||
     'EduFlow User';
 
   const displayEmail =
     userEmail ||
     user?.email ||
-    (studentSession?.enrolledBatch?.batchName
-      ? `Batch: ${studentSession.enrolledBatch.batchName}`
+    (studentSession?.batchName
+      ? `Batch: ${studentSession.batchName}`
       : undefined);
 
   const displayRole =
@@ -75,7 +75,7 @@ export function SignOutModal({
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
-    .map((word) => word[0].toUpperCase())
+    .map((word: string) => word[0].toUpperCase())
     .join('');
 
   const modalTitle =
@@ -161,10 +161,10 @@ export function SignOutModal({
 
           {/* Header Texts */}
           <View style={styles.textContainer}>
-            <Text variant="heading2" style={styles.titleText}>
+            <Text variant="heading" style={styles.titleText}>
               {modalTitle}
             </Text>
-            <Text variant="body2" style={styles.subtitleText}>
+            <Text variant="body" style={styles.subtitleText}>
               {modalSubtitle}
             </Text>
           </View>
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
   },
   cardContainer: {

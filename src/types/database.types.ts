@@ -348,9 +348,125 @@ export interface Database {
         };
         Relationships: [];
       };
+      teacher_subscriptions: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          plan: 'trial' | 'monthly' | 'yearly';
+          status: 'trialing' | 'active' | 'expired' | 'pending' | 'cancelled';
+          trial_start: string | null;
+          trial_end: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          has_used_trial: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          plan: 'trial' | 'monthly' | 'yearly';
+          status: 'trialing' | 'active' | 'expired' | 'pending' | 'cancelled';
+          trial_start?: string | null;
+          trial_end?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          has_used_trial?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          teacher_id?: string;
+          plan?: 'trial' | 'monthly' | 'yearly';
+          status?: 'trialing' | 'active' | 'expired' | 'pending' | 'cancelled';
+          trial_start?: string | null;
+          trial_end?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          has_used_trial?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      payment_requests: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          plan: 'monthly' | 'yearly';
+          amount_paise: number;
+          payment_reference: string;
+          transaction_reference: string;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          plan: 'monthly' | 'yearly';
+          amount_paise: number;
+          payment_reference: string;
+          transaction_reference: string;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          teacher_id?: string;
+          plan?: 'monthly' | 'yearly';
+          amount_paise?: number;
+          payment_reference?: string;
+          transaction_reference?: string;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      start_teacher_trial: {
+        Args: Record<string, never>;
+        Returns: Database['public']['Tables']['teacher_subscriptions']['Row'];
+      };
+      submit_payment_request: {
+        Args: {
+          p_plan: string;
+          p_transaction_reference: string;
+        };
+        Returns: Database['public']['Tables']['payment_requests']['Row'];
+      };
+      review_payment_request: {
+        Args: {
+          p_request_id: string;
+          p_action: string;
+          p_rejection_reason?: string;
+        };
+        Returns: Database['public']['Tables']['payment_requests']['Row'];
+      };
+      is_admin: {
+        Args: {
+          user_id: string;
+        };
+        Returns: boolean;
+      };
+      is_teacher: {
+        Args: {
+          user_id: string;
+        };
+        Returns: boolean;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

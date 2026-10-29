@@ -24,6 +24,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
 import { teacherService, isBatchScheduledOnDate } from '@/services/teacher.service';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Batch, Test, AttendanceRecord } from '@/types/teacher';
 import { theme } from '@/theme';
 
@@ -49,6 +50,7 @@ function toDateString(d: Date): string {
 
 export default function TeacherHomeScreen() {
   const { profile } = useAuth();
+  const sub = useSubscription();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -237,6 +239,45 @@ export default function TeacherHomeScreen() {
           </View>
         ) : (
           <>
+            {/* Subscription Lifecycle Status Banner */}
+            {sub.isExpired ? (
+              <Pressable
+                style={styles.subBannerExpired}
+                onPress={() => router.push('/(teacher)/subscription')}
+              >
+                <Feather name="alert-triangle" size={18} color="#DC2626" />
+                <View style={styles.subBannerTextWrap}>
+                  <Text style={styles.subBannerTitleExpired}>Pro Access Expired</Text>
+                  <Text style={styles.subBannerDescExpired}>Renew your plan to continue creating batches & sharing materials.</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#DC2626" />
+              </Pressable>
+            ) : sub.pendingRequest ? (
+              <Pressable
+                style={styles.subBannerPending}
+                onPress={() => router.push('/(teacher)/subscription/status')}
+              >
+                <Feather name="clock" size={18} color="#D97706" />
+                <View style={styles.subBannerTextWrap}>
+                  <Text style={styles.subBannerTitlePending}>Payment Verification In Progress</Text>
+                  <Text style={styles.subBannerDescPending}>Ref: {sub.pendingRequest.paymentReference} — Pro will activate on approval.</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#D97706" />
+              </Pressable>
+            ) : sub.isTrial ? (
+              <Pressable
+                style={styles.subBannerTrial}
+                onPress={() => router.push('/(teacher)/subscription')}
+              >
+                <Feather name="shield" size={18} color="#2563EB" />
+                <View style={styles.subBannerTextWrap}>
+                  <Text style={styles.subBannerTitleTrial}>30-Day Free Trial ({sub.daysRemaining} days left)</Text>
+                  <Text style={styles.subBannerDescTrial}>Enjoying Pro? Lock in your annual discount before trial ends.</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#2563EB" />
+              </Pressable>
+            ) : null}
+
             {/* 1. Interactive Week Attendance Calendar (Click Month to open full calendar modal) */}
             <AttendanceWeekCalendar
               weekOffset={weekOffset}
@@ -439,5 +480,68 @@ const styles = StyleSheet.create({
   },
   classList: {
     gap: theme.spacing.sm,
+  },
+  subBannerExpired: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 12,
+  },
+  subBannerTextWrap: {
+    flex: 1,
+  },
+  subBannerTitleExpired: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  subBannerDescExpired: {
+    fontSize: 12,
+    color: '#B91C1C',
+    marginTop: 2,
+  },
+  subBannerPending: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: 12,
+  },
+  subBannerTitlePending: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  subBannerDescPending: {
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 2,
+  },
+  subBannerTrial: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 12,
+  },
+  subBannerTitleTrial: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E40AF',
+  },
+  subBannerDescTrial: {
+    fontSize: 12,
+    color: '#2563EB',
+    marginTop: 2,
   },
 });

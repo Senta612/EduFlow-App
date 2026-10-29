@@ -18,6 +18,11 @@ export default function TeacherLayout() {
       <Stack.Screen name="more/timetable" options={{ headerShown: false }} />
       <Stack.Screen name="more/notifications" options={{ headerShown: false }} />
       <Stack.Screen name="more/settings" options={{ headerShown: false }} />
+      <Stack.Screen name="subscription/index" options={{ headerShown: false }} />
+      <Stack.Screen name="subscription/plans" options={{ headerShown: false }} />
+      <Stack.Screen name="subscription/pay" options={{ headerShown: false }} />
+      <Stack.Screen name="subscription/status" options={{ headerShown: false }} />
+      <Stack.Screen name="admin/payments" options={{ headerShown: false }} />
     </Stack>
   );
 }

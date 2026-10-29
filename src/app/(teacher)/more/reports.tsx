@@ -23,6 +23,7 @@ import {
   EnrolledStudentsModal,
   ReportsSkeleton,
   EnrolledStudentItem,
+  TargetStudentReportInfo,
 } from '@/components/reports';
 import {
   teacherService,
@@ -60,14 +61,7 @@ export default function TeacherReportsScreen() {
 
   // Share Progress Slip Modal State
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
-  const [shareTargetStudent, setShareTargetStudent] = useState<{
-    studentId: string;
-    studentName: string;
-    rollNumber: string;
-    parentPhone?: string;
-    batchId: string;
-    batchName: string;
-  } | null>(null);
+  const [shareTargetStudent, setShareTargetStudent] = useState<TargetStudentReportInfo | null>(null);
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);

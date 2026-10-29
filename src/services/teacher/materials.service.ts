@@ -127,6 +127,9 @@ export class MaterialsService {
       mimeType?: string;
     },
   ): Promise<StudyMaterial> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('upload study materials');
+
     const batches = await batchesService.getBatches();
     const batch = batches.find((b) => b.id === data.batchId);
     const batchName = batch ? batch.name : 'Class Batch';
