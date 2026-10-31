@@ -94,8 +94,8 @@ export default function ManualPaymentScreen() {
         <ScreenHeader
           title="Manual UPI Payment"
           subtitle="Pay directly via any UPI app & submit your UTR"
-          showBackButton
-          onBackPress={() => router.back()}
+          showBack
+          onBack={() => router.back()}
         />
 
         <ScrollView
@@ -297,14 +297,13 @@ export default function ManualPaymentScreen() {
             </View>
 
             <Button
+              title="Submit for Verification"
               variant="primary"
               size="lg"
               loading={isSubmitting}
               onPress={handleSubmit}
               style={styles.submitBtn}
-            >
-              Submit for Verification
-            </Button>
+            />
           </Card>
 
           {/* 5. Zero-Credentials Security Guarantee */}

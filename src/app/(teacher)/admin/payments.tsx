@@ -139,8 +139,8 @@ export default function AdminPaymentReviewScreen() {
         <ScreenHeader
           title="Payment Review"
           subtitle="Admin verification panel"
-          showBackButton
-          onBackPress={() => router.back()}
+          showBack
+          onBack={() => router.back()}
         />
         <View style={styles.deniedBox}>
           <Feather name="shield-off" size={48} color={theme.colors.semantic.danger.main} />
@@ -151,13 +151,12 @@ export default function AdminPaymentReviewScreen() {
             This portal is restricted to authorized EduFlow administrators to review and approve bank UPI payments.
           </Text>
           <Button
+            title="Return to Dashboard"
             variant="outline"
             size="md"
             onPress={() => router.replace('/(teacher)')}
             style={{ marginTop: 12 }}
-          >
-            Return to Dashboard
-          </Button>
+          />
         </View>
       </View>
     );
@@ -168,8 +167,8 @@ export default function AdminPaymentReviewScreen() {
       <ScreenHeader
         title="Admin Payment Review"
         subtitle={`${pendingCount} pending payment verification${pendingCount === 1 ? '' : 's'}`}
-        showBackButton
-        onBackPress={() => router.back()}
+        showBack
+        onBack={() => router.back()}
       />
 
       {/* Filter Tabs Bar */}
@@ -354,24 +353,22 @@ export default function AdminPaymentReviewScreen() {
                   {req.status === 'pending' && (
                     <View style={styles.actionButtonsRow}>
                       <Button
+                        title="Approve Payment"
                         variant="primary"
                         size="sm"
                         loading={isProcessing}
                         onPress={() => handleApprove(req)}
                         style={styles.approveBtn}
-                      >
-                        Approve Payment
-                      </Button>
+                      />
 
                       <Button
+                        title="Reject"
                         variant="outline"
                         size="sm"
                         disabled={isProcessing}
                         onPress={() => openRejectModal(req)}
                         style={styles.rejectBtn}
-                      >
-                        Reject
-                      </Button>
+                      />
                     </View>
                   )}
                 </Card>
@@ -420,21 +417,19 @@ export default function AdminPaymentReviewScreen() {
 
             <View style={styles.modalActions}>
               <Button
+                title="Cancel"
                 variant="outline"
                 size="md"
                 onPress={() => setRejectModalVisible(false)}
                 style={{ flex: 1 }}
-              >
-                Cancel
-              </Button>
+              />
               <Button
+                title="Confirm Rejection"
                 variant="primary"
                 size="md"
                 onPress={handleConfirmReject}
                 style={[styles.confirmRejectBtn, { flex: 1 }]}
-              >
-                Confirm Rejection
-              </Button>
+              />
             </View>
           </Card>
         </View>

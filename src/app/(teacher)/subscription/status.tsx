@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Pressable,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,13 +64,12 @@ export default function PaymentStatusScreen() {
             You don&apos;t have any pending payment requests.
           </Text>
           <Button
+            title="View Subscription Plans"
             variant="primary"
             size="md"
             onPress={() => router.push('/(teacher)/subscription/plans')}
             style={styles.bannerBtn}
-          >
-            View Subscription Plans
-          </Button>
+          />
         </Card>
       );
     }
@@ -87,13 +87,12 @@ export default function PaymentStatusScreen() {
             Your {request.plan === 'yearly' ? 'Pro Yearly' : 'Pro Monthly'} subscription is now fully active. All Pro features are unlocked.
           </Text>
           <Button
+            title="Go to Subscription Overview"
             variant="primary"
             size="md"
             onPress={() => router.replace('/(teacher)/subscription')}
             style={styles.bannerBtn}
-          >
-            Go to Subscription Overview
-          </Button>
+          />
         </Card>
       );
     }
@@ -111,6 +110,7 @@ export default function PaymentStatusScreen() {
             {request.rejectionReason || 'The submitted transaction reference could not be matched with bank records.'}
           </Text>
           <Button
+            title="Re-submit Payment Reference"
             variant="primary"
             size="md"
             onPress={() =>
@@ -120,9 +120,7 @@ export default function PaymentStatusScreen() {
               })
             }
             style={styles.bannerBtn}
-          >
-            Re-submit Payment Reference
-          </Button>
+          />
         </Card>
       );
     }
@@ -140,14 +138,13 @@ export default function PaymentStatusScreen() {
           We received your payment reference. Our verification team reconciles bank credits multiple times daily. Pro entitlements will activate immediately on verification.
         </Text>
         <Button
+          title="Refresh Verification Status"
           variant="outline"
           size="md"
           loading={isRefreshing}
           onPress={handleRefresh}
           style={styles.bannerBtn}
-        >
-          Refresh Verification Status
-        </Button>
+        />
       </Card>
     );
   };
@@ -157,8 +154,8 @@ export default function PaymentStatusScreen() {
       <ScreenHeader
         title="Payment Request Status"
         subtitle="Track your manual UPI payment approval"
-        showBackButton
-        onBackPress={() => router.back()}
+        showBack
+        onBack={() => router.back()}
       />
 
       <ScrollView

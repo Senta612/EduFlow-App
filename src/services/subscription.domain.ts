@@ -1,6 +1,6 @@
-import {
+import { SUBSCRIPTION_PLANS } from '../types/subscription';
+import type {
   PaymentRequest,
-  SUBSCRIPTION_PLANS,
   SubscriptionPlan,
   SubscriptionState,
   TeacherSubscription,

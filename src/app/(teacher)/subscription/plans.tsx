@@ -55,8 +55,8 @@ export default function SubscriptionPlansScreen() {
       <ScreenHeader
         title="Choose a Plan"
         subtitle="Transparent pricing. Manual UPI verification. No recurring traps."
-        showBackButton
-        onBackPress={() => router.back()}
+        showBack
+        onBack={() => router.back()}
       />
 
       <ScrollView
@@ -82,14 +82,13 @@ export default function SubscriptionPlansScreen() {
               New to EduFlow? Try everything free for a whole month with zero upfront payment.
             </Text>
             <Button
+              title="Start 30-Day Free Trial"
               variant="outline"
               size="md"
               loading={isStartingTrial}
               onPress={handleStartTrial}
               style={styles.trialButton}
-            >
-              Start 30-Day Free Trial
-            </Button>
+            />
           </Card>
         )}
 
@@ -156,13 +155,12 @@ export default function SubscriptionPlansScreen() {
             </View>
 
             <Button
+              title="Continue with Yearly (₹4,999)"
               variant={selectedPlan === 'yearly' ? 'primary' : 'outline'}
               size="lg"
               onPress={() => handleProceedToPayment('yearly')}
               style={styles.selectButton}
-            >
-              Continue with Yearly (₹4,999)
-            </Button>
+            />
           </Card>
         </Pressable>
 
@@ -213,13 +211,12 @@ export default function SubscriptionPlansScreen() {
             </View>
 
             <Button
+              title="Continue with Monthly (₹499)"
               variant={selectedPlan === 'monthly' ? 'primary' : 'outline'}
               size="lg"
               onPress={() => handleProceedToPayment('monthly')}
               style={styles.selectButton}
-            >
-              Continue with Monthly (₹499)
-            </Button>
+            />
           </Card>
         </Pressable>
 

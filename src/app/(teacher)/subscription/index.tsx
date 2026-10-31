@@ -101,8 +101,8 @@ export default function SubscriptionOverviewScreen() {
       <ScreenHeader
         title="Subscription & Plans"
         subtitle="Manage your EduFlow Pro access & billing"
-        showBackButton
-        onBackPress={() => router.back()}
+        showBack
+        onBack={() => router.back()}
       />
 
       <ScrollView
@@ -151,13 +151,12 @@ export default function SubscriptionOverviewScreen() {
                 </Text>
 
                 <Button
+                  title="View Payment Status"
                   variant="outline"
                   size="sm"
                   onPress={() => router.push('/(teacher)/subscription/status')}
                   style={styles.pendingButton}
-                >
-                  View Payment Status
-                </Button>
+                />
               </Card>
             )}
 
@@ -193,7 +192,7 @@ export default function SubscriptionOverviewScreen() {
               {isPro ? (
                 <View style={styles.activeDetailsContainer}>
                   <View style={styles.countdownRow}>
-                    <Text variant="display" style={styles.daysCountText}>
+                    <Text variant="title" style={styles.daysCountText}>
                       {daysRemaining}
                     </Text>
                     <View style={styles.daysLabelBox}>
@@ -227,13 +226,12 @@ export default function SubscriptionOverviewScreen() {
 
                   <View style={styles.ctaRow}>
                     <Button
+                      title="Extend / Renew Plan"
                       variant="primary"
                       size="md"
                       onPress={() => router.push('/(teacher)/subscription/plans')}
                       style={styles.fullWidthBtn}
-                    >
-                      Extend / Renew Plan
-                    </Button>
+                    />
                   </View>
                 </View>
               ) : isExpired ? (
@@ -245,13 +243,12 @@ export default function SubscriptionOverviewScreen() {
                     All your existing batches, students, past attendance, and homework records remain 100% safe. Renew your plan to continue creating batches and sharing materials.
                   </Text>
                   <Button
+                    title="Renew Subscription Now"
                     variant="primary"
                     size="md"
                     onPress={() => router.push('/(teacher)/subscription/plans')}
                     style={styles.fullWidthBtn}
-                  >
-                    Renew Subscription Now
-                  </Button>
+                  />
                 </View>
               ) : isTrialEligible ? (
                 <View style={styles.trialEligibleContainer}>
@@ -262,14 +259,13 @@ export default function SubscriptionOverviewScreen() {
                     Full access to unlimited student batches, automated WhatsApp reports, fee ledger, and study material uploads. No credit card required.
                   </Text>
                   <Button
+                    title="Start 30-Day Free Trial"
                     variant="primary"
                     size="md"
                     loading={isStartingTrial}
                     onPress={handleStartTrial}
                     style={styles.fullWidthBtn}
-                  >
-                    Start 30-Day Free Trial
-                  </Button>
+                  />
                 </View>
               ) : (
                 <View style={styles.noPlanContainer}>
@@ -280,13 +276,12 @@ export default function SubscriptionOverviewScreen() {
                     Unlock powerful teaching tools for your tuition center or private coaching classes.
                   </Text>
                   <Button
+                    title="View Available Plans"
                     variant="primary"
                     size="md"
                     onPress={() => router.push('/(teacher)/subscription/plans')}
                     style={styles.fullWidthBtn}
-                  >
-                    View Available Plans
-                  </Button>
+                  />
                 </View>
               )}
             </Card>

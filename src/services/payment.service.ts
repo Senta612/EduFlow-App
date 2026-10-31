@@ -6,6 +6,11 @@ import {
   SUBSCRIPTION_PLANS,
   SubscriptionPlan,
 } from '@/types/subscription';
+import {
+  buildUpiIntentUrl,
+  generatePaymentReference as domainGeneratePaymentReference,
+  validateTransactionReference,
+} from './subscription.domain';
 
 const PAY_REQUESTS_CACHE_KEY = '@eduflow_payment_requests_';
 
@@ -38,29 +43,14 @@ class PaymentService {
    * Generate standard UPI payment link for QR codes or deep-linking
    */
   generateUpiUrl(plan: 'monthly' | 'yearly', paymentReference: string): string {
-    const config = this.getUpiConfig();
-    const planConfig = SUBSCRIPTION_PLANS[plan];
-    const amountInRupees = planConfig.priceInRupees;
-
-    // upi://pay?pa=...&pn=...&am=...&cu=INR&tn=...
-    const params = new URLSearchParams({
-      pa: config.upiId,
-      pn: config.payeeName,
-      am: amountInRupees.toString(),
-      cu: 'INR',
-      tn: paymentReference,
-    });
-
-    return `upi://pay?${params.toString()}`;
+    return buildUpiIntentUrl(this.getUpiConfig(), plan, paymentReference);
   }
 
   /**
    * Generate an initial client-side payment reference (e.g. PAY-20261028-A1B2C3)
    */
   generatePaymentReference(): string {
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `PAY-${dateStr}-${randomHex}`;
+    return domainGeneratePaymentReference();
   }
 
   /**

@@ -9,6 +9,7 @@ import {
   TeacherSubscription,
 } from '@/types/subscription';
 import { paymentService } from './payment.service';
+import { evaluateSubscription } from './subscription.domain';
 
 const SUB_STORAGE_PREFIX = '@eduflow_teacher_sub_';
 
