@@ -48,6 +48,9 @@ export class StudentsService {
   }
 
   async addStudent(batchId: string, studentData: Omit<Student, 'id'>): Promise<Student> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('add a student');
+
     const generatedCode = `STU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const newStudent: Student = {
       ...studentData,
@@ -122,6 +125,9 @@ export class StudentsService {
     studentId: string,
     studentData: Partial<Omit<Student, 'id'>>,
   ): Promise<Student> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('update student details');
+
     try {
       const updatePayload: any = {
         name: studentData.name,
@@ -173,6 +179,9 @@ export class StudentsService {
   }
 
   async deleteStudent(batchId: string, studentId: string): Promise<void> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('remove a student');
+
     try {
       await supabase.from('students').delete().eq('id', studentId);
     } catch (err) {

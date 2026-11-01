@@ -48,6 +48,9 @@ export class FeesService {
     monthlyFee: number,
     dueDayOfMonth: number = DEFAULT_DUE_DAY,
   ): Promise<BatchFeeConfig> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('configure tuition fees');
+
     const configs = await getStored<Record<string, BatchFeeConfig>>(STORAGE_KEYS.FEE_CONFIGS, {});
     const updated: BatchFeeConfig = {
       batchId,
@@ -86,6 +89,9 @@ export class FeesService {
     mode: FeePaymentMode;
     remarks?: string;
   }): Promise<FeePayment> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('record fee payments');
+
     const payments = await getStored<FeePayment[]>(STORAGE_KEYS.FEES, []);
     const newPayment: FeePayment = {
       id: `fee_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -117,6 +123,9 @@ export class FeesService {
   }
 
   async deletePayment(paymentId: string): Promise<void> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('delete fee payments');
+
     const payments = await getStored<FeePayment[]>(STORAGE_KEYS.FEES, []);
     const filtered = payments.filter((p) => p.id !== paymentId);
     await setStored(STORAGE_KEYS.FEES, filtered);
@@ -419,6 +428,9 @@ export class FeesService {
   }
 
   async savePaymentConfig(config: TeacherPaymentConfig): Promise<TeacherPaymentConfig> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('update payment configuration');
+
     const updated: TeacherPaymentConfig = {
       ...config,
       updatedAt: new Date().toISOString(),

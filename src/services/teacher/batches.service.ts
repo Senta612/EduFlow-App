@@ -192,6 +192,9 @@ export class BatchesService {
   }
 
   async deleteBatch(batchId: string): Promise<void> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('delete batches');
+
     try {
       await supabase.from('batches').delete().eq('id', batchId);
     } catch (err) {

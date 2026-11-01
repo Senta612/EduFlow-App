@@ -86,6 +86,9 @@ export class HomeworkService {
   async createHomework(
     data: Omit<Homework, 'id' | 'createdAt' | 'submissionsCount'>,
   ): Promise<Homework> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('create homework assignments');
+
     const totalStudents = data.totalStudents || 0;
     const newHw: Homework = {
       ...data,
@@ -146,6 +149,9 @@ export class HomeworkService {
   }
 
   async deleteHomework(homeworkId: string): Promise<void> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('delete homework assignments');
+
     try {
       await supabase.from('homework_assignments').delete().eq('id', homeworkId);
     } catch (err) {
@@ -223,6 +229,9 @@ export class HomeworkService {
     batchId: string,
     submissions: StudentHomeworkItem[],
   ): Promise<void> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('record homework submissions');
+
     const key = `${STORAGE_KEYS.HW_SUBMISSIONS}_${homeworkId}`;
     await setStored(key, submissions);
 

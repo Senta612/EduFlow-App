@@ -78,6 +78,9 @@ export class AttendanceService {
     date: string,
     records: StudentAttendanceItem[],
   ): Promise<AttendanceRecord> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('record or update attendance');
+
     const presentCount = records.filter((r) => r.status === 'present').length;
     const absentCount = records.filter((r) => r.status === 'absent').length;
 

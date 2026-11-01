@@ -69,6 +69,9 @@ export class TestsService {
   }
 
   async createTest(data: Omit<Test, 'id' | 'submittedCount'>): Promise<Test> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('create a test');
+
     const newTest: Test = {
       ...data,
       id: `test-${Date.now()}`,
@@ -118,6 +121,9 @@ export class TestsService {
   }
 
   async deleteTest(testId: string): Promise<void> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('delete a test');
+
     try {
       await supabase.from('tests').delete().eq('id', testId);
     } catch (err) {
@@ -179,6 +185,9 @@ export class TestsService {
   }
 
   async saveTestMarks(testId: string, marks: StudentMark[]): Promise<void> {
+    const { subscriptionService } = await import('@/services/subscription.service');
+    await subscriptionService.assertProEntitlement('enter or update test marks');
+
     const key = `${STORAGE_KEYS.MARKS}_${testId}`;
     await setStored(key, marks);
 
