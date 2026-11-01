@@ -49,3 +49,13 @@ export interface TuitionFeeOverview {
   freeStudentsCount: number;
   collectionRate: number; // 0 - 100 percentage
 }
+export interface TeacherPaymentConfig {
+  isEnabled: boolean; // whether student fee portal & online payments are active
+  upiId?: string; // e.g. "teacher@okhdfcbank"
+  payeeName?: string; // e.g. "Sharma Coaching Classes"
+  phoneNumber?: string; // e.g. "9876543210" for GPay / PhonePe / WhatsApp contact
+  qrCodeUrl?: string; // custom QR screenshot URI
+  instructions?: string; // e.g. "Send screenshot on WhatsApp after paying"
+  acceptOnlinePayment?: boolean; // whether Pay Now UPI button is enabled
+  updatedAt?: string;
+}

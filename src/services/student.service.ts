@@ -10,9 +10,11 @@ import {
   StudentAnnouncement,
   StudentSession,
   StudentMaterialItemView,
+  StudentFeePortalView,
 } from '@/types/student';
-import { HomeworkStatus } from '@/types/teacher';
+import { HomeworkStatus, FeeStatus } from '@/types/teacher';
 import { isBatchScheduledToday, teacherService } from './teacher.service';
+import { feesService } from './teacher/fees.service';
 
 const STUDENT_DATA_STORAGE_KEY = '@eduflow_student_storage_v1';
 const STUDENT_SESSION_KEY = '@eduflow_active_student_session';
@@ -805,5 +807,126 @@ export class StudentService {
       console.warn('StudentService: Failed to get study materials:', e);
       return [];
     }
+  }
+
+  /**
+   * Fetch complete fee portal details for student including dues, payment credentials & receipts
+   */
+  static async getFeePortalDetails(studentId?: string): Promise<StudentFeePortalView> {
+    const student = await this.getStudentInfo(studentId);
+    const sId = student?.id || studentId || '';
+    const studentName = student?.name || 'Student';
+    const rollNumber = student?.rollNumber || '-';
+    const batchId = student?.batchId || '';
+
+    const [paymentConfig, isFeeTrackingEnabled, allFeeConfigs, allPayments] = await Promise.all([
+      feesService.getPaymentConfig(),
+      feesService.isFeeStatusEnabled(),
+      feesService.getAllBatchFeeConfigs(),
+      feesService.getFeePayments(batchId || undefined, sId || undefined),
+    ]);
+
+    const isEnabled = Boolean(paymentConfig?.isEnabled || isFeeTrackingEnabled);
+    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    if (!isEnabled) {
+      return {
+        isEnabled: false,
+        studentId: sId,
+        studentName,
+        rollNumber,
+        batchName: 'Tuition Class',
+        feeStatus: 'pending',
+        monthlyFee: 0,
+        dueAmount: 0,
+        dueDayOfMonth: 5,
+        dueDateFormatted: `5th ${currentMonth}`,
+        forMonth: currentMonth,
+        teacherPaymentConfig: paymentConfig,
+        paymentHistory: [],
+        stats: {
+          totalPaidAllTime: 0,
+          totalReceiptsCount: 0,
+        },
+      };
+    }
+
+    // Determine batch fee config
+    const batchFeeCfg = batchId ? allFeeConfigs[batchId] : undefined;
+    const monthlyFee = batchFeeCfg?.monthlyFee || 1500;
+    const dueDayOfMonth = batchFeeCfg?.dueDayOfMonth || 5;
+
+    // Get student's fee status from local teacher storage or Supabase
+    let feeStatus: FeeStatus = 'pending';
+    let batchName = 'Class Batch';
+
+    try {
+      if (batchId) {
+        const batchStudents = await teacherService.getBatchStudents(batchId);
+        const match = batchStudents.find((s) => s.id === sId || s.rollNumber === rollNumber);
+        if (match) {
+          feeStatus = match.feeStatus || 'pending';
+        }
+        const batches = await teacherService.getBatches();
+        const b = batches.find((item) => item.id === batchId);
+        if (b) {
+          batchName = `${b.name} (${b.subject || b.grade || ''})`;
+        }
+      }
+    } catch (e) {
+      console.warn('Fee status lookup error:', e);
+    }
+
+    // Filter payments for this specific student
+    const studentPayments = allPayments.filter(
+      (p) => p.studentId === sId || p.rollNumber === rollNumber,
+    );
+
+    const totalPaidAllTime = studentPayments.reduce((sum, p) => sum + p.amount, 0);
+    const lastPayment = studentPayments[0];
+
+    // Check if paid this month
+    const hasPaidCurrentMonth = studentPayments.some(
+      (p) => p.forMonth === currentMonth || p.date.startsWith(new Date().toISOString().slice(0, 7)),
+    );
+
+    if (hasPaidCurrentMonth && feeStatus === 'pending') {
+      feeStatus = 'paid';
+    }
+
+    const dueAmount = feeStatus === 'paid' || feeStatus === 'free' ? 0 : monthlyFee;
+
+    const getOrdinalSuffix = (day: number) => {
+      if (day > 3 && day < 21) return `${day}th`;
+      switch (day % 10) {
+        case 1: return `${day}st`;
+        case 2: return `${day}nd`;
+        case 3: return `${day}rd`;
+        default: return `${day}th`;
+      }
+    };
+
+    const dueDateFormatted = `${getOrdinalSuffix(dueDayOfMonth)} ${currentMonth}`;
+
+    return {
+      isEnabled: true,
+      studentId: sId,
+      studentName,
+      rollNumber,
+      batchName,
+      feeStatus,
+      monthlyFee,
+      dueAmount,
+      dueDayOfMonth,
+      dueDateFormatted,
+      forMonth: currentMonth,
+      teacherPaymentConfig: paymentConfig,
+      paymentHistory: studentPayments,
+      lastPayment,
+      stats: {
+        totalPaidAllTime,
+        totalReceiptsCount: studentPayments.length,
+      },
+    };
   }
 }

@@ -1,4 +1,5 @@
-import { AttendanceStatus, HomeworkStatus } from './teacher';
+import { AttendanceStatus, HomeworkStatus, FeeStatus } from './teacher';
+import { FeePayment, TeacherPaymentConfig } from './fee';
 
 export interface EnrolledBatchInfo {
   id: string;
@@ -128,4 +129,25 @@ export interface StudentMaterialItemView {
   fileType: 'pdf' | 'image' | 'doc' | 'other';
   createdAt: string;
   isNew?: boolean;
+}
+
+export interface StudentFeePortalView {
+  isEnabled: boolean; // whether fee portal & online payments are enabled by teacher
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  batchName: string;
+  feeStatus: FeeStatus; // 'paid' | 'pending' | 'overdue' | 'free'
+  monthlyFee: number;
+  dueAmount: number;
+  dueDayOfMonth: number;
+  dueDateFormatted: string;
+  forMonth: string; // e.g. "October 2026"
+  teacherPaymentConfig?: TeacherPaymentConfig;
+  paymentHistory: FeePayment[];
+  lastPayment?: FeePayment;
+  stats: {
+    totalPaidAllTime: number;
+    totalReceiptsCount: number;
+  };
 }

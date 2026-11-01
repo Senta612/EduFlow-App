@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   FEE_CONFIGS: '@eduflow_teacher_batch_fee_configs',
   NOTIFICATIONS: '@eduflow_teacher_notifications',
   NOTIFICATION_SETTINGS: '@eduflow_teacher_notification_settings',
+  TEACHER_PAYMENT_CONFIG: '@eduflow_teacher_payment_config',
 } as const;
 
 export async function getStored<T>(key: string, fallback: T): Promise<T> {

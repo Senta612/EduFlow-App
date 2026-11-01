@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SignOutModal } from '@/components/ui/SignOutModal';
 import { LanguageSelectorModal } from '@/components/common';
+import { TeacherPaymentConfigModal } from '@/components/teacher';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeacherPreferences } from '@/providers';
 import { useTranslation } from '@/i18n';
@@ -27,7 +28,12 @@ import { notificationService } from '@/services/notifications/notification.servi
 export default function TeacherSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
-  const { isFeeStatusEnabled, setFeeStatusEnabled } = useTeacherPreferences();
+  const {
+    isFeeStatusEnabled,
+    setFeeStatusEnabled,
+    paymentConfig,
+    updatePaymentConfig,
+  } = useTeacherPreferences();
   const { t, currentLanguageOption } = useTranslation();
 
   const [classReminders, setClassReminders] = useState(true);
@@ -35,6 +41,7 @@ export default function TeacherSettingsScreen() {
   const [homeworkNotifs, setHomeworkNotifs] = useState(true);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
 
   useEffect(() => {
     notificationService.getSettings().then((s) => {
@@ -264,6 +271,49 @@ export default function TeacherSettingsScreen() {
                 }}
               />
             </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.settingRow,
+                { borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => setIsPaymentModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Setup UPI & Online Fee Portal"
+            >
+              <View
+                style={[
+                  styles.iconBox,
+                  {
+                    backgroundColor: paymentConfig?.isEnabled
+                      ? '#DCFCE7'
+                      : theme.colors.primary.bg,
+                  },
+                ]}
+              >
+                <Feather
+                  name="credit-card"
+                  size={16}
+                  color={
+                    paymentConfig?.isEnabled
+                      ? '#16A34A'
+                      : theme.colors.primary.main
+                  }
+                />
+              </View>
+              <View style={styles.settingMeta}>
+                <Text variant="label" style={styles.settingTitle}>
+                  Student Payment QR & UPI Setup
+                </Text>
+                <Text variant="caption" style={styles.settingSubtitle}>
+                  {paymentConfig?.upiId
+                    ? `UPI: ${paymentConfig.upiId}`
+                    : 'Add UPI ID, custom QR & payment instructions'}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={theme.colors.text.tertiary} />
+            </Pressable>
           </Card>
         </View>
 
@@ -314,6 +364,14 @@ export default function TeacherSettingsScreen() {
       <SignOutModal
         visible={isSignOutModalVisible}
         onClose={() => setIsSignOutModalVisible(false)}
+      />
+
+      {/* Teacher Payment & UPI Setup Modal */}
+      <TeacherPaymentConfigModal
+        visible={isPaymentModalVisible}
+        onClose={() => setIsPaymentModalVisible(false)}
+        initialConfig={paymentConfig}
+        onSave={updatePaymentConfig}
       />
     </SafeAreaView>
   );

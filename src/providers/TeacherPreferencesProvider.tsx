@@ -8,12 +8,17 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/services/teacher/storage.keys';
+import { TeacherPaymentConfig } from '@/types/fee';
+import { feesService } from '@/services/teacher/fees.service';
 
 interface TeacherPreferencesContextValue {
   isFeeStatusEnabled: boolean;
   isLoadingPreferences: boolean;
+  paymentConfig: TeacherPaymentConfig | null;
   setFeeStatusEnabled: (enabled: boolean) => Promise<void>;
   toggleFeeStatusEnabled: () => Promise<void>;
+  updatePaymentConfig: (config: TeacherPaymentConfig) => Promise<void>;
+  refreshPreferences: () => Promise<void>;
 }
 
 const TeacherPreferencesContext = createContext<
@@ -26,23 +31,32 @@ export function TeacherPreferencesProvider({
   children: ReactNode;
 }) {
   const [isFeeStatusEnabled, setIsFeeStatusEnabledState] = useState<boolean>(false);
+  const [paymentConfig, setPaymentConfig] = useState<TeacherPaymentConfig | null>(null);
   const [isLoadingPreferences, setIsLoadingPreferences] = useState<boolean>(true);
 
-  useEffect(() => {
-    async function loadPreferences() {
-      try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEYS.FEE_STATUS_ENABLED);
-        if (stored !== null) {
-          setIsFeeStatusEnabledState(stored === 'true');
-        }
-      } catch (err) {
-        console.warn('Failed to load teacher fee status preference:', err);
-      } finally {
-        setIsLoadingPreferences(false);
+  const loadPreferences = useCallback(async () => {
+    try {
+      const [storedFeeEnabled, pConfig] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.FEE_STATUS_ENABLED),
+        feesService.getPaymentConfig(),
+      ]);
+
+      if (storedFeeEnabled !== null) {
+        setIsFeeStatusEnabledState(storedFeeEnabled === 'true');
+      } else if (pConfig?.isEnabled) {
+        setIsFeeStatusEnabledState(true);
       }
+      setPaymentConfig(pConfig);
+    } catch (err) {
+      console.warn('Failed to load teacher fee status preference:', err);
+    } finally {
+      setIsLoadingPreferences(false);
     }
-    loadPreferences();
   }, []);
+
+  useEffect(() => {
+    loadPreferences();
+  }, [loadPreferences]);
 
   const setFeeStatusEnabled = useCallback(async (enabled: boolean) => {
     setIsFeeStatusEnabledState(enabled);
@@ -51,23 +65,39 @@ export function TeacherPreferencesProvider({
         STORAGE_KEYS.FEE_STATUS_ENABLED,
         enabled ? 'true' : 'false',
       );
+      if (paymentConfig) {
+        const updatedConfig = { ...paymentConfig, isEnabled: enabled };
+        setPaymentConfig(updatedConfig);
+        await feesService.savePaymentConfig(updatedConfig);
+      }
     } catch (err) {
       console.warn('Failed to persist fee status preference:', err);
     }
-  }, []);
+  }, [paymentConfig]);
 
   const toggleFeeStatusEnabled = useCallback(async () => {
     const nextVal = !isFeeStatusEnabled;
     await setFeeStatusEnabled(nextVal);
   }, [isFeeStatusEnabled, setFeeStatusEnabled]);
 
+  const updatePaymentConfig = useCallback(async (config: TeacherPaymentConfig) => {
+    setPaymentConfig(config);
+    if (config.isEnabled) {
+      setIsFeeStatusEnabledState(true);
+    }
+    await feesService.savePaymentConfig(config);
+  }, []);
+
   return (
     <TeacherPreferencesContext.Provider
       value={{
         isFeeStatusEnabled,
         isLoadingPreferences,
+        paymentConfig,
         setFeeStatusEnabled,
         toggleFeeStatusEnabled,
+        updatePaymentConfig,
+        refreshPreferences: loadPreferences,
       }}
     >
       {children}
@@ -84,3 +114,4 @@ export function useTeacherPreferences(): TeacherPreferencesContextValue {
   }
   return context;
 }
+

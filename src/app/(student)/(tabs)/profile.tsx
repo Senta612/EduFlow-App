@@ -16,9 +16,17 @@ import { Badge } from '@/components/ui/Badge';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SignOutModal } from '@/components/ui/SignOutModal';
 import { LanguageSelectorModal } from '@/components/common/LanguageSelectorModal';
-import { AttendanceMonthlyCalendar } from '@/components/student-portal';
+import {
+  AttendanceMonthlyCalendar,
+  StudentFeeCard,
+  StudentFeeModal,
+} from '@/components/student-portal';
 import { StudentService } from '@/services/student.service';
-import { StudentDashboardSummary, StudentAttendanceOverview } from '@/types/student';
+import {
+  StudentDashboardSummary,
+  StudentAttendanceOverview,
+  StudentFeePortalView,
+} from '@/types/student';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
@@ -30,18 +38,22 @@ export default function StudentProfileScreen() {
 
   const [summary, setSummary] = useState<StudentDashboardSummary | null>(null);
   const [attendance, setAttendance] = useState<StudentAttendanceOverview | null>(null);
+  const [feeData, setFeeData] = useState<StudentFeePortalView | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLangModalVisible, setIsLangModalVisible] = useState(false);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
+  const [isFeeModalVisible, setIsFeeModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [sum, att] = await Promise.all([
+      const [sum, att, fee] = await Promise.all([
         StudentService.getDashboardSummary(profile?.id),
         StudentService.getAttendanceOverview(profile?.id),
+        StudentService.getFeePortalDetails(profile?.id),
       ]);
       setSummary(sum);
       setAttendance(att);
+      setFeeData(fee);
     } catch (err) {
       console.error('Failed to load student profile:', err);
     } finally {
@@ -140,6 +152,14 @@ export default function StudentProfileScreen() {
               </View>
             ) : null}
           </View>
+
+          {/* Tuition Fee & Digital Receipts Card */}
+          {feeData && feeData.isEnabled ? (
+            <StudentFeeCard
+              feeData={feeData}
+              onPress={() => setIsFeeModalVisible(true)}
+            />
+          ) : null}
 
           {/* Attendance Breakdown */}
           {attendance ? (
@@ -240,6 +260,18 @@ export default function StudentProfileScreen() {
         userName={studentName}
         userEmail={batch ? `Batch: ${batch.name}` : undefined}
         userRole="Student"
+      />
+
+      {/* Tuition Fee & Payment Modal */}
+      <StudentFeeModal
+        visible={isFeeModalVisible}
+        onClose={() => {
+          setIsFeeModalVisible(false);
+          loadData();
+        }}
+        feeData={feeData}
+        teacherName={batch?.teacherName}
+        instituteName={batch?.instituteName}
       />
     </View>
   );

@@ -16,9 +16,10 @@ import {
   StudentHeader,
   NextClassHeroCard,
   StudentMetricCard,
+  StudentFeeModal,
 } from '@/components/student-portal';
 import { StudentService } from '@/services/student.service';
-import { StudentDashboardSummary } from '@/types/student';
+import { StudentDashboardSummary, StudentFeePortalView } from '@/types/student';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
@@ -30,13 +31,19 @@ export default function StudentDashboardScreen() {
   const { t } = useTranslation();
 
   const [summary, setSummary] = useState<StudentDashboardSummary | null>(null);
+  const [feeData, setFeeData] = useState<StudentFeePortalView | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFeeModalVisible, setIsFeeModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const data = await StudentService.getDashboardSummary(profile?.id);
-      setSummary(data);
+      const [dashData, fData] = await Promise.all([
+        StudentService.getDashboardSummary(profile?.id),
+        StudentService.getFeePortalDetails(profile?.id),
+      ]);
+      setSummary(dashData);
+      setFeeData(fData);
     } catch (err) {
       console.error('Failed to load student dashboard summary:', err);
     } finally {
@@ -96,6 +103,59 @@ export default function StudentDashboardScreen() {
             onPress={() => router.push('/(student)/(tabs)/profile')}
           />
         </View>
+
+        {/* Quick Fee Reminder Banner (if fee is pending/overdue) */}
+        {feeData && feeData.isEnabled && feeData.dueAmount > 0 ? (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.feeBannerCard}
+              onPress={() => setIsFeeModalVisible(true)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.feeBannerLeft}>
+                <View
+                  style={[
+                    styles.feeBannerIconCircle,
+                    {
+                      backgroundColor:
+                        feeData.feeStatus === 'overdue' ? '#FEE2E2' : '#FEF3C7',
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="credit-card"
+                    size={18}
+                    color={
+                      feeData.feeStatus === 'overdue'
+                        ? theme.colors.semantic.danger.main
+                        : '#D97706'
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.feeBannerTitle}>
+                      Tuition Fee Due • ₹{feeData.dueAmount.toLocaleString()}
+                    </Text>
+                    <Badge
+                      label={feeData.feeStatus === 'overdue' ? 'OVERDUE' : 'DUE'}
+                      variant={feeData.feeStatus === 'overdue' ? 'danger' : 'warning'}
+                      size="sm"
+                    />
+                  </View>
+                  <Text style={styles.feeBannerSub}>
+                    {feeData.forMonth} • Pay via UPI or download receipts
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.feeBannerPayBtn}>
+                <Text style={styles.feeBannerPayText}>Pay</Text>
+                <Feather name="arrow-right" size={12} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Quick Metrics Grid */}
         <View style={styles.section}>
@@ -243,6 +303,18 @@ export default function StudentDashboardScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Tuition Fee & Payment Modal */}
+      <StudentFeeModal
+        visible={isFeeModalVisible}
+        onClose={() => {
+          setIsFeeModalVisible(false);
+          loadData();
+        }}
+        feeData={feeData}
+        teacherName={summary?.enrolledBatch?.teacherName}
+        instituteName={summary?.enrolledBatch?.instituteName}
+      />
     </View>
   );
 }
@@ -251,6 +323,54 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  feeBannerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFBEB',
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1.5,
+    borderColor: '#FCD34D',
+    gap: 12,
+  },
+  feeBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  feeBannerIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feeBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#78350F',
+  },
+  feeBannerSub: {
+    fontSize: 11,
+    color: '#92400E',
+    marginTop: 1,
+  },
+  feeBannerPayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary.main,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  feeBannerPayText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,

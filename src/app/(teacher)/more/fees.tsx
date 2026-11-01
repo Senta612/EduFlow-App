@@ -22,10 +22,12 @@ import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
+import { useTeacherPreferences } from '@/providers';
 import { useTranslation } from '@/i18n';
 import { teacherService } from '@/services/teacher.service';
 import { feesService } from '@/services/teacher/fees.service';
 import { reportPdfService } from '@/services/pdf/reportPdf.service';
+import { TeacherPaymentConfigModal } from '@/components/teacher';
 import { StudentFeeDetail, TuitionFeeOverview, FeePayment, FeePaymentMode } from '@/types/fee';
 import { Batch, FeeStatus } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -63,6 +65,10 @@ export default function TeacherFeesScreen() {
   const [configMonthlyFee, setConfigMonthlyFee] = useState('1500');
   const [configDueDay, setConfigDueDay] = useState('5');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  // Student Fee Portal & Payment QR Setup
+  const { paymentConfig, updatePaymentConfig } = useTeacherPreferences();
+  const [isPaymentConfigModalVisible, setIsPaymentConfigModalVisible] = useState(false);
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);
@@ -282,13 +288,31 @@ export default function TeacherFeesScreen() {
         subtitle="Tuition dues, ledger & WhatsApp receipts"
         showBack
         rightAction={
-          <Pressable
-            style={styles.configBtn}
-            onPress={() => setIsConfigModalVisible(true)}
-            hitSlop={8}
-          >
-            <Feather name="sliders" size={18} color={theme.colors.primary.main} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable
+              style={[
+                styles.configBtn,
+                paymentConfig?.isEnabled && { backgroundColor: '#DCFCE7' },
+              ]}
+              onPress={() => setIsPaymentConfigModalVisible(true)}
+              hitSlop={8}
+              accessibilityLabel="Setup UPI & Online Fee Portal"
+            >
+              <Feather
+                name="credit-card"
+                size={17}
+                color={paymentConfig?.isEnabled ? '#16A34A' : theme.colors.primary.main}
+              />
+            </Pressable>
+            <Pressable
+              style={styles.configBtn}
+              onPress={() => setIsConfigModalVisible(true)}
+              hitSlop={8}
+              accessibilityLabel="Configure Batch Tuition Fees"
+            >
+              <Feather name="sliders" size={17} color={theme.colors.primary.main} />
+            </Pressable>
+          </View>
         }
       />
 
@@ -368,6 +392,56 @@ export default function TeacherFeesScreen() {
             </View>
           </Card>
         )}
+
+        {/* 2. Online Payment & Student Fee Portal Banner */}
+        <Pressable
+          style={({ pressed }) => [pressed && { opacity: 0.85 }]}
+          onPress={() => setIsPaymentConfigModalVisible(true)}
+        >
+          <Card
+            variant="outlined"
+            padding="md"
+            style={[
+              styles.upiBannerCard,
+              paymentConfig?.isEnabled ? styles.upiBannerActive : styles.upiBannerInactive,
+            ]}
+          >
+            <View style={styles.upiBannerRow}>
+              <View
+                style={[
+                  styles.upiBannerIconCircle,
+                  {
+                    backgroundColor: paymentConfig?.isEnabled ? '#DCFCE7' : theme.colors.primary.bg,
+                  },
+                ]}
+              >
+                <Feather
+                  name={paymentConfig?.isEnabled ? 'check-circle' : 'credit-card'}
+                  size={18}
+                  color={paymentConfig?.isEnabled ? '#16A34A' : theme.colors.primary.main}
+                />
+              </View>
+
+              <View style={{ flex: 1, gap: 2 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.upiBannerTitle}>Student Fee Portal & UPI</Text>
+                  <Badge
+                    label={paymentConfig?.isEnabled ? 'ONLINE ACTIVE' : 'PORTAL OFF'}
+                    variant={paymentConfig?.isEnabled ? 'success' : 'neutral'}
+                    size="sm"
+                  />
+                </View>
+                <Text style={styles.upiBannerSub}>
+                  {paymentConfig?.isEnabled
+                    ? `Accepting UPI (${paymentConfig.upiId || 'No UPI ID set'}) • Tap to manage QR & details`
+                    : 'Tap to configure UPI, QR & allow students to pay and view dues online'}
+                </Text>
+              </View>
+
+              <Feather name="chevron-right" size={18} color={theme.colors.text.tertiary} />
+            </View>
+          </Card>
+        </Pressable>
 
         {/* 2. Batch Selector Filter Pills */}
         <ScrollView
@@ -873,7 +947,13 @@ export default function TeacherFeesScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+      {/* Teacher Payment & UPI Setup Modal */}
+      <TeacherPaymentConfigModal
+        visible={isPaymentConfigModalVisible}
+        onClose={() => setIsPaymentConfigModalVisible(false)}
+        initialConfig={paymentConfig}
+        onSave={updatePaymentConfig}
+      />
     </SafeAreaView>
   );
 }
@@ -890,6 +970,40 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary.bg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  upiBannerCard: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  upiBannerActive: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  upiBannerInactive: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+  },
+  upiBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  upiBannerIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upiBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+  },
+  upiBannerSub: {
+    fontSize: 11,
+    color: theme.colors.text.secondary,
+    lineHeight: 15,
   },
   scrollContent: {
     padding: theme.spacing.md,

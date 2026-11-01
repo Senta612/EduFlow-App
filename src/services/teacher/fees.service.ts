@@ -4,6 +4,7 @@ import {
   StudentFeeDetail,
   TuitionFeeOverview,
   FeePaymentMode,
+  TeacherPaymentConfig,
 } from '@/types/fee';
 import { FeeStatus, Batch } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
@@ -400,6 +401,41 @@ export class FeesService {
       `Thank you for your timely payment!`,
       `*${institute}*`,
     ].join('\n');
+  }
+
+  // 5. Teacher Payment & Online UPI Configuration
+  async getPaymentConfig(): Promise<TeacherPaymentConfig> {
+    return getStored<TeacherPaymentConfig>(
+      STORAGE_KEYS.TEACHER_PAYMENT_CONFIG,
+      {
+        isEnabled: false,
+        upiId: '',
+        payeeName: '',
+        phoneNumber: '',
+        instructions: 'Please send payment confirmation screenshot on WhatsApp.',
+        acceptOnlinePayment: true,
+      },
+    );
+  }
+
+  async savePaymentConfig(config: TeacherPaymentConfig): Promise<TeacherPaymentConfig> {
+    const updated: TeacherPaymentConfig = {
+      ...config,
+      updatedAt: new Date().toISOString(),
+    };
+    await setStored(STORAGE_KEYS.TEACHER_PAYMENT_CONFIG, updated);
+
+    // Sync fee tracking toggle
+    if (updated.isEnabled) {
+      await setStored(STORAGE_KEYS.FEE_STATUS_ENABLED, 'true');
+    }
+
+    return updated;
+  }
+
+  async isFeeStatusEnabled(): Promise<boolean> {
+    const raw = await getStored<string>(STORAGE_KEYS.FEE_STATUS_ENABLED, 'false');
+    return raw === 'true';
   }
 }
 
