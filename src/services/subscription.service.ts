@@ -269,29 +269,26 @@ class SubscriptionService {
   }
 
   /**
-   * Check entitlement for a teacher operation (batch creation, materials upload, etc.)
+   * Check entitlement for a teacher operation (attendance, homework, marks, batches, materials)
    */
-  async checkEntitlement(): Promise<{ allowed: boolean; reason?: string }> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    // If no user is logged in, or user is student, we allow student access without individual subscription
-    if (!user) {
-      return { allowed: true };
+  async checkEntitlement(): Promise<{ allowed: boolean; isExpired: boolean; reason?: string }> {
+    const teacherId = await this.resolveCurrentTeacherId();
+    if (!teacherId) {
+      return { allowed: true, isExpired: false };
     }
 
-    const state = await this.getSubscriptionState(user.id);
+    const state = await this.getSubscriptionState(teacherId);
     if (!state.isPro) {
       return {
         allowed: false,
+        isExpired: state.isExpired,
         reason: state.isExpired
-          ? 'Your EduFlow Pro subscription or trial has expired. Please renew to continue creating batches and uploading materials.'
-          : 'Please activate your 30-day free trial or subscribe to EduFlow Pro to unlock this feature.',
+          ? 'Your EduFlow Pro subscription has expired. Please renew your plan to continue recording attendance, creating homework, and updating marks.'
+          : 'Please activate your 30-day free trial or subscribe to EduFlow Pro to perform this action.',
       };
     }
 
-    return { allowed: true };
+    return { allowed: true, isExpired: false };
   }
 
   /**
