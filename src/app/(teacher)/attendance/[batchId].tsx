@@ -25,6 +25,8 @@ import { Batch, StudentAttendanceItem, AttendanceStatus } from '@/types/teacher'
 import { theme } from '@/theme';
 
 import { SuccessModal } from '@/components/ui/SuccessModal';
+import { useSubscription } from '@/hooks/useSubscription';
+import { SubscriptionExpiredModal } from '@/components/subscription';
 
 type AttendanceFilter = 'all' | 'present' | 'absent';
 
@@ -65,6 +67,8 @@ export default function TakeAttendanceScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const sub = useSubscription();
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!batchId) return;
@@ -138,16 +142,25 @@ export default function TakeAttendanceScreen() {
   const handleSubmit = async () => {
     if (!batchId || items.length === 0 || !batch) return;
 
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await teacherService.submitAttendance(batchId, attendanceDateIso, items);
       setIsSuccessModalVisible(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting attendance:', error);
-      Alert.alert(
-        'Submission Failed',
-        'Could not save attendance records. Please check your network and try again.',
-      );
+      if (error?.code === 'SUBSCRIPTION_EXPIRED' || error?.message?.includes('subscription')) {
+        setIsExpiredModalVisible(true);
+      } else {
+        Alert.alert(
+          'Submission Failed',
+          error?.message || 'Could not save attendance records. Please check your network and try again.',
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -206,6 +219,20 @@ export default function TakeAttendanceScreen() {
         subtitle={`${batch.name} • ${batch.grade} • ${batch.subject}`}
         showBack
       />
+
+      {/* Subscription Expired Notice Banner */}
+      {sub.isExpired && (
+        <Pressable
+          style={styles.expiredBanner}
+          onPress={() => router.push('/(teacher)/subscription/plans')}
+        >
+          <Feather name="alert-triangle" size={16} color="#DC2626" />
+          <Text style={styles.expiredBannerText}>
+            Pro subscription expired. Tap to renew and save today's attendance.
+          </Text>
+          <Feather name="chevron-right" size={16} color="#DC2626" />
+        </Pressable>
+      )}
 
       {/* Date & Quick Action Banner */}
       <View style={styles.banner}>
@@ -534,6 +561,13 @@ export default function TakeAttendanceScreen() {
           variant: 'ghost',
         }}
       />
+
+      {/* Subscription Expired Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="record or update attendance"
+      />
     </View>
   );
 }
@@ -542,6 +576,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FECACA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   center: {
     alignItems: 'center',

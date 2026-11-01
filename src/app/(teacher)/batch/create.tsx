@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuccessModal } from '@/components/ui/SuccessModal';
 import { TimeRangePicker } from '@/components/ui/TimeRangePicker';
+import { SubscriptionExpiredModal } from '@/components/subscription';
+import { useSubscription } from '@/hooks/useSubscription';
 import { teacherService } from '@/services/teacher.service';
 import { notificationService } from '@/services/notifications/notification.service';
 import { Batch } from '@/types/teacher';
@@ -75,10 +77,12 @@ export default function CreateBatchScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
+  const sub = useSubscription();
 
   const [selectedDays, setSelectedDays] = useState<string[]>(['Mon', 'Wed', 'Fri']);
   const [daysError, setDaysError] = useState<string | null>(null);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
   const [createdBatch, setCreatedBatch] = useState<Batch | null>(null);
 
   const {
@@ -122,6 +126,10 @@ export default function CreateBatchScreen() {
   };
 
   const onSubmit = async (data: CreateBatchFormData) => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     if (selectedDays.length === 0) {
       setDaysError('Please select at least one schedule day');
       return;
@@ -148,6 +156,10 @@ export default function CreateBatchScreen() {
         console.warn('Failed to schedule batch reminder:', err);
       });
     } catch (error) {
+      if ((error as Error)?.message === 'SUBSCRIPTION_EXPIRED' || (error as any)?.code === 'SUBSCRIPTION_EXPIRED') {
+        setIsExpiredModalVisible(true);
+        return;
+      }
       console.error('Failed to create batch:', error);
       Alert.alert(
         'Creation Failed',
@@ -181,6 +193,19 @@ export default function CreateBatchScreen() {
         subtitle="Create a new tuition teaching group"
         showBack
       />
+
+      {sub.isExpired && (
+        <Pressable
+          onPress={() => setIsExpiredModalVisible(true)}
+          style={styles.expiredBanner}
+        >
+          <Feather name="alert-circle" size={16} color={theme.colors.semantic.warning.main} />
+          <Text variant="caption" style={styles.expiredBannerText}>
+            Your subscription has expired. Creating new batches is restricted in read-only mode.
+          </Text>
+          <Feather name="chevron-right" size={14} color={theme.colors.semantic.warning.main} />
+        </Pressable>
+      )}
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
@@ -436,6 +461,13 @@ export default function CreateBatchScreen() {
           onPress: handleBackToBatches,
         }}
       />
+
+      {/* Subscription Expired Paywall Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="Batch Creation"
+      />
     </View>
   );
 }
@@ -444,6 +476,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: 16,
   },
   keyboardAvoid: {
     flex: 1,

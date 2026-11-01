@@ -20,8 +20,11 @@ import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuccessModal } from '@/components/ui/SuccessModal';
 import { DatePickerInput } from '@/components/ui/DatePicker';
-import { teacherService } from '@/services/teacher.service';
 import { Batch } from '@/types/teacher';
+import { teacherService } from '@/services/teacher.service';
+import { useSubscription } from '@/hooks/useSubscription';
+import { SubscriptionExpiredModal } from '@/components/subscription';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
 const homeworkSchema = z.object({
@@ -45,6 +48,8 @@ export default function CreateHomeworkScreen() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const [createdInfo, setCreatedInfo] = useState<{ title: string; batchName: string; dueDate: string } | null>(null);
+  const sub = useSubscription();
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
 
   const {
     control,
@@ -82,6 +87,11 @@ export default function CreateHomeworkScreen() {
   }, [initialBatchId, setValue]);
 
   const onSubmit = async (data: HomeworkFormData) => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
+
     try {
       const targetBatch = batches.find((b) => b.id === data.batchId);
       const batchName = targetBatch ? `${targetBatch.name || targetBatch.subject} (${targetBatch.grade})` : 'General';
@@ -100,12 +110,16 @@ export default function CreateHomeworkScreen() {
         dueDate: data.dueDate,
       });
       setIsSuccessModalVisible(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create homework:', error);
-      Alert.alert(
-        'Publication Error',
-        'Could not publish homework. Please verify fields and try again.',
-      );
+      if (error?.code === 'SUBSCRIPTION_EXPIRED' || error?.message?.includes('subscription')) {
+        setIsExpiredModalVisible(true);
+      } else {
+        Alert.alert(
+          'Publication Error',
+          error?.message || 'Could not publish homework. Please verify fields and try again.',
+        );
+      }
     }
   };
 
@@ -125,6 +139,20 @@ export default function CreateHomeworkScreen() {
         subtitle="Assign practice exercises to students"
         showBack
       />
+
+      {/* Subscription Expired Notice Banner */}
+      {sub.isExpired && (
+        <Pressable
+          style={styles.expiredBanner}
+          onPress={() => router.push('/(teacher)/subscription/plans')}
+        >
+          <Feather name="alert-triangle" size={16} color="#DC2626" />
+          <Text style={styles.expiredBannerText}>
+            Pro subscription expired. Tap to renew and assign homework.
+          </Text>
+          <Feather name="chevron-right" size={16} color="#DC2626" />
+        </Pressable>
+      )}
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -276,6 +304,13 @@ export default function CreateHomeworkScreen() {
           onPress: handleSuccessClose,
         }}
       />
+
+      {/* Subscription Expired Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="create homework assignments"
+      />
     </View>
   );
 }
@@ -287,6 +322,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FECACA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   scrollContent: {
     padding: theme.spacing.lg,

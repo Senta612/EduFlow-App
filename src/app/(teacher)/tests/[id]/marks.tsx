@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   ScrollView,
+  Pressable,
   TextInput,
   ActivityIndicator,
   Alert,
@@ -21,6 +22,8 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuccessModal } from '@/components/ui/SuccessModal';
+import { useSubscription } from '@/hooks/useSubscription';
+import { SubscriptionExpiredModal } from '@/components/subscription';
 import { teacherService } from '@/services/teacher.service';
 import { Test, StudentMark } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -38,6 +41,8 @@ export default function EnterTestMarksScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const sub = useSubscription();
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -159,6 +164,11 @@ export default function EnterTestMarksScreen() {
   const handleSaveMarks = async () => {
     if (!id || !test) return;
 
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
+
     // Check if there are any pending errors
     if (Object.keys(inputErrors).length > 0) {
       Alert.alert(
@@ -172,9 +182,13 @@ export default function EnterTestMarksScreen() {
     try {
       await teacherService.saveTestMarks(id, marks);
       setIsSuccessModalVisible(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save test marks:', error);
-      Alert.alert('Error', 'Could not save marks. Please try again.');
+      if (error?.code === 'SUBSCRIPTION_EXPIRED' || error?.message?.includes('subscription')) {
+        setIsExpiredModalVisible(true);
+      } else {
+        Alert.alert('Error', error?.message || 'Could not save marks. Please try again.');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -247,6 +261,20 @@ export default function EnterTestMarksScreen() {
           subtitle={`${test.title} • Max: ${test.maxMarks}`}
           showBack
         />
+
+        {/* Subscription Expired Notice Banner */}
+        {sub.isExpired && (
+          <Pressable
+            style={styles.expiredBanner}
+            onPress={() => router.push('/(teacher)/subscription/plans')}
+          >
+            <Feather name="alert-triangle" size={16} color="#DC2626" />
+            <Text style={styles.expiredBannerText}>
+              Pro subscription expired. Tap to renew and enter test marks.
+            </Text>
+            <Feather name="chevron-right" size={16} color="#DC2626" />
+          </Pressable>
+        )}
 
         {/* Assessment Meta Banner */}
         <View style={styles.banner}>
@@ -474,6 +502,13 @@ export default function EnterTestMarksScreen() {
             : undefined
         }
       />
+
+      {/* Subscription Expired Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="enter and save test marks"
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -485,6 +520,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FECACA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   center: {
     alignItems: 'center',

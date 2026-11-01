@@ -23,6 +23,8 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { UploadMaterialModal } from '@/components/batch/UploadMaterialModal';
+import { SubscriptionExpiredModal } from '@/components/subscription';
+import { useSubscription } from '@/hooks/useSubscription';
 import { teacherService } from '@/services/teacher.service';
 import { Batch, StudyMaterial, StudyMaterialCategory } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -41,6 +43,7 @@ const FILTER_PILLS: { key: FilterCategory; label: string }[] = [
 export default function AllStudyMaterialsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const sub = useSubscription();
 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('all');
@@ -50,6 +53,7 @@ export default function AllStudyMaterialsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
@@ -132,6 +136,10 @@ export default function AllStudyMaterialsScreen() {
   };
 
   const handleDelete = (material: StudyMaterial) => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     Alert.alert(
       'Delete Material',
       `Delete "${material.title}"? Students in this batch will no longer see it.`,
@@ -204,6 +212,10 @@ export default function AllStudyMaterialsScreen() {
             size="sm"
             variant="primary"
             onPress={() => {
+              if (!sub.isPro) {
+                setIsExpiredModalVisible(true);
+                return;
+              }
               if (batches.length === 0) {
                 Alert.alert('No Batches', 'Please create a batch first before uploading study material.');
                 return;
@@ -213,6 +225,20 @@ export default function AllStudyMaterialsScreen() {
           />
         }
       />
+
+      {sub.isExpired && (
+        <TouchableOpacity
+          onPress={() => setIsExpiredModalVisible(true)}
+          style={styles.expiredBanner}
+          activeOpacity={0.8}
+        >
+          <Feather name="alert-circle" size={16} color={theme.colors.semantic.warning.main} />
+          <Text variant="caption" style={styles.expiredBannerText}>
+            Your subscription has expired. Uploading and managing study materials is locked in read-only mode.
+          </Text>
+          <Feather name="chevron-right" size={14} color={theme.colors.semantic.warning.main} />
+        </TouchableOpacity>
+      )}
 
       <ScrollView
         style={styles.scroll}
@@ -441,6 +467,13 @@ export default function AllStudyMaterialsScreen() {
           onUploadSuccess={loadData}
         />
       ) : null}
+
+      {/* Subscription Expired Paywall Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="Study Material Sharing & Uploads"
+      />
     </View>
   );
 }
@@ -449,6 +482,22 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: 16,
   },
   scroll: {
     flex: 1,

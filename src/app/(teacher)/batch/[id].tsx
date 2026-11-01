@@ -39,6 +39,8 @@ import {
   Test,
   StudyMaterial,
 } from '@/types/teacher';
+import { useSubscription } from '@/hooks/useSubscription';
+import { SubscriptionExpiredModal } from '@/components/subscription';
 import { theme } from '@/theme';
 
 type BatchSectionTab =
@@ -72,6 +74,20 @@ export default function BatchDetailScreen() {
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<BatchSectionTab>('overview');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Subscription Entitlement Guard
+  const sub = useSubscription();
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
+  const [expiredFeatureName, setExpiredFeatureName] = useState<string | undefined>(undefined);
+
+  const handleGuardedAction = (action: () => void, featureName?: string) => {
+    if (sub.isPro) {
+      action();
+      return;
+    }
+    setExpiredFeatureName(featureName);
+    setIsExpiredModalVisible(true);
+  };
 
   // Student Form Modal States
   const [isStudentFormModalVisible, setIsStudentFormModalVisible] = useState(false);
@@ -209,6 +225,13 @@ export default function BatchDetailScreen() {
     }
 
     if (!batch) return;
+
+    if (!sub.isPro) {
+      setExpiredFeatureName('add or edit students');
+      setIsExpiredModalVisible(true);
+      return;
+    }
+
     setIsSubmittingStudent(true);
 
     try {
@@ -250,9 +273,14 @@ export default function BatchDetailScreen() {
       }
 
       setIsStudentFormModalVisible(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save student:', error);
-      Alert.alert('Error', 'Failed to save student details. Please try again.');
+      if (error?.code === 'SUBSCRIPTION_EXPIRED' || error?.message?.includes('subscription')) {
+        setExpiredFeatureName('add or edit students');
+        setIsExpiredModalVisible(true);
+      } else {
+        Alert.alert('Error', error?.message || 'Failed to save student details. Please try again.');
+      }
     } finally {
       setIsSubmittingStudent(false);
     }
@@ -315,6 +343,20 @@ export default function BatchDetailScreen() {
         }
       />
 
+      {/* Expired Subscription Banner if applicable */}
+      {sub.isExpired && (
+        <Pressable
+          style={styles.expiredBanner}
+          onPress={() => router.push('/(teacher)/subscription/plans')}
+        >
+          <Feather name="alert-triangle" size={16} color="#DC2626" />
+          <Text style={styles.expiredBannerText}>
+            Pro subscription expired. Tap to renew and unlock editing.
+          </Text>
+          <Feather name="chevron-right" size={16} color="#DC2626" />
+        </Pressable>
+      )}
+
       {/* Section Tabs */}
       <View style={styles.tabsContainer}>
         <ScrollView
@@ -376,18 +418,28 @@ export default function BatchDetailScreen() {
             testsList={testsList}
             materialsCount={materialsList.length}
             onSwitchTab={setActiveTab}
-            onTakeAttendance={() => router.push(`/(teacher)/attendance/${batch.id}`)}
-            onAddMaterial={() => setIsUploadModalVisible(true)}
-            onDeleteBatch={() => setIsDeleteModalVisible(true)}
+            onTakeAttendance={() =>
+              handleGuardedAction(() => router.push(`/(teacher)/attendance/${batch.id}`), 'record attendance')
+            }
+            onAddMaterial={() =>
+              handleGuardedAction(() => setIsUploadModalVisible(true), 'upload study materials')
+            }
+            onDeleteBatch={() =>
+              handleGuardedAction(() => setIsDeleteModalVisible(true), 'delete this batch')
+            }
           />
         )}
 
         {activeTab === 'students' && (
           <BatchStudentsSection
             students={students}
-            onOpenAddStudent={handleOpenAddStudent}
+            onOpenAddStudent={() =>
+              handleGuardedAction(handleOpenAddStudent, 'add new students')
+            }
             onOpenProfile={handleOpenProfile}
-            onOpenEditStudent={handleOpenEditStudent}
+            onOpenEditStudent={(st) =>
+              handleGuardedAction(() => handleOpenEditStudent(st), 'edit student details')
+            }
             onOpenShareInvite={handleOpenShareInvite}
           />
         )}
@@ -396,7 +448,9 @@ export default function BatchDetailScreen() {
           <BatchAttendanceSection
             batch={batch}
             attendanceHistory={attendanceHistory}
-            onTakeAttendance={() => router.push(`/(teacher)/attendance/${batch.id}`)}
+            onTakeAttendance={() =>
+              handleGuardedAction(() => router.push(`/(teacher)/attendance/${batch.id}`), 'record attendance')
+            }
             onOpenAttendanceDetail={handleOpenAttendanceDetail}
           />
         )}
@@ -406,10 +460,16 @@ export default function BatchDetailScreen() {
             batch={batch}
             homeworkList={homeworkList}
             onCreateHomework={() =>
-              router.push(`/(teacher)/homework/create?batchId=${batch.id}`)
+              handleGuardedAction(
+                () => router.push(`/(teacher)/homework/create?batchId=${batch.id}`),
+                'create homework assignments',
+              )
             }
             onOpenHomeworkSubmissions={(hwId) =>
-              router.push(`/(teacher)/homework/${hwId}/submissions`)
+              handleGuardedAction(
+                () => router.push(`/(teacher)/homework/${hwId}/submissions`),
+                'record homework submissions',
+              )
             }
           />
         )}
@@ -419,10 +479,16 @@ export default function BatchDetailScreen() {
             batch={batch}
             testsList={testsList}
             onCreateTest={() =>
-              router.push(`/(teacher)/tests/create?batchId=${batch.id}`)
+              handleGuardedAction(
+                () => router.push(`/(teacher)/tests/create?batchId=${batch.id}`),
+                'create a test',
+              )
             }
             onOpenMarks={(testId) =>
-              router.push(`/(teacher)/tests/${testId}/marks`)
+              handleGuardedAction(
+                () => router.push(`/(teacher)/tests/${testId}/marks`),
+                'enter test marks',
+              )
             }
           />
         )}
@@ -431,7 +497,9 @@ export default function BatchDetailScreen() {
           <BatchMaterialsSection
             batch={batch}
             materials={materialsList}
-            onUploadPress={() => setIsUploadModalVisible(true)}
+            onUploadPress={() =>
+              handleGuardedAction(() => setIsUploadModalVisible(true), 'upload study materials')
+            }
             onRefreshMaterials={loadBatchData}
           />
         )}
@@ -496,6 +564,13 @@ export default function BatchDetailScreen() {
         onClose={() => setIsDeleteModalVisible(false)}
         onConfirmDelete={handleDeleteBatch}
         isDeleting={isDeletingBatch}
+      />
+
+      {/* Subscription Expired Restriction Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName={expiredFeatureName}
       />
 
       {/* Floating Animated Success Alert Toast */}
@@ -569,5 +644,21 @@ const styles = StyleSheet.create({
   contentScroll: {
     padding: theme.spacing.lg,
     gap: theme.spacing.lg,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FECACA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
   },
 });

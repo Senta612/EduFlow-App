@@ -21,6 +21,7 @@ import {
   UpcomingTestsSection,
   MonthCalendarModal,
 } from '@/components/teacher';
+import { SubscriptionExpiredModal } from '@/components/subscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
 import { teacherService, isBatchScheduledOnDate } from '@/services/teacher.service';
@@ -72,6 +73,8 @@ export default function TeacherHomeScreen() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState<string>(toDateString(new Date()));
   const [isMonthModalVisible, setIsMonthModalVisible] = useState(false);
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
+  const [expiredFeature, setExpiredFeature] = useState('Class Management');
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -248,7 +251,7 @@ export default function TeacherHomeScreen() {
                 <Feather name="alert-triangle" size={18} color="#DC2626" />
                 <View style={styles.subBannerTextWrap}>
                   <Text style={styles.subBannerTitleExpired}>Pro Access Expired</Text>
-                  <Text style={styles.subBannerDescExpired}>Renew your plan to continue creating batches & sharing materials.</Text>
+                  <Text style={styles.subBannerDescExpired}>Renew your plan to record attendance, create homework, grade tests & manage batches.</Text>
                 </View>
                 <Feather name="chevron-right" size={18} color="#DC2626" />
               </Pressable>
@@ -330,11 +333,16 @@ export default function TeacherHomeScreen() {
                     <TodayClassCard
                       key={cls.id}
                       cls={cls}
-                      onTakeAttendance={(batchId) =>
+                      onTakeAttendance={(batchId) => {
+                        if (!sub.isPro) {
+                          setExpiredFeature('Attendance Recording');
+                          setIsExpiredModalVisible(true);
+                          return;
+                        }
                         router.push(
                           `/(teacher)/attendance/${batchId}${selectedDateStr ? `?date=${selectedDateStr}` : ''}` as unknown as import('expo-router').Href
-                        )
-                      }
+                        );
+                      }}
                       onOpenBatchWorkspace={(batchId) =>
                         router.push(`/(teacher)/batch/${batchId}`)
                       }
@@ -347,6 +355,11 @@ export default function TeacherHomeScreen() {
             {/* 3. Quick Actions */}
             <QuickActionGrid
               onPressAttendance={() => {
+                if (!sub.isPro) {
+                  setExpiredFeature('Attendance Recording');
+                  setIsExpiredModalVisible(true);
+                  return;
+                }
                 const firstPending =
                   selectedDateBatches.find((c) => !c.attendanceTakenForDate) ?? batches[0];
                 if (firstPending) {
@@ -355,8 +368,20 @@ export default function TeacherHomeScreen() {
                   router.push('/(teacher)/(tabs)/batches');
                 }
               }}
-              onPressHomework={() => router.push('/(teacher)/homework/create')}
+              onPressHomework={() => {
+                if (!sub.isPro) {
+                  setExpiredFeature('Homework Assignment');
+                  setIsExpiredModalVisible(true);
+                  return;
+                }
+                router.push('/(teacher)/homework/create');
+              }}
               onPressMarks={() => {
+                if (!sub.isPro) {
+                  setExpiredFeature('Test Marks & Grading');
+                  setIsExpiredModalVisible(true);
+                  return;
+                }
                 if (upcomingTests.length > 0) {
                   router.push(`/(teacher)/tests/${upcomingTests[0].id}/marks`);
                 } else {
@@ -368,8 +393,22 @@ export default function TeacherHomeScreen() {
             {/* 4. Upcoming Tests */}
             <UpcomingTestsSection
               upcomingTests={upcomingTests}
-              onCreateTest={() => router.push('/(teacher)/tests/create')}
-              onEnterMarks={(testId) => router.push(`/(teacher)/tests/${testId}/marks`)}
+              onCreateTest={() => {
+                if (!sub.isPro) {
+                  setExpiredFeature('Test Creation');
+                  setIsExpiredModalVisible(true);
+                  return;
+                }
+                router.push('/(teacher)/tests/create');
+              }}
+              onEnterMarks={(testId) => {
+                if (!sub.isPro) {
+                  setExpiredFeature('Test Marks & Grading');
+                  setIsExpiredModalVisible(true);
+                  return;
+                }
+                router.push(`/(teacher)/tests/${testId}/marks`);
+              }}
             />
           </>
         )}
@@ -386,6 +425,13 @@ export default function TeacherHomeScreen() {
         }}
         batches={batches}
         attendanceRecords={attendanceRecords}
+      />
+
+      {/* Subscription Expired Paywall Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName={expiredFeature}
       />
     </View>
   );

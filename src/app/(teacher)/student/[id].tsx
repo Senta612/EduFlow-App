@@ -29,6 +29,8 @@ import {
   UpdateFeeStatusModal,
 } from '@/components/student';
 import { ShareStudentReportModal } from '@/components/reports';
+import { SubscriptionExpiredModal } from '@/components/subscription';
+import { useSubscription } from '@/hooks/useSubscription';
 import { teacherService } from '@/services/teacher.service';
 import { StudentProfileData, FeeStatus } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -39,10 +41,12 @@ export default function StudentProfileScreen() {
   const { id, batchId } = useLocalSearchParams<{ id: string; batchId?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const sub = useSubscription();
 
   const [data, setData] = useState<StudentProfileData | null>(null);
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
   const [isLoading, setIsLoading] = useState(true);
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
 
   // Share Progress Report Modal State
   const [isProgressModalVisible, setIsProgressModalVisible] = useState(false);
@@ -148,6 +152,10 @@ export default function StudentProfileScreen() {
 
   // Edit Form Handlers
   const handleOpenEdit = () => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     if (!data) return;
     setEditName(data.student.name);
     setEditRoll(data.student.rollNumber);
@@ -159,6 +167,10 @@ export default function StudentProfileScreen() {
   };
 
   const handleSaveEdit = async () => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     if (!data) return;
     const errors: { name?: string; roll?: string } = {};
     if (!editName.trim()) errors.name = 'Student name is required';
@@ -189,6 +201,10 @@ export default function StudentProfileScreen() {
         icon: 'user-check',
       });
     } catch (error) {
+      if ((error as Error)?.message === 'SUBSCRIPTION_EXPIRED' || (error as any)?.code === 'SUBSCRIPTION_EXPIRED') {
+        setIsExpiredModalVisible(true);
+        return;
+      }
       console.error('Failed to update student:', error);
       Alert.alert('Error', 'Failed to update student. Please try again.');
     } finally {
@@ -198,6 +214,10 @@ export default function StudentProfileScreen() {
 
   // Quick Fee Status Handler with Optimistic UI Update & Animated Success Alert
   const handleSaveFeeStatus = async (newStatus: FeeStatus) => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     if (!data) return;
     setIsSubmittingFeeStatus(true);
     try {
@@ -255,6 +275,10 @@ export default function StudentProfileScreen() {
         newStatus,
       );
     } catch (error) {
+      if ((error as Error)?.message === 'SUBSCRIPTION_EXPIRED' || (error as any)?.code === 'SUBSCRIPTION_EXPIRED') {
+        setIsExpiredModalVisible(true);
+        return;
+      }
       console.error('Failed to update student fee status:', error);
       Alert.alert('Error', 'Failed to update fee status. Please try again.');
       await loadData();
@@ -264,6 +288,10 @@ export default function StudentProfileScreen() {
   };
 
   const handleDeleteStudent = () => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     if (!data) return;
     Alert.alert(
       'Remove Student',
@@ -279,6 +307,10 @@ export default function StudentProfileScreen() {
               Alert.alert('Removed', `${data.student.name} has been removed.`);
               router.back();
             } catch (error) {
+              if ((error as Error)?.message === 'SUBSCRIPTION_EXPIRED' || (error as any)?.code === 'SUBSCRIPTION_EXPIRED') {
+                setIsExpiredModalVisible(true);
+                return;
+              }
               console.error('Failed to remove student:', error);
               Alert.alert('Error', 'Could not remove student.');
             }
@@ -342,6 +374,19 @@ export default function StudentProfileScreen() {
           </View>
         }
       />
+
+      {sub.isExpired && (
+        <Pressable
+          onPress={() => setIsExpiredModalVisible(true)}
+          style={styles.expiredBanner}
+        >
+          <Feather name="alert-circle" size={16} color={theme.colors.semantic.warning.main} />
+          <Text variant="caption" style={styles.expiredBannerText}>
+            Your subscription has expired. Editing student profiles and fees are locked in read-only mode.
+          </Text>
+          <Feather name="chevron-right" size={14} color={theme.colors.semantic.warning.main} />
+        </Pressable>
+      )}
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
@@ -531,6 +576,12 @@ export default function StudentProfileScreen() {
           icon={successAlert.icon}
         />
       )}
+      {/* Subscription Expired Paywall Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="Student Profile & Fee Management"
+      />
     </SafeAreaView>
   );
 }
@@ -539,6 +590,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: 16,
   },
   loadingContainer: {
     flex: 1,

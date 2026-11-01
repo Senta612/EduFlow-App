@@ -28,6 +28,8 @@ import {
 } from '@/types/teacher';
 import { theme } from '@/theme';
 import { SuccessModal } from '@/components/ui/SuccessModal';
+import { useSubscription } from '@/hooks/useSubscription';
+import { SubscriptionExpiredModal } from '@/components/subscription';
 
 type FilterTab = 'all' | 'done' | 'half_done' | 'not_done';
 
@@ -38,6 +40,8 @@ export default function HomeworkSubmissionsScreen() {
 
   const [homework, setHomework] = useState<Homework | null>(null);
   const [items, setItems] = useState<StudentHomeworkItem[]>([]);
+  const sub = useSubscription();
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isLoading, setIsLoading] = useState(true);
@@ -116,13 +120,23 @@ export default function HomeworkSubmissionsScreen() {
 
   const handleSave = async () => {
     if (!id || !homework) return;
+
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
+
     setIsSaving(true);
     try {
       await teacherService.saveHomeworkSubmissions(id, homework.batchId, items);
       setIsSuccessModalVisible(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save homework submissions:', error);
-      Alert.alert('Error', 'Could not save submissions. Please try again.');
+      if (error?.code === 'SUBSCRIPTION_EXPIRED' || error?.message?.includes('subscription')) {
+        setIsExpiredModalVisible(true);
+      } else {
+        Alert.alert('Error', error?.message || 'Could not save submissions. Please try again.');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -191,6 +205,20 @@ export default function HomeworkSubmissionsScreen() {
         subtitle={`${homework.batchName} • Due: ${homework.dueDate}`}
         showBack
       />
+
+      {/* Subscription Expired Notice Banner */}
+      {sub.isExpired && (
+        <Pressable
+          style={styles.expiredBanner}
+          onPress={() => router.push('/(teacher)/subscription/plans')}
+        >
+          <Feather name="alert-triangle" size={16} color="#DC2626" />
+          <Text style={styles.expiredBannerText}>
+            Pro subscription expired. Tap to renew and update homework submissions.
+          </Text>
+          <Feather name="chevron-right" size={16} color="#DC2626" />
+        </Pressable>
+      )}
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -615,6 +643,13 @@ export default function HomeworkSubmissionsScreen() {
           variant: 'ghost',
         }}
       />
+
+      {/* Subscription Expired Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="update homework submissions"
+      />
     </View>
   );
 }
@@ -623,6 +658,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FECACA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   flex: {
     flex: 1,

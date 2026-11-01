@@ -238,7 +238,7 @@ export const TeacherPaymentConfigModal: React.FC<TeacherPaymentConfigModalProps>
                     value={upiId}
                     onChangeText={setUpiId}
                     autoCapitalize="none"
-                    leftIcon={<Feather name="at-sign" size={16} color={theme.colors.text.tertiary} />}
+                    leftContent={<Feather name="at-sign" size={16} color={theme.colors.text.tertiary} />}
                     helperText="Direct payments will be credited directly to this bank account."
                   />
 
@@ -247,7 +247,7 @@ export const TeacherPaymentConfigModal: React.FC<TeacherPaymentConfigModalProps>
                     placeholder="e.g. Sharma Coaching Academy"
                     value={payeeName}
                     onChangeText={setPayeeName}
-                    leftIcon={<Feather name="home" size={16} color={theme.colors.text.tertiary} />}
+                    leftContent={<Feather name="home" size={16} color={theme.colors.text.tertiary} />}
                     helperText="Displayed as receiver name inside student UPI apps."
                   />
 
@@ -257,7 +257,7 @@ export const TeacherPaymentConfigModal: React.FC<TeacherPaymentConfigModalProps>
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
                     keyboardType="phone-pad"
-                    leftIcon={<Feather name="phone" size={16} color={theme.colors.text.tertiary} />}
+                    leftContent={<Feather name="phone" size={16} color={theme.colors.text.tertiary} />}
                     helperText="For payment verification screenshots and parent queries."
                   />
                 </View>
@@ -317,7 +317,7 @@ export const TeacherPaymentConfigModal: React.FC<TeacherPaymentConfigModalProps>
                     onChangeText={setInstructions}
                     multiline
                     numberOfLines={2}
-                    leftIcon={<Feather name="info" size={16} color={theme.colors.text.tertiary} />}
+                    leftContent={<Feather name="info" size={16} color={theme.colors.text.tertiary} />}
                   />
                 </View>
               </>

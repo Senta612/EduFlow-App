@@ -23,6 +23,9 @@ import { SuccessModal } from '@/components/ui/SuccessModal';
 import { DatePickerInput, getFormattedDate } from '@/components/ui/DatePicker';
 import { teacherService } from '@/services/teacher.service';
 import { Batch, Test } from '@/types/teacher';
+import { useSubscription } from '@/hooks/useSubscription';
+import { SubscriptionExpiredModal } from '@/components/subscription';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '@/theme';
 
 const testSchema = z.object({
@@ -50,6 +53,8 @@ export default function CreateTestScreen() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const [createdTest, setCreatedTest] = useState<Test | null>(null);
+  const sub = useSubscription();
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
 
   const {
     control,
@@ -88,6 +93,11 @@ export default function CreateTestScreen() {
   }, [initialBatchId, setValue]);
 
   const onSubmit = async (data: TestFormData) => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
+
     try {
       Keyboard.dismiss();
       const targetBatch = batches.find((b) => b.id === data.batchId);
@@ -102,9 +112,13 @@ export default function CreateTestScreen() {
 
       setCreatedTest(newTest);
       setIsSuccessModalVisible(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create test:', error);
-      Alert.alert('Error', 'Could not create assessment. Please try again.');
+      if (error?.code === 'SUBSCRIPTION_EXPIRED' || error?.message?.includes('subscription')) {
+        setIsExpiredModalVisible(true);
+      } else {
+        Alert.alert('Error', error?.message || 'Could not create assessment. Please try again.');
+      }
     }
   };
 
@@ -133,6 +147,20 @@ export default function CreateTestScreen() {
         subtitle="Schedule a test & set maximum marks"
         showBack
       />
+
+      {/* Subscription Expired Notice Banner */}
+      {sub.isExpired && (
+        <Pressable
+          style={styles.expiredBanner}
+          onPress={() => router.push('/(teacher)/subscription/plans')}
+        >
+          <Feather name="alert-triangle" size={16} color="#DC2626" />
+          <Text style={styles.expiredBannerText}>
+            Pro subscription expired. Tap to renew and schedule assessments.
+          </Text>
+          <Feather name="chevron-right" size={16} color="#DC2626" />
+        </Pressable>
+      )}
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -299,6 +327,13 @@ export default function CreateTestScreen() {
           onPress: handleClose,
         }}
       />
+
+      {/* Subscription Expired Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="create assessments and tests"
+      />
     </View>
   );
 }
@@ -310,6 +345,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FECACA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   scrollContent: {
     padding: theme.spacing.lg,

@@ -22,12 +22,14 @@ import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useTeacherPreferences } from '@/providers';
 import { useTranslation } from '@/i18n';
 import { teacherService } from '@/services/teacher.service';
 import { feesService } from '@/services/teacher/fees.service';
 import { reportPdfService } from '@/services/pdf/reportPdf.service';
 import { TeacherPaymentConfigModal } from '@/components/teacher';
+import { SubscriptionExpiredModal } from '@/components/subscription';
 import { StudentFeeDetail, TuitionFeeOverview, FeePayment, FeePaymentMode } from '@/types/fee';
 import { Batch, FeeStatus } from '@/types/teacher';
 import { theme } from '@/theme';
@@ -36,7 +38,9 @@ export default function TeacherFeesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile } = useAuth();
+  const sub = useSubscription();
   const { language } = useTranslation();
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('all');
@@ -118,6 +122,10 @@ export default function TeacherFeesScreen() {
 
   // Open Payment Modal
   const handleOpenPaymentModal = (student: StudentFeeDetail) => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     setTargetStudent(student);
     setPaymentAmount(String(student.dueAmount > 0 ? student.dueAmount : student.monthlyFee));
     const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -129,6 +137,10 @@ export default function TeacherFeesScreen() {
 
   // Submit Payment
   const handleSavePayment = async (shareReceipt = false) => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     if (!targetStudent) return;
     const amountNum = parseFloat(paymentAmount);
     if (isNaN(amountNum) || amountNum <= 0) {
@@ -166,6 +178,10 @@ export default function TeacherFeesScreen() {
         Alert.alert('Payment Recorded', `Payment of ₹${amountNum} recorded successfully. Receipt #${newPayment.receiptNumber}`);
       }
     } catch (e) {
+      if ((e as Error)?.message === 'SUBSCRIPTION_EXPIRED' || (e as any)?.code === 'SUBSCRIPTION_EXPIRED') {
+        setIsExpiredModalVisible(true);
+        return;
+      }
       console.error('Failed to record payment:', e);
       Alert.alert('Error', 'Could not record payment. Please try again.');
     } finally {
@@ -210,6 +226,10 @@ export default function TeacherFeesScreen() {
 
   // Save Batch Fee Config
   const handleSaveBatchConfig = async () => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
     if (!configBatchId) return;
     const feeNum = parseFloat(configMonthlyFee);
     const dayNum = parseInt(configDueDay, 10);
@@ -225,6 +245,10 @@ export default function TeacherFeesScreen() {
       await loadData(true);
       Alert.alert('Success', 'Batch tuition fee configuration updated.');
     } catch (e) {
+      if ((e as Error)?.message === 'SUBSCRIPTION_EXPIRED' || (e as any)?.code === 'SUBSCRIPTION_EXPIRED') {
+        setIsExpiredModalVisible(true);
+        return;
+      }
       Alert.alert('Error', 'Failed to update fee configuration.');
     } finally {
       setIsSavingConfig(false);
@@ -294,7 +318,13 @@ export default function TeacherFeesScreen() {
                 styles.configBtn,
                 paymentConfig?.isEnabled && { backgroundColor: '#DCFCE7' },
               ]}
-              onPress={() => setIsPaymentConfigModalVisible(true)}
+              onPress={() => {
+                if (!sub.isPro) {
+                  setIsExpiredModalVisible(true);
+                  return;
+                }
+                setIsPaymentConfigModalVisible(true);
+              }}
               hitSlop={8}
               accessibilityLabel="Setup UPI & Online Fee Portal"
             >
@@ -306,7 +336,13 @@ export default function TeacherFeesScreen() {
             </Pressable>
             <Pressable
               style={styles.configBtn}
-              onPress={() => setIsConfigModalVisible(true)}
+              onPress={() => {
+                if (!sub.isPro) {
+                  setIsExpiredModalVisible(true);
+                  return;
+                }
+                setIsConfigModalVisible(true);
+              }}
               hitSlop={8}
               accessibilityLabel="Configure Batch Tuition Fees"
             >
@@ -315,6 +351,19 @@ export default function TeacherFeesScreen() {
           </View>
         }
       />
+
+      {sub.isExpired && (
+        <Pressable
+          onPress={() => setIsExpiredModalVisible(true)}
+          style={styles.expiredBanner}
+        >
+          <Feather name="alert-circle" size={16} color={theme.colors.semantic.warning.main} />
+          <Text variant="caption" style={styles.expiredBannerText}>
+            Your subscription has expired. Recording dues, payments & fee configurations are locked in read-only mode.
+          </Text>
+          <Feather name="chevron-right" size={14} color={theme.colors.semantic.warning.main} />
+        </Pressable>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -396,7 +445,13 @@ export default function TeacherFeesScreen() {
         {/* 2. Online Payment & Student Fee Portal Banner */}
         <Pressable
           style={({ pressed }) => [pressed && { opacity: 0.85 }]}
-          onPress={() => setIsPaymentConfigModalVisible(true)}
+          onPress={() => {
+            if (!sub.isPro) {
+              setIsExpiredModalVisible(true);
+              return;
+            }
+            setIsPaymentConfigModalVisible(true);
+          }}
         >
           <Card
             variant="outlined"
@@ -956,6 +1011,13 @@ export default function TeacherFeesScreen() {
         initialConfig={paymentConfig}
         onSave={updatePaymentConfig}
       />
+
+      {/* Subscription Expired Paywall Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="Fee Management & Collection"
+      />
     </SafeAreaView>
   );
 }
@@ -964,6 +1026,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: 16,
   },
   configBtn: {
     width: 36,

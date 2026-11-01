@@ -16,6 +16,8 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { BatchCard } from '@/components/ui/BatchCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SubscriptionExpiredModal } from '@/components/subscription';
+import { useSubscription } from '@/hooks/useSubscription';
 import { teacherService, isBatchScheduledToday } from '@/services/teacher.service';
 import { Batch } from '@/types/teacher';
 import { useTranslation } from '@/i18n';
@@ -27,6 +29,7 @@ export default function TeacherBatchesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
+  const sub = useSubscription();
 
   const [batches, setBatches] = useState<Batch[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +37,7 @@ export default function TeacherBatchesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
 
   const loadBatches = useCallback(async () => {
     setHasError(false);
@@ -93,6 +97,14 @@ export default function TeacherBatchesScreen() {
   const todayCount = useMemo(() => {
     return batches.filter((b) => isBatchScheduledToday(b.schedule)).length;
   }, [batches]);
+
+  const handleCreateBatch = () => {
+    if (!sub.isPro) {
+      setIsExpiredModalVisible(true);
+      return;
+    }
+    router.push('/(teacher)/batch/create');
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -196,6 +208,19 @@ export default function TeacherBatchesScreen() {
         </View>
       </View>
 
+      {sub.isExpired && (
+        <Pressable
+          onPress={() => setIsExpiredModalVisible(true)}
+          style={styles.expiredBanner}
+        >
+          <Feather name="alert-circle" size={16} color={theme.colors.semantic.warning.main} />
+          <Text variant="caption" style={styles.expiredBannerText}>
+            Your subscription has expired. Creating new batches is restricted in read-only mode.
+          </Text>
+          <Feather name="chevron-right" size={14} color={theme.colors.semantic.warning.main} />
+        </Pressable>
+      )}
+
       {/* Batches FlatList */}
       {isLoading ? (
         <View style={styles.centerContainer}>
@@ -259,7 +284,7 @@ export default function TeacherBatchesScreen() {
               onAction={
                 searchQuery
                   ? () => setSearchQuery('')
-                  : () => router.push('/(teacher)/batch/create')
+                  : handleCreateBatch
               }
             />
           }
@@ -272,12 +297,19 @@ export default function TeacherBatchesScreen() {
           styles.fab,
           { bottom: insets.bottom + 16 },
         ]}
-        onPress={() => router.push('/(teacher)/batch/create')}
+        onPress={handleCreateBatch}
         accessibilityRole="button"
         accessibilityLabel={t('batches.createBatch')}
       >
         <Feather name="plus" size={26} color="#FFFFFF" />
       </Pressable>
+
+      {/* Subscription Expired Paywall Modal */}
+      <SubscriptionExpiredModal
+        visible={isExpiredModalVisible}
+        onClose={() => setIsExpiredModalVisible(false)}
+        featureName="Batch Creation & Classroom Setup"
+      />
     </View>
   );
 }
@@ -286,6 +318,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.screen,
+  },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  expiredBannerText: {
+    flex: 1,
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: 16,
   },
   header: {
     flexDirection: 'row',
