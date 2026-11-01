@@ -67,15 +67,17 @@ class PaymentService {
         .eq('teacher_id', targetId)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
+      if (error) {
+        console.warn('[PaymentService] Supabase fetch error:', error.message);
+      } else if (data) {
         const mapped: PaymentRequest[] = data.map((r) => ({
           id: r.id,
           teacherId: r.teacher_id,
-          plan: r.plan as 'monthly' | 'yearly',
+          plan: (r.plan as 'monthly' | 'yearly') || 'monthly',
           amountPaise: r.amount_paise,
           paymentReference: r.payment_reference,
           transactionReference: r.transaction_reference,
-          status: r.status as PaymentRequestStatus,
+          status: (r.status as PaymentRequestStatus) || 'pending',
           createdAt: r.created_at,
           reviewedBy: r.reviewed_by,
           reviewedAt: r.reviewed_at,
@@ -86,7 +88,7 @@ class PaymentService {
         return mapped;
       }
     } catch (e) {
-      console.warn('Failed to fetch payment requests from Supabase:', e);
+      console.warn('[PaymentService] Failed to fetch payment requests from Supabase:', e);
     }
 
     // Local fallback

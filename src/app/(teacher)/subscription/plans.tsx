@@ -112,9 +112,11 @@ export default function SubscriptionPlansScreen() {
               selectedPlan === 'yearly' && styles.selectedPlanCard,
             ]}
           >
-            <View style={styles.popularBadgeWrap}>
+            {/* Top Right Best Value Highlight Badge */}
+            <View style={styles.cardBadgeRow}>
               <View style={styles.popularBadge}>
-                <Text style={styles.popularBadgeText}>BEST VALUE — SAVE ~17%</Text>
+                <Feather name="zap" size={11} color="#FFFFFF" />
+                <Text style={styles.popularBadgeText}>BEST VALUE — SAVE 17%</Text>
               </View>
             </View>
 
@@ -301,25 +303,33 @@ const styles = StyleSheet.create({
   },
   selectedPlanCard: {
     borderColor: theme.colors.primary.main,
-    backgroundColor: '#FAF5FF',
+    backgroundColor: theme.colors.primary.bg,
   },
-  popularBadgeWrap: {
-    position: 'absolute',
-    top: -12,
-    right: 18,
-    zIndex: 1,
+  cardBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 6,
   },
   popularBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: theme.colors.primary.main,
     paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    shadowColor: theme.colors.primary.main,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   popularBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
+    includeFontPadding: false,
   },
   planHeaderRow: {
     flexDirection: 'row',

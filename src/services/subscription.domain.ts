@@ -12,6 +12,15 @@ export interface UpiConfig {
 }
 
 /**
+ * Helper to safely parse ISO / date strings without throwing or returning NaN dates
+ */
+export function safeParseDate(val?: string | null): Date | null {
+  if (!val || typeof val !== 'string') return null;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
  * Pure domain logic: Evaluate subscription object and compute real-time access status
  */
 export function evaluateSubscription(
@@ -33,8 +42,8 @@ export function evaluateSubscription(
     };
   }
 
-  const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
-  const isPastPeriod = periodEnd ? periodEnd.getTime() <= referenceDate.getTime() : false;
+  const periodEnd = safeParseDate(subscription.currentPeriodEnd);
+  const isPastPeriod = periodEnd ? periodEnd.getTime() <= referenceDate.getTime() : true;
 
   // Status is active or trialing, and period end has not passed
   const isPro =
@@ -53,11 +62,15 @@ export function evaluateSubscription(
 
   let expiryDateFormatted: string | null = null;
   if (periodEnd) {
-    expiryDateFormatted = periodEnd.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    try {
+      expiryDateFormatted = periodEnd.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      expiryDateFormatted = null;
+    }
   }
 
   return {
@@ -90,12 +103,11 @@ export function calculateActivationPeriod(
     currentSubscription.status === 'active' &&
     currentSubscription.currentPeriodEnd
   ) {
-    const existingEnd = new Date(currentSubscription.currentPeriodEnd);
-    if (existingEnd.getTime() > activationTime.getTime()) {
+    const existingEnd = safeParseDate(currentSubscription.currentPeriodEnd);
+    if (existingEnd && existingEnd.getTime() > activationTime.getTime()) {
+      const existingStart = safeParseDate(currentSubscription.currentPeriodStart);
       return {
-        periodStart: currentSubscription.currentPeriodStart
-          ? new Date(currentSubscription.currentPeriodStart)
-          : activationTime,
+        periodStart: existingStart || activationTime,
         periodEnd: new Date(existingEnd.getTime() + durationMs),
       };
     }

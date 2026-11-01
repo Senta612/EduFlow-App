@@ -44,13 +44,38 @@ class SubscriptionService {
   }
 
   /**
-   * Fetch current subscription for teacher from Supabase with AsyncStorage cache fallback
+   * Helper to sanitize subscription data from Supabase or cache into strongly typed TeacherSubscription
+   */
+  private sanitizeSubscription(raw: any, targetTeacherId: string): TeacherSubscription {
+    const validPlans: SubscriptionPlan[] = ['trial', 'monthly', 'yearly'];
+    const validStatuses: SubscriptionStatus[] = ['trialing', 'active', 'expired', 'pending', 'cancelled'];
+
+    const plan: SubscriptionPlan = validPlans.includes(raw.plan) ? raw.plan : 'trial';
+    const status: SubscriptionStatus = validStatuses.includes(raw.status) ? raw.status : 'expired';
+
+    return {
+      id: String(raw.id || `sub_${targetTeacherId}`),
+      teacherId: String(raw.teacher_id || raw.teacherId || targetTeacherId),
+      plan,
+      status,
+      trialStart: typeof raw.trial_start === 'string' ? raw.trial_start : (typeof raw.trialStart === 'string' ? raw.trialStart : null),
+      trialEnd: typeof raw.trial_end === 'string' ? raw.trial_end : (typeof raw.trialEnd === 'string' ? raw.trialEnd : null),
+      currentPeriodStart: typeof raw.current_period_start === 'string' ? raw.current_period_start : (typeof raw.currentPeriodStart === 'string' ? raw.currentPeriodStart : null),
+      currentPeriodEnd: typeof raw.current_period_end === 'string' ? raw.current_period_end : (typeof raw.currentPeriodEnd === 'string' ? raw.currentPeriodEnd : null),
+      hasUsedTrial: Boolean(raw.has_used_trial ?? raw.hasUsedTrial),
+      createdAt: typeof raw.created_at === 'string' ? raw.created_at : (typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString()),
+      updatedAt: typeof raw.updated_at === 'string' ? raw.updated_at : (typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString()),
+    };
+  }
+
+  /**
+   * Fetch current subscription for teacher from Supabase safely with AsyncStorage cache fallback
    */
   async getSubscription(teacherId?: string): Promise<TeacherSubscription | null> {
     const targetId = teacherId || (await this.resolveCurrentTeacherId());
     if (!targetId) return null;
 
-    // 1. Try remote fetch
+    // 1. Try remote fetch from Supabase
     try {
       const { data, error } = await supabase
         .from('teacher_subscriptions')
@@ -58,34 +83,29 @@ class SubscriptionService {
         .eq('teacher_id', targetId)
         .maybeSingle();
 
-      if (!error && data) {
-        const sub: TeacherSubscription = {
-          id: data.id,
-          teacherId: data.teacher_id,
-          plan: data.plan as SubscriptionPlan,
-          status: data.status as SubscriptionStatus,
-          trialStart: data.trial_start,
-          trialEnd: data.trial_end,
-          currentPeriodStart: data.current_period_start,
-          currentPeriodEnd: data.current_period_end,
-          hasUsedTrial: Boolean(data.has_used_trial),
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-        };
-
-        // Cache locally
+      if (error) {
+        console.warn('[SubscriptionService] Supabase fetch subscription warning:', error.message);
+      } else if (data) {
+        // Query succeeded with subscription data
+        const sub = this.sanitizeSubscription(data, targetId);
         await AsyncStorage.setItem(`${SUB_STORAGE_PREFIX}${targetId}`, JSON.stringify(sub));
         return sub;
+      } else {
+        // Query succeeded and teacher has NO subscription record in Supabase
+        // Clear any stale local cache so state remains truthful
+        await AsyncStorage.removeItem(`${SUB_STORAGE_PREFIX}${targetId}`);
+        return null;
       }
     } catch (e) {
-      console.warn('Remote subscription fetch warning:', e);
+      console.warn('[SubscriptionService] Network error during remote subscription fetch:', e);
     }
 
-    // 2. Fallback to cached subscription
+    // 2. Safe Fallback to cached subscription if offline / network interrupted
     try {
       const cached = await AsyncStorage.getItem(`${SUB_STORAGE_PREFIX}${targetId}`);
       if (cached) {
-        return JSON.parse(cached) as TeacherSubscription;
+        const parsed = JSON.parse(cached);
+        return this.sanitizeSubscription(parsed, targetId);
       }
     } catch {
       // ignore
@@ -287,10 +307,21 @@ class SubscriptionService {
   }
 
   private async resolveCurrentTeacherId(): Promise<string | null> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return user?.id || null;
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        return session.user.id;
+      }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user?.id || null;
+    } catch (err) {
+      console.warn('[SubscriptionService] resolveCurrentTeacherId error:', err);
+      return null;
+    }
   }
 }
 
