@@ -947,6 +947,8 @@ export default function TeacherFeesScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
       {/* Teacher Payment & UPI Setup Modal */}
       <TeacherPaymentConfigModal
         visible={isPaymentConfigModalVisible}
