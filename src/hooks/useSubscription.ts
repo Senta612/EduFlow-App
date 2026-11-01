@@ -55,9 +55,27 @@ export function useSubscription() {
     return sub;
   }, [fetchState]);
 
+  /**
+   * Action guard: executes action if Pro is active, or triggers onBlocked with the feature name
+   */
+  const checkProAction = useCallback(
+    (action: () => void, onBlocked?: (feature?: string) => void, feature?: string): boolean => {
+      if (state.isPro) {
+        action();
+        return true;
+      }
+      if (onBlocked) {
+        onBlocked(feature);
+      }
+      return false;
+    },
+    [state.isPro],
+  );
+
   return {
     ...state,
     refresh: fetchState,
     startTrial,
+    checkProAction,
   };
 }
