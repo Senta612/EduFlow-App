@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "EduFlow",
-    "slug": "EduFlow",
+    "slug": "eduflow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -11,6 +11,8 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.eduflow.app",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -47,6 +49,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bb5d5924-3751-466a-9583-fa9e89d5b391"
+      }
+    },
+    "owner": "parthiv_senta"
   }
 }
