@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { paymentService } from '@/services/payment.service';
 import { theme } from '@/theme';
 
 export interface SubscriptionExpiredModalProps {
@@ -130,6 +131,20 @@ export function SubscriptionExpiredModal({
               onPress={onClose}
               style={styles.cancelButton}
             />
+            <Pressable
+              onPress={() => {
+                onClose();
+                paymentService.openWhatsAppClaim();
+              }}
+              style={styles.whatsAppLink}
+              accessibilityRole="button"
+              accessibilityLabel="Contact on WhatsApp to renew"
+            >
+              <Feather name="message-circle" size={14} color="#16A34A" />
+              <Text style={styles.whatsAppLinkText}>
+                Claim via WhatsApp: {paymentService.getWhatsAppConfig().formatted}
+              </Text>
+            </Pressable>
           </View>
         </Animated.View>
       </View>
@@ -251,5 +266,18 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     width: '100%',
+  },
+  whatsAppLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginTop: 2,
+  },
+  whatsAppLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#16A34A',
   },
 });

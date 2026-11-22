@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking, Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import {
   PaymentRequest,
@@ -10,6 +11,10 @@ import {
   buildUpiIntentUrl,
   generatePaymentReference as domainGeneratePaymentReference,
   validateTransactionReference,
+  DEFAULT_ADMIN_WHATSAPP,
+  DEFAULT_ADMIN_WHATSAPP_DISPLAY,
+  WhatsAppClaimOptions,
+  buildWhatsAppClaimUrl,
 } from './subscription.domain';
 
 const PAY_REQUESTS_CACHE_KEY = '@eduflow_payment_requests_';
@@ -37,6 +42,47 @@ class PaymentService {
       upiId: process.env.EXPO_PUBLIC_UPI_ID || 'eduflow@bank',
       payeeName: process.env.EXPO_PUBLIC_UPI_PAYEE_NAME || 'EduFlow Education',
     };
+  }
+
+  /**
+   * Return official WhatsApp contact for manual claims & support
+   */
+  getWhatsAppConfig(): { number: string; formatted: string } {
+    return {
+      number: process.env.EXPO_PUBLIC_ADMIN_WHATSAPP || DEFAULT_ADMIN_WHATSAPP,
+      formatted: process.env.EXPO_PUBLIC_ADMIN_WHATSAPP_DISPLAY || DEFAULT_ADMIN_WHATSAPP_DISPLAY,
+    };
+  }
+
+  /**
+   * Build WhatsApp deep-link for subscription claiming
+   */
+  getWhatsAppClaimUrl(options: WhatsAppClaimOptions = {}): string {
+    const config = this.getWhatsAppConfig();
+    return buildWhatsAppClaimUrl({
+      phone: config.number,
+      ...options,
+    });
+  }
+
+  /**
+   * Directly open WhatsApp chat to claim subscription or send payment proof
+   */
+  async openWhatsAppClaim(options: WhatsAppClaimOptions = {}): Promise<void> {
+    const url = this.getWhatsAppClaimUrl(options);
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(url);
+      }
+    } catch {
+      Alert.alert(
+        'Unable to Open WhatsApp',
+        `Please message or call our support directly at ${this.getWhatsAppConfig().formatted}.`,
+      );
+    }
   }
 
   /**

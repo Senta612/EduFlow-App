@@ -161,3 +161,70 @@ export function buildUpiIntentUrl(
   });
   return `upi://pay?${params.toString()}`;
 }
+
+export const DEFAULT_ADMIN_WHATSAPP = '9265608255';
+export const DEFAULT_ADMIN_WHATSAPP_DISPLAY = '+91 92656 08255';
+
+export interface WhatsAppClaimOptions {
+  phone?: string;
+  plan?: 'monthly' | 'yearly' | string;
+  paymentReference?: string;
+  transactionReference?: string;
+  teacherName?: string;
+  customMessage?: string;
+}
+
+/**
+ * Pure domain logic: Build WhatsApp claim / support URL with pre-filled message
+ */
+export function buildWhatsAppClaimUrl(options: WhatsAppClaimOptions = {}): string {
+  const rawPhone = (options.phone || DEFAULT_ADMIN_WHATSAPP).replace(/\D/g, '');
+  const cleanPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+
+  let message = '';
+  const planLabel =
+    options.plan === 'yearly'
+      ? 'Pro Yearly (₹4,999 / 365 Days)'
+      : options.plan === 'monthly'
+      ? 'Pro Monthly (₹499 / 30 Days)'
+      : options.plan || 'Pro Plan';
+
+  if (options.customMessage) {
+    message = options.customMessage;
+  } else if (options.transactionReference || options.paymentReference) {
+    message = [
+      `👋 *Hi EduFlow Team,*`,
+      `I have made a UPI payment for my EduFlow subscription!`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `📦 *Plan:* ${planLabel}`,
+      options.teacherName ? `👤 *Teacher:* ${options.teacherName}` : '',
+      options.paymentReference ? `🔖 *Payment Ref:* ${options.paymentReference}` : '',
+      options.transactionReference ? `🏦 *UTR / Ref No:* ${options.transactionReference}` : '',
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `Please verify and activate my Pro subscription. Thank you!`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  } else if (options.plan) {
+    message = [
+      `👋 *Hi EduFlow Team,*`,
+      `I want to claim / activate the *${planLabel}* for my coaching classes on EduFlow.`,
+      options.teacherName ? `👤 *Teacher Name:* ${options.teacherName}` : '',
+      `Please assist me with the UPI payment details and subscription activation.`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  } else {
+    message = [
+      `👋 *Hi EduFlow Team,*`,
+      `I would like to inquire about claiming the EduFlow Pro subscription.`,
+      options.teacherName ? `👤 *Teacher Name:* ${options.teacherName}` : '',
+      `Please guide me with the subscription options and UPI payment process.`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message.trim())}`;
+}
+

@@ -15,17 +15,28 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { paymentService } from '@/services/payment.service';
 import { SUBSCRIPTION_PLANS, SubscriptionPlan } from '@/types/subscription';
 import { theme } from '@/theme';
 
 export default function SubscriptionPlansScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { profile } = useAuth();
   const { isTrialEligible, startTrial } = useSubscription();
 
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const whatsAppConfig = paymentService.getWhatsAppConfig();
+
+  const handleClaimViaWhatsApp = (plan: 'monthly' | 'yearly') => {
+    paymentService.openWhatsAppClaim({
+      plan,
+      teacherName: profile?.full_name || undefined,
+    });
+  };
 
   const handleStartTrial = async () => {
     setIsStartingTrial(true);
@@ -156,13 +167,24 @@ export default function SubscriptionPlansScreen() {
               ))}
             </View>
 
-            <Button
-              title="Continue with Yearly (₹4,999)"
-              variant={selectedPlan === 'yearly' ? 'primary' : 'outline'}
-              size="lg"
-              onPress={() => handleProceedToPayment('yearly')}
-              style={styles.selectButton}
-            />
+            <View style={styles.actionRow}>
+              <Button
+                title="Pay via UPI (₹4,999)"
+                variant={selectedPlan === 'yearly' ? 'primary' : 'outline'}
+                size="md"
+                onPress={() => handleProceedToPayment('yearly')}
+                style={styles.flexBtn}
+              />
+              <Pressable
+                style={styles.whatsAppActionBtn}
+                onPress={() => handleClaimViaWhatsApp('yearly')}
+                accessibilityRole="button"
+                accessibilityLabel="Claim Yearly via WhatsApp"
+              >
+                <Feather name="message-circle" size={17} color="#16A34A" />
+                <Text style={styles.whatsAppActionText}>WhatsApp</Text>
+              </Pressable>
+            </View>
           </Card>
         </Pressable>
 
@@ -212,17 +234,55 @@ export default function SubscriptionPlansScreen() {
               ))}
             </View>
 
-            <Button
-              title="Continue with Monthly (₹499)"
-              variant={selectedPlan === 'monthly' ? 'primary' : 'outline'}
-              size="lg"
-              onPress={() => handleProceedToPayment('monthly')}
-              style={styles.selectButton}
-            />
+            <View style={styles.actionRow}>
+              <Button
+                title="Pay via UPI (₹499)"
+                variant={selectedPlan === 'monthly' ? 'primary' : 'outline'}
+                size="md"
+                onPress={() => handleProceedToPayment('monthly')}
+                style={styles.flexBtn}
+              />
+              <Pressable
+                style={styles.whatsAppActionBtn}
+                onPress={() => handleClaimViaWhatsApp('monthly')}
+                accessibilityRole="button"
+                accessibilityLabel="Claim Monthly via WhatsApp"
+              >
+                <Feather name="message-circle" size={17} color="#16A34A" />
+                <Text style={styles.whatsAppActionText}>WhatsApp</Text>
+              </Pressable>
+            </View>
           </Card>
         </Pressable>
 
-        {/* 5. Assurance & FAQ Notice */}
+        {/* 5. Claim via WhatsApp Card */}
+        <Card variant="outlined" padding="md" style={styles.whatsAppCard}>
+          <View style={styles.whatsAppCardContent}>
+            <View style={styles.whatsAppIconWrap}>
+              <Feather name="message-circle" size={24} color="#16A34A" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text variant="heading" style={styles.whatsAppCardTitle}>
+                Claim & Activate via WhatsApp
+              </Text>
+              <Text variant="caption" style={styles.whatsAppCardSub}>
+                Prefer direct WhatsApp payment, custom invoice, or fast account activation?
+              </Text>
+              <Text style={styles.whatsAppPhone}>
+                WhatsApp: {whatsAppConfig.formatted} ({whatsAppConfig.number})
+              </Text>
+            </View>
+          </View>
+          <Button
+            title={`Claim on WhatsApp (${whatsAppConfig.number})`}
+            variant="outline"
+            size="md"
+            onPress={() => handleClaimViaWhatsApp(selectedPlan)}
+            style={styles.whatsAppMainBtn}
+          />
+        </Card>
+
+        {/* 6. Assurance & FAQ Notice */}
         <Card variant="outlined" padding="md" style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Feather name="shield" size={18} color={theme.colors.primary.main} />
@@ -413,6 +473,74 @@ const styles = StyleSheet.create({
   },
   selectButton: {
     width: '100%',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  flexBtn: {
+    flex: 1,
+  },
+  whatsAppActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: theme.radii.md,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  whatsAppActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  whatsAppCard: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+    borderWidth: 1.5,
+    marginBottom: 16,
+    gap: 12,
+  },
+  whatsAppCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  whatsAppIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  whatsAppCardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#166534',
+  },
+  whatsAppCardSub: {
+    fontSize: 12,
+    color: '#15803D',
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  whatsAppPhone: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#166534',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  whatsAppMainBtn: {
+    width: '100%',
+    borderColor: '#16A34A',
+    backgroundColor: '#FFFFFF',
   },
   infoCard: {
     backgroundColor: theme.colors.background.paper,

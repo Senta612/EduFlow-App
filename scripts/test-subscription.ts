@@ -12,6 +12,8 @@ import {
   generatePaymentReference,
   validateTransactionReference,
   buildUpiIntentUrl,
+  buildWhatsAppClaimUrl,
+  DEFAULT_ADMIN_WHATSAPP,
 } from '../src/services/subscription.domain.ts';
 
 test('1. Plan Pricing and Duration Specifications', () => {
@@ -245,3 +247,25 @@ test('11. Transaction Reference Validation & Normalization', () => {
   assert.equal(emptyCheck.valid, false);
   assert.ok(emptyCheck.error);
 });
+
+test('12. WhatsApp Claim Deep-Link Generation', () => {
+  // Default WhatsApp URL (number 9265608255 -> 919265608255)
+  const defaultUrl = buildWhatsAppClaimUrl();
+  assert.ok(defaultUrl.startsWith('https://wa.me/919265608255?text='), 'Must format to wa.me with 91 prefix');
+
+  // Plan-specific claim URL
+  const planUrl = buildWhatsAppClaimUrl({ plan: 'yearly', teacherName: 'Parthiv Sir' });
+  assert.ok(planUrl.includes('919265608255'));
+  assert.ok(planUrl.includes(encodeURIComponent('Pro Yearly')));
+  assert.ok(planUrl.includes(encodeURIComponent('Parthiv Sir')));
+
+  // Payment proof submission URL
+  const proofUrl = buildWhatsAppClaimUrl({
+    plan: 'monthly',
+    paymentReference: 'PAY-20261122-TEST12',
+    transactionReference: '430512345678',
+  });
+  assert.ok(proofUrl.includes(encodeURIComponent('PAY-20261122-TEST12')));
+  assert.ok(proofUrl.includes(encodeURIComponent('430512345678')));
+});
+

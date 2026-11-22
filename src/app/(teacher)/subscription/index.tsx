@@ -42,6 +42,7 @@ export default function SubscriptionOverviewScreen() {
   const [paymentHistory, setPaymentHistory] = useState<PaymentRequest[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const whatsAppConfig = paymentService.getWhatsAppConfig();
 
   const loadHistory = useCallback(async () => {
     try {
@@ -305,7 +306,34 @@ export default function SubscriptionOverviewScreen() {
               </Card>
             </View>
 
-            {/* 4. Payment & Request History */}
+            {/* 4. WhatsApp Support & Claims */}
+            <Card variant="outlined" padding="md" style={styles.whatsAppCard}>
+              <View style={styles.whatsAppHeader}>
+                <View style={styles.whatsAppIconWrap}>
+                  <Feather name="message-circle" size={22} color="#16A34A" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text variant="heading" style={styles.whatsAppTitle}>
+                    WhatsApp Direct Claims & Support
+                  </Text>
+                  <Text variant="caption" style={styles.whatsAppSub}>
+                    Prefer manual UPI payment or need immediate account activation? Contact our team directly on WhatsApp.
+                  </Text>
+                  <Text style={styles.whatsAppPhone}>
+                    WhatsApp: {whatsAppConfig.formatted} ({whatsAppConfig.number})
+                  </Text>
+                </View>
+              </View>
+              <Button
+                title={`Chat on WhatsApp (${whatsAppConfig.number})`}
+                variant="outline"
+                size="md"
+                onPress={() => paymentService.openWhatsAppClaim()}
+                style={styles.whatsAppBtn}
+              />
+            </Card>
+
+            {/* 5. Payment & Request History */}
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
                 <Text variant="heading" style={styles.sectionTitle}>
@@ -661,5 +689,48 @@ const styles = StyleSheet.create({
   rejectionText: {
     color: theme.colors.semantic.danger.main,
     fontSize: 12,
+  },
+  whatsAppCard: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    gap: 12,
+  },
+  whatsAppHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  whatsAppIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  whatsAppTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#166534',
+  },
+  whatsAppSub: {
+    fontSize: 12,
+    color: '#15803D',
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  whatsAppPhone: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#166534',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  whatsAppBtn: {
+    width: '100%',
+    borderColor: '#16A34A',
+    backgroundColor: '#FFFFFF',
   },
 });

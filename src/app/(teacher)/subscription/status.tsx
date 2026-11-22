@@ -121,6 +121,21 @@ export default function PaymentStatusScreen() {
             }
             style={styles.bannerBtn}
           />
+          <Button
+            title={`Help on WhatsApp (${paymentService.getWhatsAppConfig().number})`}
+            variant="ghost"
+            size="md"
+            icon="message-circle"
+            onPress={() => {
+              paymentService.openWhatsAppClaim({
+                plan: request.plan,
+                paymentReference: request.paymentReference,
+                transactionReference: request.transactionReference,
+                customMessage: `Hi EduFlow Admin, my payment reference ${request.paymentReference} was marked unsuccessful. Please check my payment proof.`,
+              });
+            }}
+            style={styles.whatsAppStatusBtn}
+          />
         </Card>
       );
     }
@@ -144,6 +159,20 @@ export default function PaymentStatusScreen() {
           loading={isRefreshing}
           onPress={handleRefresh}
           style={styles.bannerBtn}
+        />
+        <Button
+          title={`Speed Up via WhatsApp (${paymentService.getWhatsAppConfig().number})`}
+          variant="ghost"
+          size="md"
+          icon="message-circle"
+          onPress={() => {
+            paymentService.openWhatsAppClaim({
+              plan: request.plan,
+              paymentReference: request.paymentReference,
+              transactionReference: request.transactionReference,
+            });
+          }}
+          style={styles.whatsAppStatusBtn}
         />
       </Card>
     );
@@ -422,5 +451,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.text.tertiary,
     flex: 1,
+  },
+  whatsAppStatusBtn: {
+    marginTop: 8,
   },
 });

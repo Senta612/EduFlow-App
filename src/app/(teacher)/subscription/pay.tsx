@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useAuth } from '@/hooks/useAuth';
 import { paymentService } from '@/services/payment.service';
 import { SUBSCRIPTION_PLANS } from '@/types/subscription';
 import { theme } from '@/theme';
@@ -26,12 +27,14 @@ import { theme } from '@/theme';
 export default function ManualPaymentScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { profile } = useAuth();
   const params = useLocalSearchParams<{ plan?: string }>();
 
   const planType: 'monthly' | 'yearly' = params.plan === 'yearly' ? 'yearly' : 'monthly';
   const planConfig = SUBSCRIPTION_PLANS[planType];
 
   const upiConfig = useMemo(() => paymentService.getUpiConfig(), []);
+  const whatsAppConfig = useMemo(() => paymentService.getWhatsAppConfig(), []);
   const initialPaymentRef = useMemo(() => paymentService.generatePaymentReference(), []);
 
   const [transactionRef, setTransactionRef] = useState('');
@@ -67,8 +70,20 @@ export default function ManualPaymentScreen() {
       const request = await paymentService.submitPaymentRequest(planType, cleanRef);
       Alert.alert(
         'Payment Submitted! ⏳',
-        `Your payment request (Ref: ${request.paymentReference}) has been registered. Our admin team will verify the bank transaction and activate your Pro subscription promptly.`,
+        `Your payment request (Ref: ${request.paymentReference}) has been registered. You can also send the payment screenshot directly to our WhatsApp (${whatsAppConfig.number}) for immediate activation.`,
         [
+          {
+            text: 'Send on WhatsApp',
+            onPress: () => {
+              paymentService.openWhatsAppClaim({
+                plan: planType,
+                paymentReference: request.paymentReference,
+                transactionReference: cleanRef,
+                teacherName: profile?.full_name || undefined,
+              });
+              router.replace('/(teacher)/subscription/status');
+            },
+          },
           {
             text: 'Track Status',
             onPress: () => router.replace('/(teacher)/subscription/status'),
@@ -249,12 +264,43 @@ export default function ManualPaymentScreen() {
                 <Text style={styles.stepNum}>4</Text>
               </View>
               <Text variant="body" style={styles.stepText}>
-                After payment, copy the <Text style={styles.bold}>12-digit UTR / UPI Ref ID</Text> from the bank receipt and paste it below.
+                After payment, copy the <Text style={styles.bold}>12-digit UTR / UPI Ref ID</Text> from the bank receipt and paste it below, or send the screenshot directly on WhatsApp.
               </Text>
             </View>
           </Card>
 
-          {/* 4. Transaction Reference Form */}
+          {/* 4. Instant Claim via WhatsApp */}
+          <Card variant="outlined" padding="md" style={styles.whatsAppCard}>
+            <View style={styles.whatsAppRow}>
+              <View style={styles.whatsAppIconWrap}>
+                <Feather name="message-circle" size={22} color="#16A34A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="heading" style={styles.whatsAppTitle}>
+                  Instant Claim on WhatsApp
+                </Text>
+                <Text variant="caption" style={styles.whatsAppSub}>
+                  Made your UPI payment? Send screenshot directly to our WhatsApp ({whatsAppConfig.formatted}) for fast manual activation.
+                </Text>
+              </View>
+            </View>
+            <Button
+              title={`Send Screenshot on WhatsApp (${whatsAppConfig.number})`}
+              variant="outline"
+              size="md"
+              onPress={() => {
+                paymentService.openWhatsAppClaim({
+                  plan: planType,
+                  paymentReference: initialPaymentRef,
+                  transactionReference: transactionRef.trim() || undefined,
+                  teacherName: profile?.full_name || undefined,
+                });
+              }}
+              style={styles.whatsAppBtn}
+            />
+          </Card>
+
+          {/* 5. Transaction Reference Form */}
           <Card variant="elevated" padding="lg" style={styles.formCard}>
             <Text variant="heading" style={styles.formTitle}>
               Submit Transaction Reference
@@ -562,5 +608,42 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
     lineHeight: 16,
     flex: 1,
+  },
+  whatsAppCard: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    marginBottom: 16,
+    gap: 12,
+  },
+  whatsAppRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  whatsAppIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  whatsAppTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#166534',
+  },
+  whatsAppSub: {
+    fontSize: 12,
+    color: '#15803D',
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  whatsAppBtn: {
+    width: '100%',
+    borderColor: '#16A34A',
+    backgroundColor: '#FFFFFF',
   },
 });
