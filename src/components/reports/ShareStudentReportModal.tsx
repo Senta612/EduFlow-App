@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { teacherService, formatStudentProgressWhatsAppMessage } from '@/services/teacher.service';
 import { reportPdfService } from '@/services/pdf/reportPdf.service';
+import { launchWhatsApp } from '@/services/whatsapp.launcher';
 import { StudentProfileData } from '@/types/teacher';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
@@ -342,22 +343,8 @@ export function ShareStudentReportModal({
     language,
   });
 
-  const handleShareWhatsApp = () => {
-    const cleanPhone = (targetStudent.parentPhone || '').replace(/[^0-9]/g, '');
-
-    const whatsappUrl = cleanPhone
-      ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(generatedWhatsAppMessage)}`
-      : `whatsapp://send?text=${encodeURIComponent(generatedWhatsAppMessage)}`;
-
-    const fallbackUrl = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(generatedWhatsAppMessage)}`
-      : `https://wa.me/?text=${encodeURIComponent(generatedWhatsAppMessage)}`;
-
-    Linking.openURL(whatsappUrl).catch(() => {
-      Linking.openURL(fallbackUrl).catch(() => {
-        Alert.alert('WhatsApp Error', 'Unable to open WhatsApp on this device.');
-      });
-    });
+  const handleShareWhatsApp = async () => {
+    await launchWhatsApp(targetStudent.parentPhone, generatedWhatsAppMessage);
   };
 
   const handleCopyToClipboard = async () => {

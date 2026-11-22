@@ -3,6 +3,7 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { CircularProgressRing } from '@/components/ui/CircularProgressRing';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
@@ -171,12 +172,22 @@ export function ReportsOverviewCards({
                 </Text>
               </View>
             </View>
-            <Text variant="title" style={styles.metricValue}>
-              {averageAttendance}%
-            </Text>
-            <Text variant="caption" style={styles.metricLabel}>
-              {t('reports.avgAttendanceRate')}
-            </Text>
+            <View style={styles.metricRowWithRing}>
+              <View>
+                <Text variant="title" style={styles.metricValue}>
+                  {averageAttendance}%
+                </Text>
+                <Text variant="caption" style={styles.metricLabel}>
+                  {t('reports.avgAttendanceRate')}
+                </Text>
+              </View>
+              <CircularProgressRing
+                percentage={averageAttendance}
+                size={44}
+                strokeWidth={4.5}
+                showPercentageText={false}
+              />
+            </View>
           </Card>
         </View>
 
@@ -204,12 +215,22 @@ export function ReportsOverviewCards({
                 </Text>
               </View>
             </View>
-            <Text variant="title" style={styles.metricValue}>
-              {hwCompletionRate}%
-            </Text>
-            <Text variant="caption" style={styles.metricLabel}>
-              {t('reports.hwCompletionRate')}
-            </Text>
+            <View style={styles.metricRowWithRing}>
+              <View>
+                <Text variant="title" style={styles.metricValue}>
+                  {hwCompletionRate}%
+                </Text>
+                <Text variant="caption" style={styles.metricLabel}>
+                  {t('reports.hwCompletionRate')}
+                </Text>
+              </View>
+              <CircularProgressRing
+                percentage={hwCompletionRate}
+                size={44}
+                strokeWidth={4.5}
+                showPercentageText={false}
+              />
+            </View>
           </Card>
         </View>
       </View>
@@ -284,5 +305,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: theme.colors.text.secondary,
+  },
+  metricRowWithRing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
 });

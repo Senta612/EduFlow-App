@@ -27,6 +27,7 @@ import { theme } from '@/theme';
 import { SuccessModal } from '@/components/ui/SuccessModal';
 import { useSubscription } from '@/hooks/useSubscription';
 import { SubscriptionExpiredModal } from '@/components/subscription';
+import { hapticFeedback } from '@/services/haptics.service';
 
 type AttendanceFilter = 'all' | 'present' | 'absent';
 
@@ -102,6 +103,11 @@ export default function TakeAttendanceScreen() {
   }, [loadData]);
 
   const handleToggleStatus = (studentId: string, newStatus: AttendanceStatus) => {
+    if (newStatus === 'present') {
+      hapticFeedback.light();
+    } else {
+      hapticFeedback.medium();
+    }
     setItems((prev) =>
       prev.map((item) =>
         item.studentId === studentId ? { ...item, status: newStatus } : item,
@@ -110,12 +116,14 @@ export default function TakeAttendanceScreen() {
   };
 
   const handleMarkAllPresent = () => {
+    hapticFeedback.heavy();
     setItems((prev) =>
       prev.map((item) => ({ ...item, status: 'present' })),
     );
   };
 
   const handleMarkAllAbsent = () => {
+    hapticFeedback.heavy();
     setItems((prev) =>
       prev.map((item) => ({ ...item, status: 'absent' })),
     );
@@ -150,8 +158,10 @@ export default function TakeAttendanceScreen() {
     setIsSubmitting(true);
     try {
       await teacherService.submitAttendance(batchId, attendanceDateIso, items);
+      hapticFeedback.success();
       setIsSuccessModalVisible(true);
     } catch (error: any) {
+      hapticFeedback.error();
       console.error('Error submitting attendance:', error);
       if (error?.code === 'SUBSCRIPTION_EXPIRED' || error?.message?.includes('subscription')) {
         setIsExpiredModalVisible(true);

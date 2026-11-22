@@ -28,6 +28,7 @@ import { useTranslation } from '@/i18n';
 import { teacherService } from '@/services/teacher.service';
 import { feesService } from '@/services/teacher/fees.service';
 import { reportPdfService } from '@/services/pdf/reportPdf.service';
+import { launchWhatsApp } from '@/services/whatsapp.launcher';
 import { TeacherPaymentConfigModal } from '@/components/teacher';
 import { SubscriptionExpiredModal } from '@/components/subscription';
 import { StudentFeeDetail, TuitionFeeOverview, FeePayment, FeePaymentMode } from '@/types/fee';
@@ -189,11 +190,8 @@ export default function TeacherFeesScreen() {
     }
   };
 
-  // WhatsApp Fee Reminder
-  const handleSendWhatsAppReminder = (student: StudentFeeDetail) => {
-    const rawPhone = student.parentPhone || '';
-    const cleanPhone = rawPhone.replace(/[^\d]/g, '');
-
+  // WhatsApp Fee Reminder with High-Reliability Dual Protocol Fallback
+  const handleSendWhatsAppReminder = async (student: StudentFeeDetail) => {
     const message = feesService.formatFeeReminderWhatsAppMessage({
       studentName: student.studentName,
       rollNumber: student.rollNumber,
@@ -204,24 +202,11 @@ export default function TeacherFeesScreen() {
       language: language as 'en' | 'hi' | 'gu',
     });
 
-    const encoded = encodeURIComponent(message);
-    let url = `whatsapp://send?text=${encoded}`;
-    if (cleanPhone) {
-      const withCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-      url = `whatsapp://send?phone=${withCountry}&text=${encoded}`;
-    }
-
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert('WhatsApp Not Installed', 'Could not find WhatsApp on this device.');
-        }
-      })
-      .catch(() => {
-        Alert.alert('Error', 'Failed to open WhatsApp.');
-      });
+    await launchWhatsApp({
+      phone: student.parentPhone,
+      message,
+      fallbackTitle: 'Fee Reminder',
+    });
   };
 
   // Save Batch Fee Config
@@ -269,7 +254,7 @@ export default function TeacherFeesScreen() {
   };
 
   // Share Receipt via WhatsApp Text
-  const handleShareReceiptWhatsApp = (payment: FeePayment) => {
+  const handleShareReceiptWhatsApp = async (payment: FeePayment) => {
     const message = feesService.formatFeeReceiptWhatsAppMessage({
       studentName: payment.studentName,
       rollNumber: payment.rollNumber,
@@ -284,9 +269,10 @@ export default function TeacherFeesScreen() {
       language: language as 'en' | 'hi' | 'gu',
     });
 
-    const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
-    Linking.openURL(url).catch(() => {
-      Alert.alert('Error', 'Failed to launch WhatsApp.');
+    await launchWhatsApp({
+      phone: (payment as any).parentPhone || null,
+      message,
+      fallbackTitle: 'Payment Receipt',
     });
   };
 

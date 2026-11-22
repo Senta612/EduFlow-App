@@ -22,7 +22,11 @@ import {
   UpcomingTestsSection,
   MonthCalendarModal,
 } from '@/components/teacher';
-import { SyncStatusBadge } from '@/components/common';
+import {
+  SyncStatusBadge,
+  QuickActionSheet,
+  SpeedActionFloatingButton,
+} from '@/components/common';
 import { SubscriptionExpiredModal } from '@/components/subscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
@@ -76,6 +80,7 @@ export default function TeacherHomeScreen() {
   const [selectedDateStr, setSelectedDateStr] = useState<string>(toDateString(new Date()));
   const [isMonthModalVisible, setIsMonthModalVisible] = useState(false);
   const [isExpiredModalVisible, setIsExpiredModalVisible] = useState(false);
+  const [isSpeedMenuVisible, setIsSpeedMenuVisible] = useState(false);
   const [expiredFeature, setExpiredFeature] = useState('Class Management');
 
   const loadDashboardData = useCallback(async () => {
@@ -440,6 +445,62 @@ export default function TeacherHomeScreen() {
         visible={isExpiredModalVisible}
         onClose={() => setIsExpiredModalVisible(false)}
         featureName={expiredFeature}
+      />
+
+      {/* Floating Speed Action Button */}
+      <SpeedActionFloatingButton
+        style={{ bottom: 20, right: 20 }}
+        onPress={() => setIsSpeedMenuVisible(true)}
+      />
+
+      {/* Speed Action Bottom Sheet */}
+      <QuickActionSheet
+        visible={isSpeedMenuVisible}
+        onClose={() => setIsSpeedMenuVisible(false)}
+        onTakeAttendance={() => {
+          if (!sub.isPro) {
+            setExpiredFeature('Attendance Recording');
+            setIsExpiredModalVisible(true);
+            return;
+          }
+          const firstPending =
+            selectedDateBatches.find((c) => !c.attendanceTakenForDate) ?? batches[0];
+          if (firstPending) {
+            router.push(`/(teacher)/attendance/${firstPending.id}`);
+          } else {
+            router.push('/(teacher)/(tabs)/batches');
+          }
+        }}
+        onCreateBatch={() => {
+          if (!sub.isPro) {
+            setExpiredFeature('Batch Creation');
+            setIsExpiredModalVisible(true);
+            return;
+          }
+          router.push('/(teacher)/batch/create');
+        }}
+        onCreateTest={() => {
+          if (!sub.isPro) {
+            setExpiredFeature('Test Creation');
+            setIsExpiredModalVisible(true);
+            return;
+          }
+          router.push('/(teacher)/tests/create');
+        }}
+        onAssignHomework={() => {
+          if (!sub.isPro) {
+            setExpiredFeature('Homework Assignment');
+            setIsExpiredModalVisible(true);
+            return;
+          }
+          router.push('/(teacher)/homework/create');
+        }}
+        onCollectFees={() => {
+          router.push('/(teacher)/more/fees');
+        }}
+        onViewReports={() => {
+          router.push('/(teacher)/more/reports');
+        }}
       />
     </View>
   );

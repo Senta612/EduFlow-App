@@ -5,6 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { FeeStatusBadge } from '@/components/ui/FeeStatusBadge';
+import { CircularProgressRing } from '@/components/ui/CircularProgressRing';
+import { ScoreTrendSparkline } from '@/components/ui/ScoreTrendSparkline';
 import { StudentProfileData } from '@/types/teacher';
 import { useTeacherPreferences } from '@/providers';
 import { theme } from '@/theme';
@@ -129,6 +131,49 @@ export const StudentOverviewTab: React.FC<StudentOverviewTabProps> = ({
         </View>
       </Card>
 
+      {/* Visual Progress Rings Header */}
+      <Card variant="outlined" padding="md" style={styles.sectionCard}>
+        <Text variant="heading" style={styles.sectionTitle}>
+          Progress Overview
+        </Text>
+        <View style={styles.ringsRow}>
+          <CircularProgressRing
+            percentage={attendance.percentage}
+            size={80}
+            strokeWidth={7}
+            label="Attendance"
+            sublabel="Present"
+          />
+          <CircularProgressRing
+            percentage={homework.completionPercentage}
+            size={80}
+            strokeWidth={7}
+            label="Homework"
+            sublabel="Done"
+          />
+          <CircularProgressRing
+            percentage={tests.averagePercentage}
+            size={80}
+            strokeWidth={7}
+            label="Test Average"
+            sublabel={`Grade ${tests.gradeLetter}`}
+          />
+        </View>
+      </Card>
+
+      {/* Test Score Trajectory Sparkline */}
+      {tests.recent.length > 0 && (
+        <ScoreTrendSparkline
+          scores={tests.recent.map((t) => ({
+            id: t.id,
+            title: t.title,
+            score: t.marksObtained,
+            maxScore: t.maxMarks,
+            date: t.date,
+          }))}
+        />
+      )}
+
       {/* Performance Health Card */}
       <Card variant="outlined" padding="md" style={styles.sectionCard}>
         <Text variant="heading" style={styles.sectionTitle}>
@@ -226,6 +271,12 @@ export const StudentOverviewTab: React.FC<StudentOverviewTabProps> = ({
 const styles = StyleSheet.create({
   tabContentSection: {
     gap: theme.spacing.md,
+  },
+  ringsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 8,
   },
   sectionCard: {
     backgroundColor: theme.colors.background.paper,

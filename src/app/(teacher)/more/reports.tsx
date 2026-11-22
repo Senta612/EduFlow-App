@@ -30,6 +30,7 @@ import {
   formatDefaulterWhatsAppMessage,
   formatTopperWhatsAppMessage,
 } from '@/services/teacher.service';
+import { launchWhatsApp } from '@/services/whatsapp.launcher';
 import {
   Batch,
   TuitionAnalyticsSummary,
@@ -152,7 +153,7 @@ export default function TeacherReportsScreen() {
     });
   };
 
-  const handleDefaulterWhatsApp = (student: DefaulterStudent) => {
+  const handleDefaulterWhatsApp = async (student: DefaulterStudent) => {
     const issuesSummary = student.issues.map((i) => `${i.label} (${i.details})`).join(' • ');
     const message = formatDefaulterWhatsAppMessage({
       studentName: student.studentName,
@@ -161,23 +162,10 @@ export default function TeacherReportsScreen() {
       language,
     });
 
-    const cleanPhone = (student.parentPhone || '').replace(/[^0-9]/g, '');
-    const whatsappUrl = cleanPhone
-      ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
-      : `whatsapp://send?text=${encodeURIComponent(message)}`;
-
-    const fallbackUrl = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-    Linking.openURL(whatsappUrl).catch(() => {
-      Linking.openURL(fallbackUrl).catch(() => {
-        Alert.alert('WhatsApp Error', 'Unable to launch WhatsApp on this device.');
-      });
-    });
+    await launchWhatsApp(student.parentPhone, message);
   };
 
-  const handleTopperWhatsApp = (
+  const handleTopperWhatsApp = async (
     topper: TestRankStudent,
     testTitle: string,
     batchName: string,
@@ -192,20 +180,7 @@ export default function TeacherReportsScreen() {
       language,
     });
 
-    const cleanPhone = (topper.parentPhone || '').replace(/[^0-9]/g, '');
-    const whatsappUrl = cleanPhone
-      ? `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
-      : `whatsapp://send?text=${encodeURIComponent(message)}`;
-
-    const fallbackUrl = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-    Linking.openURL(whatsappUrl).catch(() => {
-      Linking.openURL(fallbackUrl).catch(() => {
-        Alert.alert('WhatsApp Error', 'Unable to launch WhatsApp on this device.');
-      });
-    });
+    await launchWhatsApp(topper.parentPhone, message);
   };
 
   const handleOpenStudentReportModal = (student: {
