@@ -3,6 +3,8 @@ import { Test, StudentMark } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
 import { batchesService } from './batches.service';
 import { studentsService } from './students.service';
+import { syncQueueService } from '@/services/offline';
+import { pushTokenService, pushDispatchService } from '@/services/notifications';
 
 export class TestsService {
   async getTestsList(): Promise<Test[]> {
@@ -78,45 +80,14 @@ export class TestsService {
       submittedCount: 0,
     };
 
-    try {
-      const { data: inserted, error } = await supabase
-        .from('tests')
-        .insert({
-          batch_id: data.batchId,
-          title: data.title,
-          date: data.date,
-          max_marks: data.maxMarks,
-        })
-        .select()
-        .single();
-
-      if (!error && inserted) {
-        newTest.id = inserted.id;
-      }
-    } catch (err) {
-      console.warn('Supabase createTest notice:', err);
-    }
-
-    // Initialize student test marks
-    try {
-      const students = await studentsService.getBatchStudents(data.batchId);
-      if (students.length > 0) {
-        const initialMarks: StudentMark[] = students.map((st) => ({
-          studentId: st.id,
-          studentName: st.name,
-          rollNumber: st.rollNumber,
-          marksObtained: null,
-        }));
-        const key = `${STORAGE_KEYS.MARKS}_${newTest.id}`;
-        await setStored(key, initialMarks);
-      }
-    } catch (err) {
-      console.warn('Initialize test marks notice:', err);
-    }
-
+    // 1. Optimistic local store
     const all = await getStored<Test[]>(STORAGE_KEYS.TESTS, []);
     const updated = [newTest, ...all.filter((t) => t.id !== newTest.id)];
     await setStored(STORAGE_KEYS.TESTS, updated);
+
+    // 2. Queue offline mutation
+    await syncQueueService.enqueue('test', 'create', newTest);
+
     return newTest;
   }
 
@@ -124,15 +95,13 @@ export class TestsService {
     const { subscriptionService } = await import('@/services/subscription.service');
     await subscriptionService.assertProEntitlement('delete a test');
 
-    try {
-      await supabase.from('tests').delete().eq('id', testId);
-    } catch (err) {
-      console.warn('Supabase deleteTest notice:', err);
-    }
-
     const list = await getStored<Test[]>(STORAGE_KEYS.TESTS, []);
     const filtered = list.filter((t) => t.id !== testId);
     await setStored(STORAGE_KEYS.TESTS, filtered);
+
+    // Offline queue
+    await syncQueueService.enqueue('test', 'delete', { id: testId });
+  }
   }
 
   async getTestMarks(testId: string, batchId: string): Promise<StudentMark[]> {
@@ -188,19 +157,9 @@ export class TestsService {
     const { subscriptionService } = await import('@/services/subscription.service');
     await subscriptionService.assertProEntitlement('enter or update test marks');
 
+    // 1. Optimistic local store
     const key = `${STORAGE_KEYS.MARKS}_${testId}`;
     await setStored(key, marks);
-
-    try {
-      const rows = marks.map((m) => ({
-        test_id: testId,
-        student_id: m.studentId,
-        marks_obtained: m.marksObtained,
-      }));
-      await supabase.from('test_marks').upsert(rows, { onConflict: 'test_id,student_id' });
-    } catch (err) {
-      console.warn('Supabase saveTestMarks notice:', err);
-    }
 
     // Update submitted count on test
     const enteredCount = marks.filter((m) => m.marksObtained !== null).length;
@@ -209,6 +168,35 @@ export class TestsService {
       t.id === testId ? { ...t, submittedCount: enteredCount } : t,
     );
     await setStored(STORAGE_KEYS.TESTS, updatedTests);
+
+    // 2. Offline sync queue
+    await syncQueueService.enqueue('marks', 'create', { testId, marks });
+
+    // 3. Dispatch Push Notifications for scored students
+    const targetTest = tests.find((t) => t.id === testId);
+    if (targetTest) {
+      const scoredStudents = marks.filter(
+        (m) => m.marksObtained !== null && m.marksObtained !== undefined,
+      );
+
+      for (const st of scoredStudents) {
+        pushTokenService
+          .getTokensForStudents([st.studentId])
+          .then((tokens) => {
+            if (tokens.length > 0) {
+              pushDispatchService.sendTestMarksAlert(
+                targetTest.title,
+                st.studentName,
+                Number(st.marksObtained),
+                targetTest.maxMarks,
+                tokens,
+              );
+            }
+          })
+          .catch((err) => console.warn('[TestsService] Marks alert notice:', err));
+      }
+    }
+  }
   }
 }
 

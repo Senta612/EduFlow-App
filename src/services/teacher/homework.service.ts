@@ -3,6 +3,8 @@ import { Homework, StudentHomeworkItem, HomeworkStatus } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
 import { batchesService } from './batches.service';
 import { studentsService } from './students.service';
+import { syncQueueService } from '@/services/offline';
+import { pushTokenService, pushDispatchService } from '@/services/notifications';
 
 export class HomeworkService {
   async getHomeworkList(): Promise<Homework[]> {
@@ -100,25 +102,6 @@ export class HomeworkService {
       notDoneCount: 0,
     };
 
-    try {
-      const { data: inserted, error } = await supabase
-        .from('homework_assignments')
-        .insert({
-          batch_id: data.batchId,
-          title: data.title,
-          description: data.description || null,
-          due_date: data.dueDate,
-        })
-        .select()
-        .single();
-
-      if (!error && inserted) {
-        newHw.id = inserted.id;
-      }
-    } catch (err) {
-      console.warn('Supabase createHomework notice:', err);
-    }
-
     // Initialize student submission list for this homework (default: done)
     try {
       const students = await studentsService.getBatchStudents(data.batchId);
@@ -142,9 +125,29 @@ export class HomeworkService {
       console.warn('Initialize submissions notice:', err);
     }
 
+    // 1. Optimistic local store
     const all = await getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
     const updated = [newHw, ...all.filter((h) => h.id !== newHw.id)];
     await setStored(STORAGE_KEYS.HOMEWORK, updated);
+
+    // 2. Offline sync queue
+    await syncQueueService.enqueue('homework', 'create', newHw);
+
+    // 3. Dispatch Push Notification to all students & parents in this batch
+    pushTokenService
+      .getTokensForBatch(data.batchId)
+      .then((tokens) => {
+        if (tokens.length > 0) {
+          pushDispatchService.sendHomeworkAlert(
+            newHw.batchName,
+            newHw.title,
+            newHw.dueDate,
+            tokens,
+          );
+        }
+      })
+      .catch((err) => console.warn('[HomeworkService] Push alert notice:', err));
+
     return newHw;
   }
 
@@ -152,15 +155,13 @@ export class HomeworkService {
     const { subscriptionService } = await import('@/services/subscription.service');
     await subscriptionService.assertProEntitlement('delete homework assignments');
 
-    try {
-      await supabase.from('homework_assignments').delete().eq('id', homeworkId);
-    } catch (err) {
-      console.warn('Supabase deleteHomework notice:', err);
-    }
-
     const list = await getStored<Homework[]>(STORAGE_KEYS.HOMEWORK, []);
     const filtered = list.filter((h) => h.id !== homeworkId);
     await setStored(STORAGE_KEYS.HOMEWORK, filtered);
+
+    // Offline sync queue
+    await syncQueueService.enqueue('homework', 'delete', { id: homeworkId });
+  }
   }
 
   async getHomeworkSubmissions(

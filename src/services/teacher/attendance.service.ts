@@ -7,6 +7,8 @@ import {
 } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
 import { batchesService } from './batches.service';
+import { syncQueueService } from '@/services/offline';
+import { pushDispatchService } from '@/services/notifications';
 
 export class AttendanceService {
   async getAttendanceRecords(): Promise<AttendanceRecord[]> {
@@ -95,51 +97,40 @@ export class AttendanceService {
       submittedAt: new Date().toISOString(),
     };
 
-    try {
-      const { data: rec, error: recErr } = await supabase
-        .from('attendance_records')
-        .upsert(
-          {
-            batch_id: batchId,
-            date: date,
-            present_count: presentCount,
-            absent_count: absentCount,
-            total_students: records.length,
-            submitted_at: newRecord.submittedAt,
-          },
-          { onConflict: 'batch_id,date' },
-        )
-        .select()
-        .single();
-
-      if (!recErr && rec) {
-        newRecord.id = rec.id;
-        const items = records.map((r) => ({
-          attendance_record_id: rec.id,
-          student_id: r.studentId,
-          status: r.status,
-        }));
-        await supabase
-          .from('attendance_items')
-          .upsert(items, { onConflict: 'attendance_record_id,student_id' });
-      }
-    } catch (err) {
-      console.warn('Supabase submitAttendance notice:', err);
-    }
-
+    // 1. Optimistic local write for zero-latency UI response
     const all = await this.getAttendanceRecords();
-    // Replace if already exists for this batch+date, or prepend
     const filtered = all.filter((r) => !(r.batchId === batchId && r.date === date));
     const updated = [newRecord, ...filtered];
     await setStored(STORAGE_KEYS.ATTENDANCE, updated);
 
-    // Update batch flag and notify listeners
+    // 2. Update batch flag and notify listeners immediately
     const batches = await getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
     const updatedBatches = batches.map((b) =>
       b.id === batchId ? { ...b, attendanceTakenToday: true } : b,
     );
     await setStored(STORAGE_KEYS.BATCHES, updatedBatches);
     batchesService.notifyBatchListeners(updatedBatches);
+
+    // 3. Queue mutation for background sync (works offline and online)
+    await syncQueueService.enqueue('attendance', 'create', newRecord);
+
+    // 4. Trigger Parent Push Notifications for absent students
+    const absentStudents = records
+      .filter((r) => r.status === 'absent')
+      .map((r) => ({ id: r.studentId, name: r.studentName }));
+
+    if (absentStudents.length > 0) {
+      const currentBatch = batches.find((b) => b.id === batchId);
+      pushDispatchService
+        .dispatchAttendanceAbsentees(
+          batchId,
+          currentBatch?.name || 'Class',
+          absentStudents,
+        )
+        .catch((err) => console.warn('[AttendanceService] Push alert notice:', err));
+    }
+
+    return newRecord;
 
     return newRecord;
   }
