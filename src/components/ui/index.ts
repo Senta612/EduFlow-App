@@ -13,3 +13,4 @@ export * from './TimeRangePicker';
 export * from './SignOutModal';
 export * from './FeeStatusBadge';
 export * from './SuccessAlert';
+export * from './Skeleton';

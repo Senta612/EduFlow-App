@@ -76,23 +76,22 @@ export class BatchesService {
 
   async getTodayClasses(): Promise<Batch[]> {
     const batches = await this.getBatches();
-    const todayBatches = batches.filter((b) => isBatchScheduledToday(b.schedule));
-    return todayBatches.length > 0 ? todayBatches : batches;
+    return batches.filter((b) => isBatchScheduledToday(b.schedule));
   }
 
   async getClassesForDate(
     dateStr: string,
   ): Promise<(Batch & { attendanceTakenForDate: boolean; attendanceRecord?: AttendanceRecord })[]> {
     const batches = await this.getBatches();
-    const targetDate = new Date(dateStr);
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const targetDate = new Date(y, m - 1, d, 12, 0, 0);
     const attendance = await getStored<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
     const dateRecords = attendance.filter((r) => r.date === dateStr);
     const recordMap = new Map(dateRecords.map((r) => [r.batchId, r]));
 
     const scheduledBatches = batches.filter((b) => isBatchScheduledOnDate(b.schedule, targetDate));
-    const list = scheduledBatches.length > 0 ? scheduledBatches : batches;
 
-    return list.map((b) => {
+    return scheduledBatches.map((b) => {
       const rec = recordMap.get(b.id);
       return {
         ...b,

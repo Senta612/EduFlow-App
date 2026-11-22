@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import {
   AttendanceWeekCalendar,
   TodayClassCard,
@@ -115,14 +116,16 @@ export default function TeacherHomeScreen() {
 
   // Batches for the currently selected date in the calendar
   const selectedDateBatches = useMemo(() => {
-    const targetDate = new Date(selectedDateStr);
+    // Robust local date parsing immune to timezone UTC rollover
+    const [y, m, d] = selectedDateStr.split('-').map(Number);
+    const targetDate = new Date(y, m - 1, d, 12, 0, 0);
+
     const dateRecords = attendanceRecords.filter((r) => r.date === selectedDateStr);
     const recordMap = new Map(dateRecords.map((r) => [r.batchId, r]));
 
     const scheduled = batches.filter((b) => isBatchScheduledOnDate(b.schedule, targetDate));
-    const list = scheduled.length > 0 ? scheduled : batches;
 
-    return list.map((b) => {
+    return scheduled.map((b) => {
       const rec = recordMap.get(b.id);
       return {
         ...b,
@@ -238,12 +241,7 @@ export default function TeacherHomeScreen() {
         }
       >
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary.main} />
-            <Text variant="body" style={styles.loadingText}>
-              {t('dashboard.loadingSchedule')}
-            </Text>
-          </View>
+          <DashboardSkeleton />
         ) : (
           <>
             {/* Subscription Lifecycle Status Banner */}
@@ -327,9 +325,15 @@ export default function TeacherHomeScreen() {
 
               {selectedDateBatches.length === 0 ? (
                 <EmptyState
-                  icon="calendar"
+                  icon="sun"
+                  iconColor="#D97706"
+                  iconBgColor="#FEF3C7"
                   title={t('dashboard.noClassesScheduled')}
                   description={t('dashboard.noClassesScheduledDesc').replace('{date}', selectedDateLabel)}
+                  actionLabel="+ Create New Batch"
+                  onAction={() => router.push('/(teacher)/batch/create')}
+                  secondaryActionLabel="View Weekly Timetable"
+                  onSecondaryAction={() => router.push('/(teacher)/more/timetable')}
                 />
               ) : (
                 <View style={styles.classList}>

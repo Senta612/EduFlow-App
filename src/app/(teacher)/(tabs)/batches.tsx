@@ -16,6 +16,7 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { BatchCard } from '@/components/ui/BatchCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { BatchListSkeleton } from '@/components/ui/Skeleton';
 import { SubscriptionExpiredModal } from '@/components/subscription';
 import { useSubscription } from '@/hooks/useSubscription';
 import { teacherService, isBatchScheduledToday } from '@/services/teacher.service';
@@ -223,12 +224,7 @@ export default function TeacherBatchesScreen() {
 
       {/* Batches FlatList */}
       {isLoading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary.main} />
-          <Text variant="body" style={styles.loadingText}>
-            {t('batches.loadingBatches')}
-          </Text>
-        </View>
+        <BatchListSkeleton />
       ) : hasError ? (
         <View style={styles.centerContainer}>
           <EmptyState

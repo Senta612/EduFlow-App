@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge, BadgeVariant } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { TasksListSkeleton } from '@/components/ui/Skeleton';
 import { TaskTypeModal, SelectBatchModal } from '@/components/tasks';
 import { teacherService } from '@/services/teacher.service';
 import { TeacherTask, TaskType, Batch } from '@/types/teacher';
@@ -204,12 +205,7 @@ export default function TeacherTasksScreen() {
         }
       >
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary.main} />
-            <Text variant="body" style={styles.loadingText}>
-              {t('tasks.loadingTasks')}
-            </Text>
-          </View>
+          <TasksListSkeleton />
         ) : filteredTasks.length === 0 ? (
           <EmptyState
             icon="check-circle"

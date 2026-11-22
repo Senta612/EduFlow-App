@@ -267,7 +267,9 @@ export const AttendanceWeekCalendar: React.FC<AttendanceWeekCalendarProps> = ({
           </Text>
         </View>
 
-        {pendingAttendanceCount > 0 ? (
+        {selectedDateBatchesCount === 0 ? (
+          <Badge label="No Classes" variant="neutral" icon="calendar" size="sm" />
+        ) : pendingAttendanceCount > 0 ? (
           <Badge
             label={`${pendingAttendanceCount} Pending`}
             variant="warning"

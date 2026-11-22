@@ -25,8 +25,16 @@ export const TodayClassCard: React.FC<TodayClassCardProps> = ({
   onTakeAttendance,
   onOpenBatchWorkspace,
 }) => {
+  if (!cls || !cls.id) {
+    return null;
+  }
+
   const isAttendancePending = !cls.attendanceTakenForDate;
   const rec = cls.attendanceRecord;
+  const batchName = cls.name?.trim() || 'Class Batch';
+  const gradeSubject = `${cls.grade || 'Class'} • ${cls.subject || 'All Subjects'}`;
+  const timing = cls.timing?.trim() || 'Schedule timing';
+  const studentCount = typeof cls.studentCount === 'number' ? cls.studentCount : 0;
 
   return (
     <Card
@@ -38,10 +46,10 @@ export const TodayClassCard: React.FC<TodayClassCardProps> = ({
       <View style={styles.classCardHeader}>
         <View style={styles.classTitleGroup}>
           <Text variant="heading" style={styles.classSubject}>
-            {cls.name}
+            {batchName}
           </Text>
           <Text variant="body" style={styles.classGrade}>
-            {cls.grade} • {cls.subject}
+            {gradeSubject}
           </Text>
         </View>
 
@@ -54,7 +62,7 @@ export const TodayClassCard: React.FC<TodayClassCardProps> = ({
           />
         ) : (
           <Badge
-            label={rec ? `${rec.presentCount} Present` : 'Attendance Done'}
+            label={rec && typeof rec.presentCount === 'number' ? `${rec.presentCount} Present` : 'Attendance Done'}
             variant="success"
             size="sm"
             icon="check"
@@ -67,23 +75,23 @@ export const TodayClassCard: React.FC<TodayClassCardProps> = ({
         <View style={styles.metaItem}>
           <Feather name="clock" size={14} color={theme.colors.text.secondary} />
           <Text variant="caption" style={styles.metaText}>
-            {cls.timing}
+            {timing}
           </Text>
         </View>
         <View style={styles.metaItem}>
           <Feather name="users" size={14} color={theme.colors.text.secondary} />
           <Text variant="caption" style={styles.metaText}>
-            {cls.studentCount} Students
+            {studentCount} Students
           </Text>
         </View>
-        {cls.room && (
+        {cls.room ? (
           <View style={styles.metaItem}>
             <Feather name="map-pin" size={14} color={theme.colors.text.secondary} />
             <Text variant="caption" style={styles.metaText}>
               {cls.room}
             </Text>
           </View>
-        )}
+        ) : null}
       </View>
 
       {/* Action Row */}
