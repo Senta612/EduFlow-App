@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   safeArea: {
     width: '100%',
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 6,
     borderRadius: 20,
-    backgroundColor: theme.colors.background.main,
+    backgroundColor: theme.colors.background.screen,
   },
   actionsList: {
     paddingVertical: 8,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: theme.radii.lg,
-    backgroundColor: theme.colors.background.main,
+    backgroundColor: theme.colors.background.screen,
     borderWidth: 1,
     borderColor: theme.colors.border.main,
     gap: 14,

@@ -34,11 +34,18 @@ export interface WhatsAppLaunchOptions {
  * 2. Gracefully falls back to browser universal link `https://wa.me/`
  * 3. Final fallback allows 1-tap copy to clipboard if WhatsApp is not installed.
  */
-export async function launchWhatsApp({
-  phone,
-  message,
-  fallbackTitle = 'WhatsApp Not Available',
-}: WhatsAppLaunchOptions): Promise<boolean> {
+export async function launchWhatsApp(
+  optionsOrPhone: WhatsAppLaunchOptions | string | null | undefined,
+  messageText?: string,
+  fallbackTitleParam?: string,
+): Promise<boolean> {
+  const isOptionsObj = typeof optionsOrPhone === 'object' && optionsOrPhone !== null;
+  const phone = isOptionsObj ? optionsOrPhone.phone : optionsOrPhone;
+  const message = (isOptionsObj ? optionsOrPhone.message : messageText) || '';
+  const fallbackTitle =
+    (isOptionsObj ? optionsOrPhone.fallbackTitle : fallbackTitleParam) ||
+    'WhatsApp Not Available';
+
   const formattedPhone = formatWhatsAppPhone(phone);
   const encodedText = encodeURIComponent(message.trim());
 

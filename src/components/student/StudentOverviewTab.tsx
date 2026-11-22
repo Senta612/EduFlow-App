@@ -162,12 +162,12 @@ export const StudentOverviewTab: React.FC<StudentOverviewTabProps> = ({
       </Card>
 
       {/* Test Score Trajectory Sparkline */}
-      {tests.recent.length > 0 && (
+      {tests.items && tests.items.length > 0 && (
         <ScoreTrendSparkline
-          scores={tests.recent.map((t) => ({
-            id: t.id,
+          scores={tests.items.map((t) => ({
+            id: t.testId,
             title: t.title,
-            score: t.marksObtained,
+            score: t.marksObtained ?? 0,
             maxScore: t.maxMarks,
             date: t.date,
           }))}

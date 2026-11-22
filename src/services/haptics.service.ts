@@ -92,3 +92,4 @@ class HapticsService {
 }
 
 export const hapticFeedback = new HapticsService();
+export const hapticsService = hapticFeedback;

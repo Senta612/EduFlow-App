@@ -10,6 +10,7 @@ export interface CircularProgressRingProps {
   label?: string;
   sublabel?: string;
   showPercentage?: boolean;
+  showPercentageText?: boolean;
   color?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -25,10 +26,12 @@ export function CircularProgressRing({
   label,
   sublabel,
   showPercentage = true,
+  showPercentageText,
   color,
   style,
 }: CircularProgressRingProps) {
   const clampedPct = Math.max(0, Math.min(100, Math.round(percentage)));
+  const displayPercentage = showPercentageText !== undefined ? showPercentageText : showPercentage;
 
   // Dynamic semantic color based on educational threshold
   const activeColor =
@@ -85,7 +88,7 @@ export function CircularProgressRing({
             },
           ]}
         >
-          {showPercentage && (
+          {displayPercentage && (
             <Text
               style={[
                 styles.percentageText,
