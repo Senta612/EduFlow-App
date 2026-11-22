@@ -297,7 +297,7 @@ class SyncQueueService {
 
       case 'fee': {
         const { studentId, batchId, amount, month, date, paymentMode, referenceNo, notes } = payload;
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('fee_payments')
           .insert({
             student_id: studentId,
@@ -312,7 +312,7 @@ class SyncQueueService {
           .select()
           .single();
         if (error) throw error;
-        return { realId: data.id };
+        return { realId: (data as any)?.id };
       }
 
       default:

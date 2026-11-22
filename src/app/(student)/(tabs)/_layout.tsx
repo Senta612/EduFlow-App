@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StudentService } from '@/services/student.service';
+import { pushTokenService } from '@/services/notifications';
 import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 export default function StudentTabsLayout() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+
+  useEffect(() => {
+    StudentService.getActiveSession()
+      .then((session) => {
+        if (session) {
+          pushTokenService
+            .registerStudentDevice({
+              studentId: session.studentId,
+              batchId: session.batchId,
+              role: 'parent',
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <Tabs

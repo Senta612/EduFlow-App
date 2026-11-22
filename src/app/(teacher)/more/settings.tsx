@@ -7,6 +7,7 @@ import {
   Pressable,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -16,7 +17,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SignOutModal } from '@/components/ui/SignOutModal';
-import { LanguageSelectorModal } from '@/components/common';
+import { LanguageSelectorModal, SyncStatusBadge } from '@/components/common';
 import { TeacherPaymentConfigModal } from '@/components/teacher';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeacherPreferences } from '@/providers';
@@ -24,6 +25,8 @@ import { useTranslation } from '@/i18n';
 import { theme } from '@/theme';
 
 import { notificationService } from '@/services/notifications/notification.service';
+import { syncQueueService } from '@/services/offline';
+import { SyncQueueSnapshot } from '@/services/offline/types';
 
 export default function TeacherSettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -42,6 +45,35 @@ export default function TeacherSettingsScreen() {
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [isSignOutModalVisible, setIsSignOutModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [syncSnapshot, setSyncSnapshot] = useState<SyncQueueSnapshot>({
+    status: 'synced',
+    pendingCount: 0,
+    lastSyncedAt: null,
+    isOnline: true,
+  });
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+
+  useEffect(() => {
+    return syncQueueService.subscribe((snap) => {
+      setSyncSnapshot(snap);
+    });
+  }, []);
+
+  const handleManualSyncNow = async () => {
+    setIsManualSyncing(true);
+    try {
+      const res = await syncQueueService.drainQueue();
+      if (res.processed > 0) {
+        Alert.alert('Sync Complete! 🟢', `Successfully synced ${res.processed} offline changes to cloud.`);
+      } else if (res.remaining === 0) {
+        Alert.alert('All Synced! 🟢', 'All your classroom records are up to date in the cloud.');
+      } else {
+        Alert.alert('Offline Mode 🟡', 'Unable to reach cloud servers right now. Changes remain safely stored on this device.');
+      }
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
 
   useEffect(() => {
     notificationService.getSettings().then((s) => {
@@ -317,7 +349,76 @@ export default function TeacherSettingsScreen() {
           </Card>
         </View>
 
-        {/* 4. Security & App Info */}
+        {/* 4. Offline Data & Cloud Sync */}
+        <View style={styles.section}>
+          <Text variant="caption" style={styles.sectionTitle}>
+            Offline Data & Cloud Sync
+          </Text>
+          <Card variant="elevated" padding="none" style={styles.card}>
+            <View style={styles.settingRow}>
+              <View
+                style={[
+                  styles.iconBox,
+                  {
+                    backgroundColor:
+                      syncSnapshot.pendingCount > 0 ? '#FEF3C7' : '#DCFCE7',
+                  },
+                ]}
+              >
+                <Feather
+                  name={syncSnapshot.pendingCount > 0 ? 'cloud-off' : 'cloud'}
+                  size={16}
+                  color={
+                    syncSnapshot.pendingCount > 0 ? '#D97706' : '#16A34A'
+                  }
+                />
+              </View>
+              <View style={styles.settingMeta}>
+                <Text variant="label" style={styles.settingTitle}>
+                  Cloud Data Status
+                </Text>
+                <Text variant="caption" style={styles.settingSubtitle}>
+                  {syncSnapshot.pendingCount > 0
+                    ? `${syncSnapshot.pendingCount} offline changes queued`
+                    : 'All attendance & records backed up'}
+                </Text>
+              </View>
+              <SyncStatusBadge showWhenSynced />
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.settingRow,
+                { borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={handleManualSyncNow}
+              accessibilityRole="button"
+              accessibilityLabel="Sync offline changes now"
+            >
+              <View style={[styles.iconBox, { backgroundColor: theme.colors.primary.bg }]}>
+                <Feather name="refresh-cw" size={16} color={theme.colors.primary.main} />
+              </View>
+              <View style={styles.settingMeta}>
+                <Text variant="label" style={styles.settingTitle}>
+                  Sync Offline Changes Now
+                </Text>
+                <Text variant="caption" style={styles.settingSubtitle}>
+                  {syncSnapshot.lastSyncedAt
+                    ? `Last synced: ${new Date(syncSnapshot.lastSyncedAt).toLocaleTimeString()}`
+                    : 'Reconcile local queue with Supabase'}
+                </Text>
+              </View>
+              {isManualSyncing ? (
+                <ActivityIndicator size="small" color={theme.colors.primary.main} />
+              ) : (
+                <Feather name="chevron-right" size={16} color={theme.colors.text.tertiary} />
+              )}
+            </Pressable>
+          </Card>
+        </View>
+
+        {/* 5. Security & App Info */}
         <View style={styles.section}>
           <Text variant="caption" style={styles.sectionTitle}>
             Account & Security

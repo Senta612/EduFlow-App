@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { Batch, AttendanceRecord, Student, Homework, Test } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
+import { syncQueueService } from '@/services/offline';
 
 export function isBatchScheduledToday(schedule: string): boolean {
   if (!schedule) return false;
@@ -157,36 +158,16 @@ export class BatchesService {
       attendanceTakenToday: false,
     };
 
-    try {
-      const { data: userRes } = await supabase.auth.getUser();
-      const { data: inserted, error } = await supabase
-        .from('batches')
-        .insert({
-          name: data.name,
-          grade: data.grade,
-          subject: data.subject,
-          schedule: data.schedule,
-          timing: data.timing,
-          room: data.room || null,
-          student_count: 0,
-          teacher_id: userRes?.user?.id || null,
-        })
-        .select()
-        .single();
-
-      if (!error && inserted) {
-        newBatch.id = inserted.id;
-      }
-    } catch (err) {
-      console.warn('Supabase createBatch notice:', err);
-    }
-
+    // 1. Optimistic local store
     const batches = await getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
     const updated = [newBatch, ...batches.filter((b) => b.id !== newBatch.id)];
     await setStored(STORAGE_KEYS.BATCHES, updated);
 
-    // Notify listeners
+    // Notify listeners immediately
     batchListeners.forEach((listener) => listener(updated));
+
+    // 2. Offline sync queue
+    await syncQueueService.enqueue('batch', 'create', newBatch);
 
     return newBatch;
   }
@@ -195,15 +176,15 @@ export class BatchesService {
     const { subscriptionService } = await import('@/services/subscription.service');
     await subscriptionService.assertProEntitlement('delete batches');
 
-    try {
-      await supabase.from('batches').delete().eq('id', batchId);
-    } catch (err) {
-      console.warn('Supabase deleteBatch notice:', err);
-    }
-
     const batches = await getStored<Batch[]>(STORAGE_KEYS.BATCHES, []);
     const filtered = batches.filter((b) => b.id !== batchId);
     await setStored(STORAGE_KEYS.BATCHES, filtered);
+
+    // Notify listeners immediately
+    batchListeners.forEach((listener) => listener(filtered));
+
+    // Offline sync queue
+    await syncQueueService.enqueue('batch', 'delete', { id: batchId });
 
     // Clean up associated local records
     try {

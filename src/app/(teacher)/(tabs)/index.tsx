@@ -21,6 +21,7 @@ import {
   UpcomingTestsSection,
   MonthCalendarModal,
 } from '@/components/teacher';
+import { SyncStatusBadge } from '@/components/common';
 import { SubscriptionExpiredModal } from '@/components/subscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/i18n';
@@ -206,16 +207,19 @@ export default function TeacherHomeScreen() {
             {`${getGreeting()}, ${getFirstName(profile?.full_name)}`}
           </Text>
         </View>
-        <Pressable
-          onPress={() => router.push('/(teacher)/more/notifications')}
-          hitSlop={8}
-          style={styles.notifButton}
-          accessibilityRole="button"
-          accessibilityLabel="Notifications"
-        >
-          <Feather name="bell" size={20} color={theme.colors.text.primary} />
-          {pendingAttendanceCount > 0 && <View style={styles.notifBadge} />}
-        </Pressable>
+        <View style={styles.headerRightActions}>
+          <SyncStatusBadge />
+          <Pressable
+            onPress={() => router.push('/(teacher)/more/notifications')}
+            hitSlop={8}
+            style={styles.notifButton}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+          >
+            <Feather name="bell" size={20} color={theme.colors.text.primary} />
+            {pendingAttendanceCount > 0 && <View style={styles.notifBadge} />}
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -467,6 +471,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 18,
     fontWeight: '800',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   notifButton: {
     position: 'relative',

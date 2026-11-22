@@ -162,7 +162,6 @@ export class HomeworkService {
     // Offline sync queue
     await syncQueueService.enqueue('homework', 'delete', { id: homeworkId });
   }
-  }
 
   async getHomeworkSubmissions(
     homeworkId: string,

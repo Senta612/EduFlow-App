@@ -102,7 +102,6 @@ export class TestsService {
     // Offline queue
     await syncQueueService.enqueue('test', 'delete', { id: testId });
   }
-  }
 
   async getTestMarks(testId: string, batchId: string): Promise<StudentMark[]> {
     const students = await studentsService.getBatchStudents(batchId);
@@ -196,7 +195,6 @@ export class TestsService {
           .catch((err) => console.warn('[TestsService] Marks alert notice:', err));
       }
     }
-  }
   }
 }
 

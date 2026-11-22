@@ -81,7 +81,7 @@ class PushTokenService {
 
     try {
       // 1. Save to Supabase device_push_tokens table
-      const { error } = await supabase.from('device_push_tokens').upsert(
+      const { error } = await (supabase as any).from('device_push_tokens').upsert(
         {
           student_id: record.studentId,
           batch_id: record.batchId,
@@ -118,7 +118,7 @@ class PushTokenService {
     if (!studentIds || studentIds.length === 0) return [];
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('device_push_tokens')
         .select('push_token')
         .in('student_id', studentIds)
@@ -153,7 +153,7 @@ class PushTokenService {
     if (!batchId) return [];
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('device_push_tokens')
         .select('push_token')
         .eq('batch_id', batchId)

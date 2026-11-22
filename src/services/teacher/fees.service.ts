@@ -10,6 +10,7 @@ import { FeeStatus, Batch } from '@/types/teacher';
 import { STORAGE_KEYS, getStored, setStored } from './storage.keys';
 import { batchesService } from './batches.service';
 import { studentsService } from './students.service';
+import { syncQueueService } from '@/services/offline';
 
 const DEFAULT_MONTHLY_FEE = 1500;
 const DEFAULT_DUE_DAY = 5;
@@ -111,6 +112,9 @@ export class FeesService {
 
     const updated = [newPayment, ...payments];
     await setStored(STORAGE_KEYS.FEES, updated);
+
+    // Enqueue offline sync mutation
+    await syncQueueService.enqueue('fee', 'create', newPayment);
 
     // Update student's fee status to 'paid'
     try {
