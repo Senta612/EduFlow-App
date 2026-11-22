@@ -11,6 +11,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -37,6 +38,7 @@ const ROLE_OPTIONS: { value: Role; label: string; icon: keyof typeof Feather.gly
 ];
 
 export default function SignupScreen() {
+  const insets = useSafeAreaInsets();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -76,8 +78,15 @@ export default function SignupScreen() {
     >
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top + 16, 24),
+            paddingBottom: Math.max(insets.bottom + 16, 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -298,7 +307,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
     gap: theme.spacing.lg,
   },
 

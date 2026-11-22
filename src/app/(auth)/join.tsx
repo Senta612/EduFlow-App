@@ -102,7 +102,7 @@ export default function JoinPortalScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         contentContainerStyle={[
@@ -110,6 +110,7 @@ export default function JoinPortalScreen() {
           { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
         ]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         {/* Top Back / Header Row */}

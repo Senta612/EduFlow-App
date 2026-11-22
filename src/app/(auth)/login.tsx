@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { EmailConfirmationModal } from '@/components/ui/EmailConfirmationModal';
@@ -27,6 +28,7 @@ import { LoginFormData, loginSchema } from '@/types/auth';
 type AuthMode = 'teacher' | 'student';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const [authMode, setAuthMode] = useState<AuthMode>('teacher');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -118,12 +120,19 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top + 16, 24),
+            paddingBottom: Math.max(insets.bottom + 16, 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         {/* Role Tab Switcher */}
@@ -342,8 +351,8 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: theme.spacing.lg,
-    gap: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing.lg,
   },
 
   tabSwitcher: {
